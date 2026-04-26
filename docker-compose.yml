@@ -1,5 +1,7 @@
 services:
   db:
+    profiles:
+      - localdb
     image: postgres:16-alpine
     environment:
       POSTGRES_USER: caloriesguard
@@ -19,19 +21,17 @@ services:
   backend:
     build: ./backend
     depends_on:
-      db:
-        condition: service_healthy
       ollama:
         condition: service_started
     environment:
-      DB_MODE: local
-      DIRECT_DATABASE_URL: "${DIRECT_DATABASE_URL:-postgresql://caloriesguard:dev_password@db:5432/caloriesguard_dev}"
-      DATABASE_URL: "${DATABASE_URL:-postgresql://caloriesguard:dev_password@db:5432/caloriesguard_dev}"
-      DB_HOST: db
-      DB_PORT: "5432"
-      DB_NAME: caloriesguard_dev
-      DB_USER: caloriesguard
-      DB_PASSWORD: dev_password
+      DB_MODE: "${DB_MODE:-supabase}"
+      DIRECT_DATABASE_URL: "${DIRECT_DATABASE_URL:-}"
+      DATABASE_URL: "${DATABASE_URL:-}"
+      DB_HOST: "${DB_HOST:-}"
+      DB_PORT: "${DB_PORT:-5432}"
+      DB_NAME: "${DB_NAME:-}"
+      DB_USER: "${DB_USER:-}"
+      DB_PASSWORD: "${DB_PASSWORD:-}"
       ALLOWED_ORIGINS: "http://localhost:3000,http://localhost:5173,http://localhost:8080"
       ALLOWED_ORIGINS_RAW: "http://localhost:3000,http://localhost:5173,http://localhost:8080"
       AI_ENABLED: "${AI_ENABLED:-true}"
