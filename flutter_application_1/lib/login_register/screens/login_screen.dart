@@ -1,3 +1,5 @@
+import 'dart:async';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
@@ -29,6 +31,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
   bool _isLoading = false;
   bool _isGoogleLoading = false;
   bool _obscurePass = true;
+  StreamSubscription<AuthState>? _authSub;
+  bool _socialSyncing = false;
 
   // ── Animation ─────────────────────────────────────────────────
   late final AnimationController _animCtrl;
@@ -48,10 +52,34 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
     _slideAnim = Tween<Offset>(begin: const Offset(0, 0.06), end: Offset.zero)
         .animate(CurvedAnimation(parent: _animCtrl, curve: Curves.easeOut));
     _animCtrl.forward();
+
+    // OAuth (Google/Facebook) returns asynchronously via redirect — listen for
+    // the session, then sync with backend. Without this, signInWithOAuth fires
+    // and we navigate away before currentUser is populated.
+    _authSub = Supabase.instance.client.auth.onAuthStateChange.listen((event) {
+      if (event.event != AuthChangeEvent.signedIn) return;
+      final user = event.session?.user;
+      if (user == null || _socialSyncing) return;
+      final providers = user.appMetadata['providers'];
+      final isOAuth = providers is List &&
+          providers.any((p) => p != 'email' && p != 'phone');
+      if (!isOAuth) return;
+      _socialSyncing = true;
+      _syncSocialBackend(
+        email: user.email ?? '',
+        name: (user.userMetadata?['full_name'] as String?) ??
+            (user.userMetadata?['name'] as String?) ??
+            user.email ??
+            'User',
+        uid: user.id,
+        provider: providers.first as String,
+      ).whenComplete(() => _socialSyncing = false);
+    });
   }
 
   @override
   void dispose() {
+    _authSub?.cancel();
     _emailCtrl.dispose();
     _passCtrl.dispose();
     _animCtrl.dispose();
@@ -145,21 +173,17 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
   Future<void> _handleGoogleSignIn() async {
     setState(() => _isGoogleLoading = true);
     try {
+      // Web: redirect back to current origin (Supabase parses the URL hash and
+      // populates the session). Mobile: use the registered deep-link scheme.
+      final redirect = kIsWeb
+          ? Uri.base.origin
+          : 'com.caloriesguard.app://login-callback';
       await Supabase.instance.client.auth.signInWithOAuth(
         OAuthProvider.google,
-        redirectTo: 'com.caloriesguard.app://login-callback',
+        redirectTo: redirect,
       );
-      // After OAuth redirect, Supabase session is set automatically.
-      // The auth state change listener will handle navigation.
-      final user = Supabase.instance.client.auth.currentUser;
-      if (user != null) {
-        await _syncSocialBackend(
-          email: user.email ?? '',
-          name: user.userMetadata?['full_name'] ?? user.email ?? 'User',
-          uid: user.id,
-          provider: 'google',
-        );
-      }
+      // The actual session arrives asynchronously on the OAuth redirect.
+      // _authSub (initState) handles _syncSocialBackend when the session lands.
     } catch (e) {
       _showError('Google Sign-In ล้มเหลว: $e');
     }
