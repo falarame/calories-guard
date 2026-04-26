@@ -1,0 +1,9 @@
+# Cloudflare Workers Static Assets config for the Flutter Web/PWA build.
+# Build first with `flutter build web --release ...`, then deploy the
+# generated `build/web` directory.
+name = "app-caloriesguard"
+compatibility_date = "2025-01-01"
+
+[assets]
+directory = "./build/web"
+not_found_handling = "single-page-application"
