@@ -120,7 +120,9 @@ class ProfileScreen extends ConsumerWidget {
                     const Color(0xFF628141), () {
                   Navigator.push(context,
                       MaterialPageRoute(builder: (_) => const ChatScreen()));
-                }, isLast: true),
+                },
+                    isLast: true,
+                    assetIcon: 'assets/images/icon/chatbot_icon.png'),
               ]),
             ),
 
@@ -350,7 +352,12 @@ class ProfileScreen extends ConsumerWidget {
             decoration: BoxDecoration(
                 color: Colors.grey.shade100,
                 borderRadius: BorderRadius.circular(10)),
-            child: Icon(e.icon, color: Colors.grey.shade500, size: 20),
+            child: e.assetIcon != null
+                ? Padding(
+                    padding: const EdgeInsets.all(4),
+                    child: Image.asset(e.assetIcon!, fit: BoxFit.contain),
+                  )
+                : Icon(e.icon, color: Colors.grey.shade500, size: 20),
           ),
           title: Text(e.label,
               style: const TextStyle(
@@ -378,6 +385,7 @@ class _MenuEntry {
   final Color iconBg;
   final VoidCallback? onTap;
   final bool isLast;
+  final String? assetIcon;
   const _MenuEntry(this.icon, this.label, this.iconBg, this.onTap,
-      {this.isLast = false});
+      {this.isLast = false, this.assetIcon});
 }

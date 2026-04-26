@@ -1,5 +1,8 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 // --- Import Provider ---
 import '../providers/user_data_provider.dart';
@@ -21,6 +24,8 @@ class MainScreen extends ConsumerStatefulWidget {
 }
 
 class _MainScreenState extends ConsumerState<MainScreen> {
+  static const _welcomePrefKey = 'chat_fab_welcome_seen';
+
   // รายชื่อหน้า (เรียงตามลำดับ 0, 1, 2, 3)
   final List<Widget> _pages = [
     const AppHomeScreen(), // Index 0: หน้าหลัก
@@ -29,25 +34,76 @@ class _MainScreenState extends ConsumerState<MainScreen> {
     const ExerciseRecommendationScreen(), // Index 3: ออกกำลังกาย
   ];
 
+  bool _showWelcome = false;
+  Timer? _welcomeTimer;
+
+  @override
+  void initState() {
+    super.initState();
+    _maybeShowWelcome();
+  }
+
+  @override
+  void dispose() {
+    _welcomeTimer?.cancel();
+    super.dispose();
+  }
+
+  Future<void> _maybeShowWelcome() async {
+    final prefs = await SharedPreferences.getInstance();
+    if (prefs.getBool(_welcomePrefKey) == true) return;
+    if (!mounted) return;
+    setState(() => _showWelcome = true);
+    _welcomeTimer = Timer(const Duration(seconds: 6), _dismissWelcome);
+  }
+
+  Future<void> _dismissWelcome() async {
+    if (!_showWelcome) return;
+    _welcomeTimer?.cancel();
+    if (mounted) setState(() => _showWelcome = false);
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool(_welcomePrefKey, true);
+  }
+
   @override
   Widget build(BuildContext context) {
     // ✅ หัวใจสำคัญ: ดึงค่า Index จาก Provider มาใช้
     // เมื่อค่านี้เปลี่ยน หน้าจอจะเปลี่ยนตามทันที
     final selectedIndex = ref.watch(navIndexProvider);
 
+    final showWelcomeBubble = _showWelcome && selectedIndex == 0;
+
     return Scaffold(
       backgroundColor: const Color(0xFFE8EFCF),
       floatingActionButton: Padding(
         padding: const EdgeInsets.only(bottom: 60),
-        child: FloatingActionButton(
-          heroTag: 'chatFab',
-          onPressed: () => Navigator.push(
-              context, MaterialPageRoute(builder: (_) => const ChatScreen())),
-          backgroundColor: const Color(0xFF628141),
-          shape: const CircleBorder(),
-          tooltip: 'AI Coach',
-          child: const Icon(Icons.smart_toy_rounded,
-              color: Colors.white, size: 26),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.end,
+          children: [
+            if (showWelcomeBubble) ...[
+              _WelcomeSpeechBubble(onTap: _dismissWelcome),
+              const SizedBox(height: 8),
+            ],
+            FloatingActionButton(
+              heroTag: 'chatFab',
+              onPressed: () {
+                _dismissWelcome();
+                Navigator.push(context,
+                    MaterialPageRoute(builder: (_) => const ChatScreen()));
+              },
+              backgroundColor: const Color(0xFF628141),
+              shape: const CircleBorder(),
+              tooltip: 'AI Coach',
+              child: Padding(
+                padding: const EdgeInsets.all(6),
+                child: Image.asset(
+                  'assets/images/icon/chatbot_icon.png',
+                  fit: BoxFit.contain,
+                ),
+              ),
+            ),
+          ],
         ),
       ),
       floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
@@ -193,6 +249,86 @@ class _MainScreenState extends ConsumerState<MainScreen> {
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+class _WelcomeSpeechBubble extends StatelessWidget {
+  final VoidCallback onTap;
+  const _WelcomeSpeechBubble({required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 220),
+        child: Stack(
+          clipBehavior: Clip.none,
+          children: [
+            Container(
+              padding:
+                  const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(14),
+                border: Border.all(
+                    color: const Color(0xFF628141).withValues(alpha: 0.3),
+                    width: 1.2),
+                boxShadow: [
+                  BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.12),
+                      blurRadius: 10,
+                      offset: const Offset(0, 4)),
+                ],
+              ),
+              child: const Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'สวัสดี! ฉันคือน้องซีการ์ด',
+                    style: TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.bold,
+                        color: Color(0xFF4C6414)),
+                  ),
+                  SizedBox(height: 2),
+                  Text(
+                    'แตะที่นี่เพื่อพูดคุยกับโค้ช AI',
+                    style:
+                        TextStyle(fontSize: 12, color: Colors.black87),
+                  ),
+                ],
+              ),
+            ),
+            Positioned(
+              right: 18,
+              bottom: -7,
+              child: Transform.rotate(
+                angle: 0.785398,
+                child: Container(
+                  width: 14,
+                  height: 14,
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    border: Border(
+                      right: BorderSide(
+                          color: const Color(0xFF628141)
+                              .withValues(alpha: 0.3),
+                          width: 1.2),
+                      bottom: BorderSide(
+                          color: const Color(0xFF628141)
+                              .withValues(alpha: 0.3),
+                          width: 1.2),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

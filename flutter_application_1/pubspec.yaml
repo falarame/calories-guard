@@ -94,6 +94,7 @@ flutter:
    - assets/images/icon/rice.png
    - assets/images/icon/saveweight.png
    - assets/images/icon/target.png
+   - assets/images/icon/chatbot_icon.png
    # picture
    - assets/images/picture/welcome.png
    - assets/images/picture/girl.png

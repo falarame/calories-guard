@@ -224,8 +224,15 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
             shape: BoxShape.circle,
             border: Border.all(color: Colors.white.withValues(alpha: 0.5), width: 1.5),
           ),
-          child: const Icon(Icons.smart_toy_rounded,
-              color: Colors.white, size: 24),
+          child: ClipOval(
+            child: Padding(
+              padding: const EdgeInsets.all(4),
+              child: Image.asset(
+                'assets/images/icon/chatbot_icon.png',
+                fit: BoxFit.contain,
+              ),
+            ),
+          ),
         ),
         const SizedBox(width: 12),
         Expanded(
@@ -282,8 +289,15 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
               height: 32,
               decoration: const BoxDecoration(
                 color: _green, shape: BoxShape.circle),
-              child: const Icon(Icons.smart_toy_rounded,
-                  color: Colors.white, size: 18),
+              child: ClipOval(
+                child: Padding(
+                  padding: const EdgeInsets.all(3),
+                  child: Image.asset(
+                    'assets/images/icon/chatbot_icon.png',
+                    fit: BoxFit.contain,
+                  ),
+                ),
+              ),
             ),
             const SizedBox(width: 8),
           ],
@@ -347,8 +361,15 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
           height: 32,
           decoration:
               const BoxDecoration(color: _green, shape: BoxShape.circle),
-          child: const Icon(Icons.smart_toy_rounded,
-              color: Colors.white, size: 18),
+          child: ClipOval(
+            child: Padding(
+              padding: const EdgeInsets.all(3),
+              child: Image.asset(
+                'assets/images/icon/chatbot_icon.png',
+                fit: BoxFit.contain,
+              ),
+            ),
+          ),
         ),
         const SizedBox(width: 8),
         Container(

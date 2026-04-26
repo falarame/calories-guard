@@ -28,16 +28,16 @@ class _FoodAllergyScreenState extends ConsumerState<FoodAllergyScreen> {
 
   // icon + color mapping ตามชื่อ allergy flag
   final List<_AllergyMeta> _metaList = const [
-    _AllergyMeta('ถั่วลิสง',          Icons.spa,              Color(0xFFD97706)),
-    _AllergyMeta('อาหารทะเล',         Icons.set_meal,         Color(0xFF0369A1)),
-    _AllergyMeta('ปลา',               Icons.phishing,         Color(0xFF0284C7)),
+    _AllergyMeta('ถั่วลิสง',          Icons.scatter_plot,     Color(0xFFD97706)),
+    _AllergyMeta('อาหารทะเล',         Icons.dinner_dining,    Color(0xFF0369A1)),
+    _AllergyMeta('ปลา',               Icons.set_meal,         Color(0xFF0284C7)),
     _AllergyMeta('นม',                Icons.local_drink,      Color(0xFF7C3AED)),
-    _AllergyMeta('ไข่',               Icons.egg,              Color(0xFFD97706)),
-    _AllergyMeta('กลูเตน',            Icons.breakfast_dining, Color(0xFF92400E)),
-    _AllergyMeta('ถั่วเหลือง',        Icons.grass,            Color(0xFF15803D)),
-    _AllergyMeta('ถั่วต้นไม้',        Icons.park,             Color(0xFF166534)),
+    _AllergyMeta('ไข่',               Icons.egg_alt,          Color(0xFFD97706)),
+    _AllergyMeta('กลูเตน',            Icons.bakery_dining,    Color(0xFF92400E)),
+    _AllergyMeta('ถั่วเหลือง',        Icons.eco,              Color(0xFF15803D)),
+    _AllergyMeta('ถั่วต้นไม้',        Icons.forest,           Color(0xFF166534)),
     _AllergyMeta('งา',                Icons.grain,            Color(0xFFB45309)),
-    _AllergyMeta('แล็กโทส',           Icons.no_drinks,        Color(0xFF6D28D9)),
+    _AllergyMeta('แล็กโทส',           Icons.no_food,          Color(0xFF6D28D9)),
   ];
 
   _AllergyMeta _metaFor(String name) {
