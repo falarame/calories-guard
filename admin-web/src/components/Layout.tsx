@@ -6,7 +6,6 @@ import {
   Languages,
   Users,
   LogOut,
-  Leaf,
   Menu,
   X,
 } from 'lucide-react'
@@ -60,11 +59,11 @@ export default function Layout() {
     >
       {/* Logo */}
       <div className="flex items-center gap-3 px-6 py-5 border-b border-white/10">
-        <div className="w-9 h-9 rounded-xl bg-[#AFD198] flex items-center justify-center flex-shrink-0">
-          <Leaf size={20} className="text-[#2D4A1C]" />
+        <div className="w-9 h-9 rounded-xl bg-white flex items-center justify-center flex-shrink-0 overflow-hidden">
+          <img src="/app-icon.png" alt="Calories Guard" className="w-8 h-8 object-contain" />
         </div>
         <div>
-          <p className="font-bold text-sm leading-tight">Calorie Guard</p>
+          <p className="font-bold text-sm leading-tight">Calories Guard</p>
           <p className="text-[11px] text-white/50">Admin Panel</p>
         </div>
       </div>
@@ -149,7 +148,7 @@ export default function Layout() {
             {open ? <X size={20} /> : <Menu size={20} />}
           </button>
           <h1 className="text-gray-800 font-semibold text-base flex-1">
-            Calorie Guard — Admin
+            Calories Guard — Admin
           </h1>
           <span className="hidden sm:inline-flex items-center gap-1 text-xs bg-brand-100 text-brand-700 px-3 py-1 rounded-full font-medium">
             <span className="w-1.5 h-1.5 rounded-full bg-green-500 inline-block" />

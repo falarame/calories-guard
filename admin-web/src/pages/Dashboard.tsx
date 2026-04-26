@@ -86,7 +86,7 @@ export default function Dashboard() {
     <div className="space-y-6">
       <div>
         <h2 className="text-2xl font-bold text-gray-800">Dashboard</h2>
-        <p className="text-sm text-gray-500 mt-1">ภาพรวมระบบ Calorie Guard</p>
+        <p className="text-sm text-gray-500 mt-1">ภาพรวมระบบ Calories Guard</p>
       </div>
 
       {/* Stat cards */}

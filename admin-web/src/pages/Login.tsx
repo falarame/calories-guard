@@ -1,6 +1,6 @@
 import { useState, type FormEvent } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Leaf, Eye, EyeOff, Loader2 } from 'lucide-react'
+import { Eye, EyeOff, Loader2 } from 'lucide-react'
 import { api } from '../api/client'
 import { useAuth } from '../context/AuthContext'
 
@@ -47,10 +47,10 @@ export default function Login() {
       <div className="w-full max-w-md">
         {/* Logo card */}
         <div className="flex flex-col items-center mb-8">
-          <div className="w-16 h-16 rounded-2xl bg-[#AFD198] flex items-center justify-center shadow-xl mb-4">
-            <Leaf size={32} className="text-[#2D4A1C]" />
+          <div className="w-16 h-16 rounded-2xl bg-white flex items-center justify-center shadow-xl mb-4 overflow-hidden">
+            <img src="/app-icon.png" alt="Calories Guard" className="w-14 h-14 object-contain" />
           </div>
-          <h1 className="text-2xl font-bold text-white">Calorie Guard</h1>
+          <h1 className="text-2xl font-bold text-white">Calories Guard</h1>
           <p className="text-white/60 text-sm mt-1">Admin Panel</p>
         </div>
 
