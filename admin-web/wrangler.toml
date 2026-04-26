@@ -1,5 +1,5 @@
 # Cloudflare Pages project config (optional — only needed if deploying via wrangler CLI).
 # Dashboard-based deploys don't need this file.
-name = "calories-guard-admin"
+name = "calories-guard"
 compatibility_date = "2025-01-01"
 pages_build_output_dir = "dist"
