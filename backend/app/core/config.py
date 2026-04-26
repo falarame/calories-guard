@@ -18,6 +18,7 @@ import os
 from typing import List
 
 from dotenv import load_dotenv
+from pydantic import AliasChoices, Field
 
 load_dotenv()
 
@@ -45,7 +46,10 @@ if _HAS_PSETTINGS:
         )
 
         # CORS
-        allowed_origins_raw: str = ""
+        allowed_origins_raw: str = Field(
+            default="",
+            validation_alias=AliasChoices("ALLOWED_ORIGINS_RAW", "ALLOWED_ORIGINS"),
+        )
 
         # DB
         db_mode: str = "local"
