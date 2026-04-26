@@ -101,10 +101,15 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
   }
 
   void _showError(String message) {
+    final isWide = MediaQuery.sizeOf(context).width >= 700;
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(message),
         backgroundColor: Colors.redAccent,
+        behavior: SnackBarBehavior.floating,
+        width: isWide ? 520 : null,
+        margin: isWide ? null : const EdgeInsets.all(16),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         duration: const Duration(seconds: 2),
       ),
     );
@@ -135,7 +140,8 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
       _showError('นามสกุลต้องมีความยาวอย่างน้อย 2 ตัวอักษร');
       return;
     }
-    if (!RegExp(r'^[\w\.\-\+]+@[\w\-]+(\.[\w\-]+)*\.[a-zA-Z]{2,}$').hasMatch(email)) {
+    if (!RegExp(r'^[\w\.\-\+]+@[\w\-]+(\.[\w\-]+)*\.[a-zA-Z]{2,}$')
+        .hasMatch(email)) {
       _showError('กรุณากรอกอีเมลให้ถูกต้อง เช่น user@gmail.com');
       return;
     }
@@ -208,168 +214,187 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
       child: Scaffold(
         backgroundColor: const Color(0xFFE8EFCF),
         body: SafeArea(
-          child: SingleChildScrollView(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Padding(
-                  padding: const EdgeInsets.only(left: 19, top: 31),
-                  child: IconButton(
-                    icon: const Icon(Icons.arrow_back_ios,
-                        color: Color(0xFF1D1B20)),
-                    onPressed: () => Navigator.pop(context),
-                  ),
-                ),
-                const SizedBox(height: 20),
-                const Center(
-                  child: Text(
-                    'สร้างบัญชีผู้ใช้ใหม่',
-                    style: TextStyle(
-                        fontFamily: 'Inter',
-                        fontSize: 32,
-                        fontWeight: FontWeight.w400,
-                        color: Colors.black),
-                  ),
-                ),
-                const SizedBox(height: 50),
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 62),
+          child: LayoutBuilder(
+            builder: (context, constraints) {
+              final isWide = constraints.maxWidth >= 700;
+              return SingleChildScrollView(
+                padding: EdgeInsets.symmetric(horizontal: isWide ? 32 : 24),
+                child: ConstrainedBox(
+                  constraints: BoxConstraints(minHeight: constraints.maxHeight),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      _buildLabel('ชื่อ *'),
-                      _buildTextField(_firstNameController),
-                      const SizedBox(height: 20),
-                      _buildLabel('นามสกุล *'),
-                      _buildTextField(_lastNameController),
-                      const SizedBox(height: 20),
-                      _buildLabel('E-mail *'),
-                      _buildTextField(_emailController),
-                      if (_emailStatusText != null)
-                        Padding(
-                          padding:
-                              const EdgeInsets.only(left: 8, top: 4, right: 8),
-                          child: Row(
+                      Padding(
+                        padding: EdgeInsets.only(top: isWide ? 24 : 16),
+                        child: IconButton(
+                          icon: const Icon(Icons.arrow_back_ios,
+                              color: Color(0xFF1D1B20)),
+                          onPressed: () => Navigator.pop(context),
+                        ),
+                      ),
+                      SizedBox(height: isWide ? 18 : 10),
+                      Center(
+                        child: ConstrainedBox(
+                          constraints: const BoxConstraints(maxWidth: 520),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.stretch,
                             children: [
-                              if (_isEmailChecking)
-                                const SizedBox(
-                                  width: 14,
-                                  height: 14,
-                                  child: CircularProgressIndicator(
-                                      strokeWidth: 2,
-                                      color: Color(0xFF628141)),
-                                )
-                              else
-                                Icon(
-                                  _isEmailTaken
-                                      ? Icons.error_outline
-                                      : Icons.check_circle_outline,
-                                  size: 16,
-                                  color: _emailStatusColor,
-                                ),
-                              const SizedBox(width: 6),
-                              Expanded(
-                                child: Text(
-                                  _emailStatusText!,
-                                  style: TextStyle(
+                              const Text(
+                                'สร้างบัญชีผู้ใช้ใหม่',
+                                textAlign: TextAlign.center,
+                                style: TextStyle(
                                     fontFamily: 'Inter',
-                                    fontSize: 13,
-                                    color: _emailStatusColor,
+                                    fontSize: 30,
+                                    fontWeight: FontWeight.w500,
+                                    color: Colors.black),
+                              ),
+                              SizedBox(height: isWide ? 48 : 36),
+                              _buildLabel('ชื่อ *'),
+                              _buildTextField(_firstNameController),
+                              const SizedBox(height: 20),
+                              _buildLabel('นามสกุล *'),
+                              _buildTextField(_lastNameController),
+                              const SizedBox(height: 20),
+                              _buildLabel('E-mail *'),
+                              _buildTextField(
+                                _emailController,
+                                keyboardType: TextInputType.emailAddress,
+                              ),
+                              if (_emailStatusText != null)
+                                Padding(
+                                  padding: const EdgeInsets.only(
+                                      left: 8, top: 4, right: 8),
+                                  child: Row(
+                                    children: [
+                                      if (_isEmailChecking)
+                                        const SizedBox(
+                                          width: 14,
+                                          height: 14,
+                                          child: CircularProgressIndicator(
+                                              strokeWidth: 2,
+                                              color: Color(0xFF628141)),
+                                        )
+                                      else
+                                        Icon(
+                                          _isEmailTaken
+                                              ? Icons.error_outline
+                                              : Icons.check_circle_outline,
+                                          size: 16,
+                                          color: _emailStatusColor,
+                                        ),
+                                      const SizedBox(width: 6),
+                                      Expanded(
+                                        child: Text(
+                                          _emailStatusText!,
+                                          style: TextStyle(
+                                            fontFamily: 'Inter',
+                                            fontSize: 13,
+                                            color: _emailStatusColor,
+                                          ),
+                                        ),
+                                      ),
+                                    ],
                                   ),
                                 ),
+                              const SizedBox(height: 20),
+                              _buildLabel('Password *'),
+                              _buildTextField(_passwordController,
+                                  isPassword: true),
+                              const Padding(
+                                padding:
+                                    EdgeInsets.only(left: 8, top: 6, right: 8),
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      'เงื่อนไขรหัสผ่าน:',
+                                      style: TextStyle(
+                                        fontFamily: 'Inter',
+                                        fontSize: 13,
+                                        fontWeight: FontWeight.w600,
+                                        color: Colors.redAccent,
+                                      ),
+                                    ),
+                                    SizedBox(height: 2),
+                                    Text(
+                                      '• ความยาวอย่างน้อย 8 ตัวอักษร',
+                                      style: TextStyle(
+                                        fontFamily: 'Inter',
+                                        fontSize: 12,
+                                        color: Colors.redAccent,
+                                        height: 1.4,
+                                      ),
+                                    ),
+                                    Text(
+                                      '• มีตัวพิมพ์ใหญ่ (A-Z) อย่างน้อย 1 ตัว',
+                                      style: TextStyle(
+                                        fontFamily: 'Inter',
+                                        fontSize: 12,
+                                        color: Colors.redAccent,
+                                        height: 1.4,
+                                      ),
+                                    ),
+                                    Text(
+                                      '• มีอักขระพิเศษ (เช่น !, @, #) อย่างน้อย 1 ตัว',
+                                      style: TextStyle(
+                                        fontFamily: 'Inter',
+                                        fontSize: 12,
+                                        color: Colors.redAccent,
+                                        height: 1.4,
+                                      ),
+                                    ),
+                                  ],
+                                ),
                               ),
+                              const SizedBox(height: 20),
+                              _buildLabel('Confirm password *'),
+                              _buildTextField(_confirmPasswordController,
+                                  isPassword: true),
+                              SizedBox(height: isWide ? 48 : 36),
+                              SizedBox(
+                                width: double.infinity,
+                                height: 54,
+                                child: ElevatedButton(
+                                  onPressed:
+                                      _isLoading ? null : _handleRegister,
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: const Color(0xFF628141),
+                                    foregroundColor: Colors.white,
+                                    disabledBackgroundColor:
+                                        Colors.grey.shade300,
+                                    elevation: 2,
+                                    shadowColor:
+                                        Colors.black.withValues(alpha: 0.24),
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(18),
+                                    ),
+                                  ),
+                                  child: _isLoading
+                                      ? const SizedBox(
+                                          width: 22,
+                                          height: 22,
+                                          child: CircularProgressIndicator(
+                                              color: Colors.white,
+                                              strokeWidth: 2.5),
+                                        )
+                                      : const Text('Done',
+                                          style: TextStyle(
+                                              fontFamily: 'Inter',
+                                              fontSize: 18,
+                                              fontWeight: FontWeight.w600,
+                                              color: Colors.white)),
+                                ),
+                              ),
+                              const SizedBox(height: 40),
                             ],
                           ),
                         ),
-                      const SizedBox(height: 20),
-                      _buildLabel('Password *'),
-                      _buildTextField(_passwordController, isPassword: true),
-                      const Padding(
-                        padding: EdgeInsets.only(left: 8, top: 6, right: 8),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              'เงื่อนไขรหัสผ่าน:',
-                              style: TextStyle(
-                                fontFamily: 'Inter',
-                                fontSize: 13,
-                                fontWeight: FontWeight.w600,
-                                color: Colors.redAccent,
-                              ),
-                            ),
-                            SizedBox(height: 2),
-                            Text(
-                              '• ความยาวอย่างน้อย 8 ตัวอักษร',
-                              style: TextStyle(
-                                fontFamily: 'Inter',
-                                fontSize: 12,
-                                color: Colors.redAccent,
-                                height: 1.4,
-                              ),
-                            ),
-                            Text(
-                              '• มีตัวพิมพ์ใหญ่ (A-Z) อย่างน้อย 1 ตัว',
-                              style: TextStyle(
-                                fontFamily: 'Inter',
-                                fontSize: 12,
-                                color: Colors.redAccent,
-                                height: 1.4,
-                              ),
-                            ),
-                            Text(
-                              '• มีอักขระพิเศษ (เช่น !, @, #) อย่างน้อย 1 ตัว',
-                              style: TextStyle(
-                                fontFamily: 'Inter',
-                                fontSize: 12,
-                                color: Colors.redAccent,
-                                height: 1.4,
-                              ),
-                            ),
-                          ],
-                        ),
                       ),
-                      const SizedBox(height: 20),
-                      _buildLabel('Confirm password *'),
-                      _buildTextField(_confirmPasswordController,
-                          isPassword: true),
                     ],
                   ),
                 ),
-                const SizedBox(height: 80),
-                Center(
-                  child: GestureDetector(
-                    onTap: _isLoading ? null : _handleRegister,
-                    child: Container(
-                      width: 259,
-                      height: 54,
-                      decoration: BoxDecoration(
-                        color: const Color(0xFF628141),
-                        borderRadius: BorderRadius.circular(24),
-                        boxShadow: [
-                          BoxShadow(
-                              color: Colors.black.withValues(alpha: 0.25),
-                              blurRadius: 4,
-                              offset: const Offset(0, 4))
-                        ],
-                      ),
-                      child: Center(
-                        child: _isLoading
-                            ? const CircularProgressIndicator(
-                                color: Colors.white)
-                            : const Text('Done',
-                                style: TextStyle(
-                                    fontFamily: 'Inter',
-                                    fontSize: 20,
-                                    fontWeight: FontWeight.w600,
-                                    color: Colors.white)),
-                      ),
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 40),
-              ],
-            ),
+              );
+            },
           ),
         ),
       ),
@@ -400,10 +425,12 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
     );
   }
 
-  Widget _buildTextField(TextEditingController controller,
-      {bool isPassword = false}) {
+  Widget _buildTextField(
+    TextEditingController controller, {
+    bool isPassword = false,
+    TextInputType keyboardType = TextInputType.text,
+  }) {
     return Container(
-      width: 266,
       height: 54,
       padding: const EdgeInsets.symmetric(horizontal: 18),
       decoration: BoxDecoration(
@@ -412,6 +439,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
         child: TextField(
           controller: controller,
           obscureText: isPassword,
+          keyboardType: keyboardType,
           decoration:
               const InputDecoration(border: InputBorder.none, isDense: true),
           style: const TextStyle(

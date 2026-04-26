@@ -12,6 +12,11 @@ import 'constants/constants.dart';
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
+  if (AppConstants.supabaseAnonKey.isEmpty) {
+    runApp(const _MissingConfigApp());
+    return;
+  }
+
   // Initialize Supabase (replaces Firebase)
   await Supabase.initialize(
     url: AppConstants.supabaseUrl,
@@ -49,6 +54,34 @@ void main() async {
         );
       },
       appRunner: () => runApp(const ProviderScope(child: MyApp())),
+    );
+  }
+}
+
+class _MissingConfigApp extends StatelessWidget {
+  const _MissingConfigApp();
+
+  @override
+  Widget build(BuildContext context) {
+    return MaterialApp(
+      title: 'Calories Guard',
+      debugShowCheckedModeBanner: false,
+      home: Scaffold(
+        backgroundColor: const Color(0xFFF5F7F0),
+        body: Center(
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 420),
+            child: const Padding(
+              padding: EdgeInsets.all(24),
+              child: Text(
+                'Missing Supabase configuration. Rebuild the app with SUPABASE_ANON_KEY.',
+                textAlign: TextAlign.center,
+                style: TextStyle(fontSize: 16, color: Color(0xFF1A2E0F)),
+              ),
+            ),
+          ),
+        ),
+      ),
     );
   }
 }

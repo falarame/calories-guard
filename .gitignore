@@ -4,6 +4,8 @@
 *.env.secret
 docker/.env
 docker/.env.secret
+.wrangler/
+**/.wrangler/
 
 # Cloudflare Tunnel credentials — NEVER commit (gives full access to the tunnel)
 .cloudflared/

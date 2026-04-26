@@ -75,6 +75,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
   }
 
   void _showError(String msg) {
+    final isWide = MediaQuery.sizeOf(context).width >= 700;
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
@@ -86,7 +87,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
         backgroundColor: Colors.redAccent,
         behavior: SnackBarBehavior.floating,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-        margin: const EdgeInsets.all(16),
+        width: isWide ? 520 : null,
+        margin: isWide ? null : const EdgeInsets.all(16),
       ),
     );
   }
@@ -171,237 +173,266 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
     return Scaffold(
       backgroundColor: _bg,
       body: SafeArea(
-        child: FadeTransition(
-          opacity: _fadeAnim,
-          child: SlideTransition(
-            position: _slideAnim,
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.symmetric(horizontal: 28),
-              child: Form(
-                key: _formKey,
-                child: Column(children: [
-                  const SizedBox(height: 40),
-
-                  // ── App logo ──────────────────────────────────
-                  Container(
-                    width: 80,
-                    height: 80,
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      shape: BoxShape.circle,
-                      boxShadow: [
-                        BoxShadow(
-                            color: _green.withValues(alpha: 0.2),
-                            blurRadius: 20,
-                            offset: const Offset(0, 6))
-                      ],
-                    ),
-                    child: Padding(
-                      padding: const EdgeInsets.all(14),
-                      child: Image.asset('assets/images/icon/icon.png',
-                          fit: BoxFit.contain),
-                    ),
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            final isWide = constraints.maxWidth >= 700;
+            return FadeTransition(
+              opacity: _fadeAnim,
+              child: SlideTransition(
+                position: _slideAnim,
+                child: SingleChildScrollView(
+                  padding: EdgeInsets.symmetric(
+                    horizontal: isWide ? 32 : 28,
                   ),
+                  child: ConstrainedBox(
+                    constraints:
+                        BoxConstraints(minHeight: constraints.maxHeight),
+                    child: Center(
+                      child: ConstrainedBox(
+                        constraints: const BoxConstraints(maxWidth: 480),
+                        child: Form(
+                          key: _formKey,
+                          child: Column(children: [
+                            const SizedBox(height: 40),
 
-                  const SizedBox(height: 20),
-
-                  // ── Title ─────────────────────────────────────
-                  Text(
-                    l10n.tr('login.title'),
-                    style: const TextStyle(
-                        fontFamily: 'Karla',
-                        fontSize: 28,
-                        fontWeight: FontWeight.w700,
-                        color: Color(0xFF1A2E0F)),
-                  ),
-                  const SizedBox(height: 6),
-                  Text(
-                    'ลงชื่อเข้าใช้งาน Calories Guard',
-                    style: TextStyle(
-                        fontFamily: 'Inter',
-                        fontSize: 14,
-                        color: Colors.grey.shade500),
-                  ),
-
-                  const SizedBox(height: 36),
-
-                  // ── Email field ───────────────────────────────
-                  _buildInputField(
-                    controller: _emailCtrl,
-                    hint: l10n.tr('login.email'),
-                    icon: Icons.email_outlined,
-                    keyboardType: TextInputType.emailAddress,
-                    validator: (v) {
-                      if (v == null || v.trim().isEmpty) {
-                        return 'กรุณากรอกอีเมล';
-                      }
-                      if (!v.contains('@')) return 'รูปแบบอีเมลไม่ถูกต้อง';
-                      return null;
-                    },
-                  ),
-
-                  const SizedBox(height: 14),
-
-                  // ── Password field ────────────────────────────
-                  _buildInputField(
-                    controller: _passCtrl,
-                    hint: l10n.tr('login.password'),
-                    icon: Icons.lock_outline_rounded,
-                    obscure: _obscurePass,
-                    suffix: IconButton(
-                      icon: Icon(
-                          _obscurePass
-                              ? Icons.visibility_off_outlined
-                              : Icons.visibility_outlined,
-                          size: 20,
-                          color: Colors.grey.shade400),
-                      onPressed: () =>
-                          setState(() => _obscurePass = !_obscurePass),
-                    ),
-                    validator: (v) {
-                      if (v == null || v.isEmpty) return 'กรุณากรอกรหัสผ่าน';
-                      if (v.length < 6) {
-                        return 'รหัสผ่านต้องมีอย่างน้อย 6 ตัวอักษร';
-                      }
-                      return null;
-                    },
-                  ),
-
-                  // ── Forgot password ───────────────────────────
-                  Align(
-                    alignment: Alignment.centerRight,
-                    child: TextButton(
-                      onPressed: () => Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                              builder: (_) => const ForgotPasswordScreen())),
-                      style: TextButton.styleFrom(
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 4, vertical: 6)),
-                      child: Text(
-                        l10n.tr('login.forgot'),
-                        style: const TextStyle(
-                            fontFamily: 'Inter',
-                            fontSize: 13,
-                            color: _green,
-                            fontWeight: FontWeight.w500),
-                      ),
-                    ),
-                  ),
-
-                  const SizedBox(height: 6),
-
-                  // ── Login button ──────────────────────────────
-                  SizedBox(
-                    width: double.infinity,
-                    height: 54,
-                    child: ElevatedButton(
-                      onPressed: (_isLoading || _isGoogleLoading)
-                          ? null
-                          : _handleLogin,
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: _green,
-                        foregroundColor: Colors.white,
-                        disabledBackgroundColor: Colors.grey.shade300,
-                        elevation: 0,
-                        shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(16)),
-                      ),
-                      child: _isLoading
-                          ? const SizedBox(
-                              width: 22,
-                              height: 22,
-                              child: CircularProgressIndicator(
-                                  color: Colors.white, strokeWidth: 2.5))
-                          : Text(
-                              l10n.tr('login.cta'),
-                              style: const TextStyle(
-                                  fontFamily: 'Inter',
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.w600,
-                                  letterSpacing: 0.3),
+                            // ── App logo ──────────────────────────────────
+                            Container(
+                              width: 80,
+                              height: 80,
+                              decoration: BoxDecoration(
+                                color: Colors.white,
+                                shape: BoxShape.circle,
+                                boxShadow: [
+                                  BoxShadow(
+                                      color: _green.withValues(alpha: 0.2),
+                                      blurRadius: 20,
+                                      offset: const Offset(0, 6))
+                                ],
+                              ),
+                              child: Padding(
+                                padding: const EdgeInsets.all(14),
+                                child: Image.asset(
+                                    'assets/images/icon/icon.png',
+                                    fit: BoxFit.contain),
+                              ),
                             ),
-                    ),
-                  ),
 
-                  const SizedBox(height: 28),
+                            const SizedBox(height: 20),
 
-                  // ── Divider ───────────────────────────────────
-                  Row(children: [
-                    Expanded(
-                        child: Divider(color: Colors.grey.shade300, height: 1)),
-                    Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 14),
-                      child: Text(
-                        'หรือเข้าสู่ระบบด้วย',
-                        style: TextStyle(
-                            fontFamily: 'Inter',
-                            fontSize: 12,
-                            color: Colors.grey.shade500),
+                            // ── Title ─────────────────────────────────────
+                            Text(
+                              l10n.tr('login.title'),
+                              style: const TextStyle(
+                                  fontFamily: 'Karla',
+                                  fontSize: 28,
+                                  fontWeight: FontWeight.w700,
+                                  color: Color(0xFF1A2E0F)),
+                            ),
+                            const SizedBox(height: 6),
+                            Text(
+                              'ลงชื่อเข้าใช้งาน Calories Guard',
+                              style: TextStyle(
+                                  fontFamily: 'Inter',
+                                  fontSize: 14,
+                                  color: Colors.grey.shade500),
+                            ),
+
+                            const SizedBox(height: 36),
+
+                            // ── Email field ───────────────────────────────
+                            _buildInputField(
+                              controller: _emailCtrl,
+                              hint: l10n.tr('login.email'),
+                              icon: Icons.email_outlined,
+                              keyboardType: TextInputType.emailAddress,
+                              validator: (v) {
+                                if (v == null || v.trim().isEmpty) {
+                                  return 'กรุณากรอกอีเมล';
+                                }
+                                if (!v.contains('@')) {
+                                  return 'รูปแบบอีเมลไม่ถูกต้อง';
+                                }
+                                return null;
+                              },
+                            ),
+
+                            const SizedBox(height: 14),
+
+                            // ── Password field ────────────────────────────
+                            _buildInputField(
+                              controller: _passCtrl,
+                              hint: l10n.tr('login.password'),
+                              icon: Icons.lock_outline_rounded,
+                              obscure: _obscurePass,
+                              suffix: IconButton(
+                                icon: Icon(
+                                    _obscurePass
+                                        ? Icons.visibility_off_outlined
+                                        : Icons.visibility_outlined,
+                                    size: 20,
+                                    color: Colors.grey.shade400),
+                                onPressed: () => setState(
+                                    () => _obscurePass = !_obscurePass),
+                              ),
+                              validator: (v) {
+                                if (v == null || v.isEmpty) {
+                                  return 'กรุณากรอกรหัสผ่าน';
+                                }
+                                if (v.length < 6) {
+                                  return 'รหัสผ่านต้องมีอย่างน้อย 6 ตัวอักษร';
+                                }
+                                return null;
+                              },
+                            ),
+
+                            // ── Forgot password ───────────────────────────
+                            Align(
+                              alignment: Alignment.centerRight,
+                              child: TextButton(
+                                onPressed: () => Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                        builder: (_) =>
+                                            const ForgotPasswordScreen())),
+                                style: TextButton.styleFrom(
+                                    padding: const EdgeInsets.symmetric(
+                                        horizontal: 4, vertical: 6)),
+                                child: Text(
+                                  l10n.tr('login.forgot'),
+                                  style: const TextStyle(
+                                      fontFamily: 'Inter',
+                                      fontSize: 13,
+                                      color: _green,
+                                      fontWeight: FontWeight.w500),
+                                ),
+                              ),
+                            ),
+
+                            const SizedBox(height: 6),
+
+                            // ── Login button ──────────────────────────────
+                            SizedBox(
+                              width: double.infinity,
+                              height: 54,
+                              child: ElevatedButton(
+                                onPressed: (_isLoading || _isGoogleLoading)
+                                    ? null
+                                    : _handleLogin,
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: _green,
+                                  foregroundColor: Colors.white,
+                                  disabledBackgroundColor: Colors.grey.shade300,
+                                  elevation: 0,
+                                  shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(16)),
+                                ),
+                                child: _isLoading
+                                    ? const SizedBox(
+                                        width: 22,
+                                        height: 22,
+                                        child: CircularProgressIndicator(
+                                            color: Colors.white,
+                                            strokeWidth: 2.5))
+                                    : Text(
+                                        l10n.tr('login.cta'),
+                                        style: const TextStyle(
+                                            fontFamily: 'Inter',
+                                            fontSize: 16,
+                                            fontWeight: FontWeight.w600,
+                                            letterSpacing: 0.3),
+                                      ),
+                              ),
+                            ),
+
+                            const SizedBox(height: 28),
+
+                            // ── Divider ───────────────────────────────────
+                            Row(children: [
+                              Expanded(
+                                  child: Divider(
+                                      color: Colors.grey.shade300, height: 1)),
+                              Padding(
+                                padding:
+                                    const EdgeInsets.symmetric(horizontal: 14),
+                                child: Text(
+                                  'หรือเข้าสู่ระบบด้วย',
+                                  style: TextStyle(
+                                      fontFamily: 'Inter',
+                                      fontSize: 12,
+                                      color: Colors.grey.shade500),
+                                ),
+                              ),
+                              Expanded(
+                                  child: Divider(
+                                      color: Colors.grey.shade300, height: 1)),
+                            ]),
+
+                            const SizedBox(height: 20),
+
+                            // ── Google Sign-In Button (only) ──────────────
+                            _buildSocialButton(
+                              label: 'Google',
+                              icon: const FaIcon(FontAwesomeIcons.google,
+                                  size: 18, color: Color(0xFFEA4335)),
+                              borderColor: const Color(0xFFEA4335)
+                                  .withValues(alpha: 0.3),
+                              isLoading: _isGoogleLoading,
+                              onTap: (_isLoading || _isGoogleLoading)
+                                  ? null
+                                  : _handleGoogleSignIn,
+                            ),
+
+                            const SizedBox(height: 28),
+
+                            // ── Divider before register ───────────────────
+                            Divider(color: Colors.grey.shade200, height: 1),
+                            const SizedBox(height: 20),
+
+                            // ── Register button ───────────────────────────
+                            SizedBox(
+                              width: double.infinity,
+                              height: 54,
+                              child: OutlinedButton(
+                                onPressed: () => Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                        builder: (_) =>
+                                            const RegisterScreen())),
+                                style: OutlinedButton.styleFrom(
+                                  foregroundColor: _green,
+                                  side: const BorderSide(
+                                      color: _green, width: 1.5),
+                                  shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(16)),
+                                ),
+                                child: const Row(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    Icon(Icons.person_add_outlined, size: 18),
+                                    SizedBox(width: 8),
+                                    Text(
+                                      'สร้างบัญชีใหม่',
+                                      style: TextStyle(
+                                          fontFamily: 'Inter',
+                                          fontSize: 16,
+                                          fontWeight: FontWeight.w600,
+                                          letterSpacing: 0.2),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+
+                            const SizedBox(height: 40),
+                          ]),
+                        ),
                       ),
                     ),
-                    Expanded(
-                        child: Divider(color: Colors.grey.shade300, height: 1)),
-                  ]),
-
-                  const SizedBox(height: 20),
-
-                  // ── Google Sign-In Button (only) ──────────────
-                  _buildSocialButton(
-                    label: 'Google',
-                    icon: const FaIcon(FontAwesomeIcons.google,
-                        size: 18, color: Color(0xFFEA4335)),
-                    borderColor: const Color(0xFFEA4335).withValues(alpha: 0.3),
-                    isLoading: _isGoogleLoading,
-                    onTap: (_isLoading || _isGoogleLoading)
-                        ? null
-                        : _handleGoogleSignIn,
                   ),
-
-                  const SizedBox(height: 28),
-
-                  // ── Divider before register ───────────────────
-                  Divider(color: Colors.grey.shade200, height: 1),
-                  const SizedBox(height: 20),
-
-                  // ── Register button ───────────────────────────
-                  SizedBox(
-                    width: double.infinity,
-                    height: 54,
-                    child: OutlinedButton(
-                      onPressed: () => Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                              builder: (_) => const RegisterScreen())),
-                      style: OutlinedButton.styleFrom(
-                        foregroundColor: _green,
-                        side: const BorderSide(color: _green, width: 1.5),
-                        shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(16)),
-                      ),
-                      child: const Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Icon(Icons.person_add_outlined, size: 18),
-                          SizedBox(width: 8),
-                          Text(
-                            'สร้างบัญชีใหม่',
-                            style: TextStyle(
-                                fontFamily: 'Inter',
-                                fontSize: 16,
-                                fontWeight: FontWeight.w600,
-                                letterSpacing: 0.2),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-
-                  const SizedBox(height: 40),
-                ]),
+                ),
               ),
-            ),
-          ),
+            );
+          },
         ),
       ),
     );
