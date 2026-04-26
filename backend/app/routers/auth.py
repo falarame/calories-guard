@@ -37,6 +37,30 @@ def _issue_access_token(user_id: int, email: str, role_id: int) -> str:
         "app_metadata": {"user_id": user_id, "role_id": role_id},
     }
     return jwt.encode(payload, _JWT_SECRET, algorithm=_JWT_ALGO)
+
+
+def _decode_optional_bearer(request: Request) -> dict | None:
+    """Return a verified Supabase/backend JWT payload if Authorization exists."""
+    auth_header = request.headers.get("authorization") or ""
+    scheme, _, token = auth_header.partition(" ")
+    if scheme.lower() != "bearer" or not token:
+        return None
+    try:
+        return jwt.decode(
+            token,
+            _JWT_SECRET,
+            algorithms=[_JWT_ALGO],
+            options={"verify_aud": False},
+        )
+    except Exception:
+        return None
+
+
+def _token_email_matches(payload: dict | None, email: str) -> bool:
+    if not payload:
+        return False
+    token_email = (payload.get("email") or "").strip().lower()
+    return bool(token_email) and token_email == email
 from app.services.email_service import (
     send_welcome_email, send_verification_email, send_password_reset_email,
 )
@@ -268,17 +292,23 @@ def resend_verification_email(req: PasswordResetRequest):
 def login(request: Request, user: UserLogin):
     # SLO: login success rate is one of the three dashboard panels (#14)
     with track("auth.login", "POST /login", email_domain=(user.email or "").split("@")[-1]):
-        return _login_impl(user)
+        return _login_impl(user, request)
 
 
-def _login_impl(user):
+def _login_impl(user, request: Request | None = None):
     email = _normalize_email(user.email)
+    token_payload = _decode_optional_bearer(request) if request is not None else None
+    authenticated_by_supabase = _token_email_matches(token_payload, email)
     conn = get_db_connection()
     try:
         cur = conn.cursor(cursor_factory=RealDictCursor)
         cur.execute("SELECT * FROM users WHERE LOWER(email) = %s", (email,))
         db_user = cur.fetchone()
-        if not db_user or not verify_password(user.password, db_user['password_hash']):
+        if not db_user:
+            raise HTTPException(status_code=401, detail="Invalid email or password")
+        if not authenticated_by_supabase and not verify_password(
+            user.password, db_user['password_hash']
+        ):
             raise HTTPException(status_code=401, detail="Invalid email or password")
         if not db_user.get('is_email_verified'):
             raise HTTPException(status_code=403, detail="Email not verified. Please check your inbox for the verification code.")
