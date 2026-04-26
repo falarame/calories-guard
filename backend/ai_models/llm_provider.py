@@ -21,6 +21,7 @@ Env vars:
                                                         (default: ollama)
   OLLAMA_BASE_URL       = http://127.0.0.1:11434        (for ollama)
   OLLAMA_MODEL          = deepseek-r1:1.5b              (for ollama)
+  OLLAMA_API_KEY        = <optional proxy bearer token>
   OLLAMA_TIMEOUT        = 60                            (seconds)
   DEEPSEEK_API_KEY      = <key>                         (legacy deepseek)
   DEEPSEEK_MODEL        = deepseek-chat                 (legacy deepseek)
@@ -113,9 +114,12 @@ def _ollama_generate(system: str, user: str, model_name: Optional[str] = None) -
     timeout = float(os.getenv("OLLAMA_TIMEOUT", "60") or 60)
     if not model:
         raise RuntimeError("OLLAMA_MODEL is not set")
+    api_key = os.getenv("OLLAMA_API_KEY") or os.getenv("OLLAMA_SECRET_API_KEY", "")
+    headers = {"Authorization": f"Bearer {api_key}"} if api_key else None
 
     response = requests.post(
         f"{base_url}/api/chat",
+        headers=headers,
         json={
             "model": model,
             "stream": False,
