@@ -93,11 +93,19 @@ class AuthService {
         return {'success': false, 'message': 'Login failed'};
       }
 
+      final supabaseToken = authResponse.session?.accessToken;
+
       // 2. Fetch user profile from our backend
-      final response = await _api.post('/login', body: {
-        'email': email,
-        'password': password,
-      });
+      final response = await _api.post(
+        '/login',
+        body: {
+          'email': email,
+          'password': password,
+        },
+        extraHeaders: supabaseToken == null
+            ? null
+            : {'Authorization': 'Bearer $supabaseToken'},
+      );
 
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body) as Map<String, dynamic>;
