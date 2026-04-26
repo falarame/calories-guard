@@ -3,3 +3,6 @@
 name = "calories-guard"
 compatibility_date = "2025-01-01"
 pages_build_output_dir = "dist"
+
+[assets]
+directory = "./dist"
