@@ -326,5 +326,5 @@ INSERT INTO roles (role_id, role_name) VALUES
 ON CONFLICT (role_name) DO NOTHING;
 
 -- เลือก set sequence ให้ role_id เริ่มจาก 3 ถ้ามีการ insert ใหม่
-SELECT setval('roles_role_id_seq', (SELECT COALESCE(MAX(role_id), 2) FROM roles))>>>>>>> 11d2506c3686bc28ff10739a97bba4047df67032
+SELECT setval('roles_role_id_seq', (SELECT COALESCE(MAX(role_id), 2) FROM roles));
 
