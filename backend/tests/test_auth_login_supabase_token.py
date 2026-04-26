@@ -81,6 +81,43 @@ def test_login_accepts_verified_supabase_token_with_legacy_password_hash(monkeyp
     assert conn.committed is True
 
 
+def test_login_falls_back_to_supabase_auth_user_endpoint(monkeypatch):
+    from app.routers import auth
+
+    conn = _Connection(_user_row())
+    monkeypatch.setattr(auth, "get_db_connection", lambda: conn)
+    monkeypatch.setattr(auth, "_SUPABASE_URL", "https://test.supabase.co")
+    monkeypatch.setattr(auth, "_SUPABASE_ANON_KEY", "anon-test-key")
+    monkeypatch.setattr(
+        auth.jwt,
+        "decode",
+        lambda *_args, **_kwargs: (_ for _ in ()).throw(Exception("bad secret")),
+    )
+
+    class _Response:
+        status_code = 200
+
+        @staticmethod
+        def json():
+            return {
+                "id": "supabase-uuid",
+                "email": "user@example.com",
+                "app_metadata": {},
+                "user_metadata": {},
+            }
+
+    monkeypatch.setattr(auth.requests, "get", lambda *_args, **_kwargs: _Response())
+
+    result = auth._login_impl(
+        SimpleNamespace(email="user@example.com", password="correct-in-supabase"),
+        _request_with_bearer("token-from-browser"),
+    )
+
+    assert result["user_id"] == 42
+    assert result["email"] == "user@example.com"
+    assert conn.committed is True
+
+
 def test_login_without_token_rejects_legacy_password_hash_without_500(monkeypatch):
     from app.routers import auth
 

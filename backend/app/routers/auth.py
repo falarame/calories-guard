@@ -9,6 +9,7 @@ from psycopg2.extras import RealDictCursor
 from slowapi import Limiter
 from slowapi.util import get_remote_address
 from jose import jwt
+import requests
 
 from database import get_db_connection
 from app.core.security import get_password_hash, verify_password
@@ -16,6 +17,8 @@ from app.core.observability import track
 
 
 _JWT_SECRET = os.getenv("SUPABASE_JWT_SECRET", "")
+_SUPABASE_URL = os.getenv("SUPABASE_URL") or os.getenv("SUPABASE_PROJECT_URL", "")
+_SUPABASE_ANON_KEY = os.getenv("SUPABASE_ANON_KEY", "")
 _JWT_ALGO = "HS256"
 _JWT_TTL_HOURS = 12
 
@@ -53,7 +56,34 @@ def _decode_optional_bearer(request: Request) -> dict | None:
             options={"verify_aud": False},
         )
     except Exception:
+        return _fetch_supabase_user_payload(token)
+
+
+def _fetch_supabase_user_payload(token: str) -> dict | None:
+    """Validate a Supabase access token with Supabase Auth as a fallback."""
+    if not _SUPABASE_URL or not _SUPABASE_ANON_KEY:
         return None
+    try:
+        response = requests.get(
+            f"{_SUPABASE_URL.rstrip('/')}/auth/v1/user",
+            headers={
+                "apikey": _SUPABASE_ANON_KEY,
+                "Authorization": f"Bearer {token}",
+            },
+            timeout=5,
+        )
+    except requests.RequestException:
+        return None
+    if response.status_code != 200:
+        return None
+    data = response.json()
+    return {
+        "sub": data.get("id"),
+        "email": data.get("email"),
+        "role": "authenticated",
+        "app_metadata": data.get("app_metadata") or {},
+        "user_metadata": data.get("user_metadata") or {},
+    }
 
 
 def _token_email_matches(payload: dict | None, email: str) -> bool:
