@@ -64,7 +64,8 @@ is what you plug into `VITE_API_BASE_URL` below.
 4. **Custom domain** (Settings → Custom domains) — point
    `admin.calories-guard.xxx` at the Pages project. Cloudflare provisions SSL
    automatically.
-5. **SPA routing** is handled by `public/_redirects` (`/* /index.html 200`);
+5. **SPA routing** is handled by `wrangler.toml` static assets config
+   (`not_found_handling = "single-page-application"`);
    without this, deep-linking to `/users` etc. 404s.
 6. **Security headers** are set in `public/_headers`.
 
@@ -75,7 +76,7 @@ is what you plug into `VITE_API_BASE_URL` below.
 - Check the browser devtools Network tab — requests should go to the Railway
   URL with `Authorization: Bearer <jwt>`.
 - Try refreshing `/users` directly in the URL bar → should not 404 (confirms
-  `_redirects` is active).
+  the SPA fallback is active).
 
 ## Adding a new admin
 
