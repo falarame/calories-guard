@@ -105,12 +105,22 @@ def update_user(user_id: int, user_update: UserUpdate, current_user: dict = Depe
                 )
 
         if user_update.current_weight_kg is not None:
-            cur.execute("""
-                INSERT INTO weight_logs (user_id, weight_kg, recorded_date)
-                VALUES (%s, %s, CURRENT_DATE)
-                ON CONFLICT (user_id, recorded_date)
-                DO UPDATE SET weight_kg = EXCLUDED.weight_kg
-            """, (user_id, user_update.current_weight_kg))
+            cur.execute(
+                """
+                UPDATE weight_logs
+                SET weight_kg = %s
+                WHERE user_id = %s AND recorded_date = CURRENT_DATE
+                """,
+                (user_update.current_weight_kg, user_id),
+            )
+            if cur.rowcount == 0:
+                cur.execute(
+                    """
+                    INSERT INTO weight_logs (user_id, weight_kg, recorded_date)
+                    VALUES (%s, %s, CURRENT_DATE)
+                    """,
+                    (user_id, user_update.current_weight_kg),
+                )
 
         conn.commit()
         return {"message": "Update successful"}

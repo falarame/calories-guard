@@ -112,6 +112,7 @@ def _ollama_generate(system: str, user: str, model_name: Optional[str] = None) -
     base_url = os.getenv("OLLAMA_BASE_URL", "http://127.0.0.1:11434").rstrip("/")
     model = model_name or os.getenv("OLLAMA_MODEL", "deepseek-r1:1.5b")
     timeout = float(os.getenv("OLLAMA_TIMEOUT", "60") or 60)
+    num_predict = int(os.getenv("OLLAMA_NUM_PREDICT", "320") or 320)
     if not model:
         raise RuntimeError("OLLAMA_MODEL is not set")
     api_key = os.getenv("OLLAMA_API_KEY") or os.getenv("OLLAMA_SECRET_API_KEY", "")
@@ -129,6 +130,7 @@ def _ollama_generate(system: str, user: str, model_name: Optional[str] = None) -
             ],
             "options": {
                 "temperature": 0.7,
+                "num_predict": num_predict,
             },
         },
         timeout=timeout,

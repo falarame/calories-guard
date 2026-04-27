@@ -37,6 +37,7 @@ def test_ollama_provider_posts_to_local_chat_api(monkeypatch):
         {"role": "system", "content": "system prompt"},
         {"role": "user", "content": "user prompt"},
     ]
+    assert calls[0]["json"]["options"]["num_predict"] == 320
 
 
 def test_ollama_is_default_provider_without_deepseek_key(monkeypatch):

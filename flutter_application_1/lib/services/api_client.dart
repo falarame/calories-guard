@@ -29,7 +29,7 @@ class ApiClient {
 
   Map<String, String> _headers({Map<String, String>? extra}) {
     final headers = <String, String>{
-      'Content-Type': 'application/json',
+      'Content-Type': 'application/json; charset=utf-8',
       'Accept': 'application/json',
     };
     final token = _accessToken;
@@ -105,7 +105,8 @@ class ApiClient {
     final uri = Uri.parse('$_baseUrl$path');
     return _handleResponse(
       http.post(uri,
-          headers: _headers(extra: extraHeaders), body: jsonEncode(body)),
+          headers: _headers(extra: extraHeaders),
+          body: utf8.encode(jsonEncode(body))),
     );
   }
 
@@ -117,7 +118,8 @@ class ApiClient {
     final uri = Uri.parse('$_baseUrl$path');
     return _handleResponse(
       http.put(uri,
-          headers: _headers(extra: extraHeaders), body: jsonEncode(body)),
+          headers: _headers(extra: extraHeaders),
+          body: utf8.encode(jsonEncode(body))),
     );
   }
 
@@ -129,7 +131,8 @@ class ApiClient {
     final uri = Uri.parse('$_baseUrl$path');
     return _handleResponse(
       http.patch(uri,
-          headers: _headers(extra: extraHeaders), body: jsonEncode(body)),
+          headers: _headers(extra: extraHeaders),
+          body: utf8.encode(jsonEncode(body))),
     );
   }
 

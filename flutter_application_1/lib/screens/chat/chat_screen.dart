@@ -2,10 +2,9 @@ import 'dart:convert';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:http/http.dart' as http;
 import 'package:geolocator/geolocator.dart';
-import 'package:flutter_application_1/constants/constants.dart';
 import '../../providers/user_data_provider.dart';
+import '../../services/api_client.dart';
 import '../../services/error_reporter.dart';
 
 // ─── Message Model ────────────────────────────────────────────────────────────
@@ -119,13 +118,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
     }
 
     try {
-      final res = await http
-          .post(
-            Uri.parse('${AppConstants.baseUrl}/api/chat/multi'),
-            headers: {'Content-Type': 'application/json'},
-            body: jsonEncode(body),
-          )
-          .timeout(const Duration(seconds: 30));
+      final res = await ApiClient().post('/api/chat/multi', body: body);
 
       String reply;
       if (res.statusCode == 200) {
