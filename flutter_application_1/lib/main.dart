@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
@@ -136,23 +138,33 @@ class AuthBootstrap extends ConsumerStatefulWidget {
 }
 
 class _AuthBootstrapState extends ConsumerState<AuthBootstrap> {
-  bool _handledInitialSession = false;
+  StreamSubscription<AuthState>? _authSub;
+  bool _socialSyncing = false;
 
   @override
   void initState() {
     super.initState();
+    _authSub = Supabase.instance.client.auth.onAuthStateChange.listen((event) {
+      if (event.event == AuthChangeEvent.initialSession ||
+          event.event == AuthChangeEvent.signedIn) {
+        _resumeOAuthSession(event.session);
+      }
+    });
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _resumeOAuthSession();
     });
   }
 
-  Future<void> _resumeOAuthSession() async {
-    if (_handledInitialSession || !mounted) return;
-    _handledInitialSession = true;
+  @override
+  void dispose() {
+    _authSub?.cancel();
+    super.dispose();
+  }
 
+  Future<void> _resumeOAuthSession([Session? session]) async {
+    if (_socialSyncing || !mounted) return;
     final auth = Supabase.instance.client.auth;
-    final session = auth.currentSession;
-    final user = session?.user;
+    final user = (session ?? auth.currentSession)?.user;
     if (user == null || user.email == null || user.email!.isEmpty) return;
 
     final providers = user.appMetadata['providers'];
@@ -163,6 +175,7 @@ class _AuthBootstrapState extends ConsumerState<AuthBootstrap> {
         provider.isNotEmpty && provider != 'email' && provider != 'phone';
     if (!isOAuthProvider) return;
 
+    _socialSyncing = true;
     final result = await AuthService().socialLogin(
       email: user.email!,
       name: (user.userMetadata?['full_name'] as String?) ??
@@ -171,7 +184,11 @@ class _AuthBootstrapState extends ConsumerState<AuthBootstrap> {
       uid: user.id,
       provider: provider,
     );
-    if (!mounted || result['success'] != true) return;
+    if (!mounted) return;
+    if (result['success'] != true) {
+      _socialSyncing = false;
+      return;
+    }
 
     final data = result['data'] as Map<String, dynamic>;
     ref.read(userDataProvider.notifier).setUserId(data['user_id'] as int);
