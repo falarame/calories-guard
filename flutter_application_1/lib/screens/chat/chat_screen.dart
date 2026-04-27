@@ -52,7 +52,8 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
     super.initState();
     // Welcome message
     _messages.add(ChatMessage(
-      text: 'สวัสดีค่ะ! หนูคือน้องซีการ์ด 🌿\n\nผู้ช่วยดูแลสุขภาพส่วนตัวของคุณค่ะ '
+      text:
+          'สวัสดีค่ะ! หนูคือน้องซีการ์ด 🌿\n\nผู้ช่วยดูแลสุขภาพส่วนตัวของคุณค่ะ '
           'ไม่ว่าจะเป็นเรื่องอาหาร แคลอรี่ การออกกำลังกาย หรือเป้าหมายน้ำหนัก '
           'น้องซีการ์ดพร้อมช่วยเสมอเลยนะคะ 😊\n\n'
           'วันนี้มีอะไรให้ช่วยคะ?',
@@ -211,7 +212,8 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
           child: Container(
             padding: const EdgeInsets.all(8),
             decoration: BoxDecoration(
-                color: Colors.white.withValues(alpha: 0.2), shape: BoxShape.circle),
+                color: Colors.white.withValues(alpha: 0.2),
+                shape: BoxShape.circle),
             child: const Icon(Icons.arrow_back_ios_new_rounded,
                 color: Colors.white, size: 18),
           ),
@@ -221,17 +223,16 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
         Container(
           width: 44,
           height: 44,
-          decoration: BoxDecoration(
-            color: Colors.white.withValues(alpha: 0.2),
+          decoration: const BoxDecoration(
+            color: Colors.white,
             shape: BoxShape.circle,
-            border: Border.all(color: Colors.white.withValues(alpha: 0.5), width: 1.5),
           ),
           child: ClipOval(
-            child: Padding(
-              padding: const EdgeInsets.all(4),
+            child: Transform.scale(
+              scale: 1.12,
               child: Image.asset(
                 'assets/images/icon/chatbot_icon.png',
-                fit: BoxFit.contain,
+                fit: BoxFit.cover,
               ),
             ),
           ),
@@ -256,7 +257,8 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                 const SizedBox(width: 5),
                 Text('ผู้ช่วยดูแลสุขภาพ · พร้อมช่วยเหลือ',
                     style: TextStyle(
-                        fontSize: 12, color: Colors.white.withValues(alpha: 0.8))),
+                        fontSize: 12,
+                        color: Colors.white.withValues(alpha: 0.8))),
               ]),
             ],
           ),
@@ -268,7 +270,11 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
             color: Colors.white.withValues(alpha: 0.2),
             borderRadius: BorderRadius.circular(20),
           ),
-          child: const Text('AI', style: TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold)),
+          child: const Text('AI',
+              style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 12,
+                  fontWeight: FontWeight.bold)),
         ),
       ]),
     );
@@ -289,14 +295,23 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
             Container(
               width: 32,
               height: 32,
-              decoration: const BoxDecoration(
-                color: _green, shape: BoxShape.circle),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                shape: BoxShape.circle,
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.08),
+                    blurRadius: 6,
+                    offset: const Offset(0, 2),
+                  )
+                ],
+              ),
               child: ClipOval(
-                child: Padding(
-                  padding: const EdgeInsets.all(3),
+                child: Transform.scale(
+                  scale: 1.12,
                   child: Image.asset(
                     'assets/images/icon/chatbot_icon.png',
-                    fit: BoxFit.contain,
+                    fit: BoxFit.cover,
                   ),
                 ),
               ),
@@ -361,14 +376,23 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
         Container(
           width: 32,
           height: 32,
-          decoration:
-              const BoxDecoration(color: _green, shape: BoxShape.circle),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            shape: BoxShape.circle,
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.08),
+                blurRadius: 6,
+                offset: const Offset(0, 2),
+              )
+            ],
+          ),
           child: ClipOval(
-            child: Padding(
-              padding: const EdgeInsets.all(3),
+            child: Transform.scale(
+              scale: 1.12,
               child: Image.asset(
                 'assets/images/icon/chatbot_icon.png',
-                fit: BoxFit.contain,
+                fit: BoxFit.cover,
               ),
             ),
           ),
@@ -448,9 +472,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
             child: Text(
               _quickPrompts[i],
               style: const TextStyle(
-                  fontSize: 12,
-                  color: _greenDark,
-                  fontWeight: FontWeight.w500),
+                  fontSize: 12, color: _greenDark, fontWeight: FontWeight.w500),
             ),
           ),
         ),
@@ -489,11 +511,10 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
               style: const TextStyle(fontSize: 14),
               decoration: InputDecoration(
                 hintText: 'ถามน้องซีการ์ด...',
-                hintStyle:
-                    TextStyle(fontSize: 14, color: Colors.grey.shade400),
+                hintStyle: TextStyle(fontSize: 14, color: Colors.grey.shade400),
                 border: InputBorder.none,
-                contentPadding: const EdgeInsets.symmetric(
-                    horizontal: 16, vertical: 10),
+                contentPadding:
+                    const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
               ),
               onSubmitted: _send,
             ),

@@ -276,8 +276,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                   child: _uploading
                       ? const Center(
                           child: CircularProgressIndicator(
-                              valueColor:
-                                  AlwaysStoppedAnimation(Colors.white),
+                              valueColor: AlwaysStoppedAnimation(Colors.white),
                               strokeWidth: 2))
                       : null,
                 ),
@@ -311,7 +310,8 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
               Text(
                   'อายุ ${userData.age} ปี  •  สูง ${userData.height.toInt()} ซม.',
                   style: TextStyle(
-                      fontSize: 13, color: Colors.white.withValues(alpha: 0.8))),
+                      fontSize: 13,
+                      color: Colors.white.withValues(alpha: 0.8))),
               const SizedBox(height: 10),
               Container(
                 padding:
@@ -319,7 +319,8 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                 decoration: BoxDecoration(
                   color: Colors.white.withValues(alpha: 0.15),
                   borderRadius: BorderRadius.circular(20),
-                  border: Border.all(color: Colors.white.withValues(alpha: 0.3)),
+                  border:
+                      Border.all(color: Colors.white.withValues(alpha: 0.3)),
                 ),
                 child: Row(mainAxisSize: MainAxisSize.min, children: [
                   Icon(goalIcon, size: 14, color: Colors.white),
@@ -428,12 +429,17 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
             width: 38,
             height: 38,
             decoration: BoxDecoration(
-                color: Colors.grey.shade100,
-                borderRadius: BorderRadius.circular(10)),
+              color: e.assetIcon != null ? Colors.white : Colors.grey.shade100,
+              shape: e.assetIcon != null ? BoxShape.circle : BoxShape.rectangle,
+              borderRadius:
+                  e.assetIcon != null ? null : BorderRadius.circular(10),
+            ),
             child: e.assetIcon != null
-                ? Padding(
-                    padding: const EdgeInsets.all(4),
-                    child: Image.asset(e.assetIcon!, fit: BoxFit.contain),
+                ? ClipOval(
+                    child: Transform.scale(
+                      scale: 1.12,
+                      child: Image.asset(e.assetIcon!, fit: BoxFit.cover),
+                    ),
                   )
                 : Icon(e.icon, color: Colors.grey.shade500, size: 20),
           ),

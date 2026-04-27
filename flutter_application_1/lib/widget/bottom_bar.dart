@@ -92,14 +92,18 @@ class _MainScreenState extends ConsumerState<MainScreen> {
                 Navigator.push(context,
                     MaterialPageRoute(builder: (_) => const ChatScreen()));
               },
-              backgroundColor: const Color(0xFF628141),
+              backgroundColor: Colors.white,
               shape: const CircleBorder(),
               tooltip: 'AI Coach',
-              child: Padding(
-                padding: const EdgeInsets.all(6),
-                child: Image.asset(
-                  'assets/images/icon/chatbot_icon.png',
-                  fit: BoxFit.contain,
+              child: ClipOval(
+                child: Transform.scale(
+                  scale: 1.12,
+                  child: Image.asset(
+                    'assets/images/icon/chatbot_icon.png',
+                    width: 56,
+                    height: 56,
+                    fit: BoxFit.cover,
+                  ),
                 ),
               ),
             ),
@@ -268,8 +272,7 @@ class _WelcomeSpeechBubble extends StatelessWidget {
           clipBehavior: Clip.none,
           children: [
             Container(
-              padding:
-                  const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
               decoration: BoxDecoration(
                 color: Colors.white,
                 borderRadius: BorderRadius.circular(14),
@@ -297,8 +300,7 @@ class _WelcomeSpeechBubble extends StatelessWidget {
                   SizedBox(height: 2),
                   Text(
                     'แตะที่นี่เพื่อพูดคุยกับโค้ช AI',
-                    style:
-                        TextStyle(fontSize: 12, color: Colors.black87),
+                    style: TextStyle(fontSize: 12, color: Colors.black87),
                   ),
                 ],
               ),
@@ -315,12 +317,10 @@ class _WelcomeSpeechBubble extends StatelessWidget {
                     color: Colors.white,
                     border: Border(
                       right: BorderSide(
-                          color: const Color(0xFF628141)
-                              .withValues(alpha: 0.3),
+                          color: const Color(0xFF628141).withValues(alpha: 0.3),
                           width: 1.2),
                       bottom: BorderSide(
-                          color: const Color(0xFF628141)
-                              .withValues(alpha: 0.3),
+                          color: const Color(0xFF628141).withValues(alpha: 0.3),
                           width: 1.2),
                     ),
                   ),
