@@ -1,13 +1,15 @@
+import 'package:flutter/foundation.dart'
+    show kIsWeb, defaultTargetPlatform, TargetPlatform;
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:timezone/timezone.dart' as tz;
 import 'package:timezone/data/latest.dart' as tz;
-import 'dart:io'; // ✅ 1. เพิ่ม import นี้
 
 class NotificationHelper {
   static final _notification = FlutterLocalNotificationsPlugin();
 
   // ตั้งค่าเริ่มต้น
   static Future<void> init() async {
+    if (kIsWeb) return;
     tz.initializeTimeZones(); // โหลดฐานข้อมูลเวลา
 
     const androidSettings = AndroidInitializationSettings('@mipmap/ic_launcher'); // ไอคอนแอป
@@ -16,14 +18,15 @@ class NotificationHelper {
     const settings = InitializationSettings(android: androidSettings, iOS: iosSettings);
 
     await _notification.initialize(settings);
-    
+
     // ✅ 2. เรียกขออนุญาตทันทีที่ Init (สำคัญมากสำหรับ Android 13+)
     await requestPermission();
   }
 
   // ✅ 3. เพิ่มฟังก์ชันขออนุญาต
   static Future<void> requestPermission() async {
-    if (Platform.isAndroid) {
+    if (kIsWeb) return;
+    if (defaultTargetPlatform == TargetPlatform.android) {
       final androidImplementation = _notification.resolvePlatformSpecificImplementation<AndroidFlutterLocalNotificationsPlugin>();
       await androidImplementation?.requestNotificationsPermission();
     }
@@ -35,6 +38,7 @@ class NotificationHelper {
     required String title,
     required String body,
   }) async {
+    if (kIsWeb) return;
     await _notification.show(
       id,
       title,
@@ -60,6 +64,7 @@ class NotificationHelper {
     required int hour,
     required int minute,
   }) async {
+    if (kIsWeb) return;
     await _notification.zonedSchedule(
       id,
       title,
@@ -96,6 +101,7 @@ class NotificationHelper {
 
   // 1. แจ้งเตือนกันลืม (Time-based)
   static Future<void> scheduleMealReminders() async {
+    if (kIsWeb) return;
     await scheduleDailyNotification(id: 101, title: '🍳 มื้อเช้าสำคัญนะ!', body: 'อย่าลืมบันทึกอาหารเช้าลง CleanGoal นะครับ', hour: 08, minute: 00);
     await scheduleDailyNotification(id: 102, title: '🍱 เที่ยงแล้ว กินไรยัง?', body: 'ทานมื้อเที่ยงแล้วมาจดบันทึกกันเถอะ', hour: 12, minute: 00);
     await scheduleDailyNotification(id: 103, title: '🥗 มื้อเย็นเบาๆ กันเถอะ', body: 'จบวันแล้ว สรุปยอดแคลอรี่กันหน่อย', hour: 18, minute: 00);
@@ -103,6 +109,7 @@ class NotificationHelper {
 
   // 2. แจ้งเตือนเตือนภัย (Alert) - เรียกตอนแคลอรี่เกิน
   static Future<void> showCalorieAlert(int current, int target) async {
+    if (kIsWeb) return;
     await showNotification(
       id: 201,
       title: '🚨 พลังงานเกินเป้าหมายแล้ว!',
@@ -112,6 +119,7 @@ class NotificationHelper {
 
   // 2.1 แจ้งเตือนใกล้เต็ม (Warning) - เรียกตอนใกล้ถึงเป้า
   static Future<void> showCalorieWarning(int current, int target) async {
+    if (kIsWeb) return;
     await showNotification(
       id: 202,
       title: '⚠️ ใกล้เต็มโควตาแล้วนะ',
@@ -121,6 +129,7 @@ class NotificationHelper {
 
   // 3. แจ้งเตือนความคืบหน้า (Progress) - สรุปตอนค่ำ
   static Future<void> scheduleDailyRecap() async {
+    if (kIsWeb) return;
     await scheduleDailyNotification(
       id: 301, 
       title: '🌙 สรุปผลวันนี้', 
@@ -132,6 +141,7 @@ class NotificationHelper {
 
   // 4. แจ้งเตือนปลุกใจ (Motivation) - ตอนเช้า
   static Future<void> scheduleMorningMotivation() async {
+    if (kIsWeb) return;
     await scheduleDailyNotification(
       id: 401, 
       title: '🔥 เช้าวันใหม่ สดใสกว่าเดิม', 
@@ -141,6 +151,7 @@ class NotificationHelper {
     );
   }
   static Future<void> scheduleWaterReminders() async {
+    if (kIsWeb) return;
     // เตือนตอน 10:00, 14:00, 16:00, 20:00
     final times = [10, 14, 16, 20]; 
     for (int i = 0; i < times.length; i++) {
@@ -156,6 +167,7 @@ class NotificationHelper {
 
   // 6. ⚖️ เตือนชั่งน้ำหนัก (ทุกวันจันทร์ 7 โมงเช้า)
   static Future<void> scheduleWeeklyWeightCheck() async {
+    if (kIsWeb) return;
     await _notification.zonedSchedule(
       601, // ID
       '⚖️ ได้เวลาชั่งน้ำหนักแล้ว',
@@ -193,6 +205,7 @@ class NotificationHelper {
     required bool overdue,
     required int? daysSince,
   }) async {
+    if (kIsWeb) return;
     if (!overdue) return;
     final since = daysSince != null ? ' (ผ่านมา $daysSince วันแล้ว)' : '';
     await showNotification(
@@ -208,6 +221,7 @@ class NotificationHelper {
     required bool tdeeNeedsUpdate,
     required int? newTargetCalories,
   }) async {
+    if (kIsWeb) return;
     if (isBirthday) {
       await showNotification(
         id: 701,
@@ -230,6 +244,7 @@ class NotificationHelper {
     required int? goalDaysLeft,
     required bool? onTrack,
   }) async {
+    if (kIsWeb) return;
     if (!trigger) return;
     String body;
     if (onTrack == true) {

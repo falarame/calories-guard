@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/services.dart';
 import 'package:health/health.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -29,6 +30,9 @@ class HealthService {
 
   /// Call once before any other method. Cheap to call repeatedly.
   static Future<void> _ensureConfigured() async {
+    if (kIsWeb) {
+      throw UnsupportedError('Health sync is not available on web');
+    }
     if (_configured) return;
     try {
       await _health.configure();
@@ -79,6 +83,7 @@ class HealthService {
   /// what the UI should do next so the caller doesn't have to re-derive
   /// "install / permission / ok" logic in every screen.
   static Future<HealthReadiness> ensureReady() async {
+    if (kIsWeb) return HealthReadiness.unsupported;
     await _ensureConfigured();
     final status = await healthConnectStatus();
     if (status == HealthConnectSdkStatus.sdkUnavailable) {

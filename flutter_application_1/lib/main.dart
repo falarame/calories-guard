@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -31,14 +32,16 @@ void main() async {
 
   const sentryDsn = String.fromEnvironment('SENTRY_DSN', defaultValue: '');
 
-  // เริ่มต้นและตั้งเวลาแจ้งเตือนในพื้นหลัง
-  NotificationHelper.init().then((_) async {
-    await NotificationHelper.scheduleMealReminders();
-    await NotificationHelper.scheduleDailyRecap();
-    await NotificationHelper.scheduleMorningMotivation();
-    await NotificationHelper.scheduleWaterReminders();
-    await NotificationHelper.scheduleWeeklyWeightCheck();
-  });
+  // เริ่มต้นและตั้งเวลาแจ้งเตือนในพื้นหลัง (เฉพาะ mobile)
+  if (!kIsWeb) {
+    NotificationHelper.init().then((_) async {
+      await NotificationHelper.scheduleMealReminders();
+      await NotificationHelper.scheduleDailyRecap();
+      await NotificationHelper.scheduleMorningMotivation();
+      await NotificationHelper.scheduleWaterReminders();
+      await NotificationHelper.scheduleWeeklyWeightCheck();
+    });
+  }
 
   if (sentryDsn.isEmpty) {
     runApp(const ProviderScope(child: MyApp()));

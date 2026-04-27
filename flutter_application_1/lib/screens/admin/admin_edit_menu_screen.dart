@@ -1,5 +1,5 @@
 import 'dart:convert';
-import 'dart:io';
+import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:flutter_application_1/services/api_client.dart';
 import 'package:image_picker/image_picker.dart';
@@ -22,7 +22,8 @@ class _AdminEditMenuScreenState extends State<AdminEditMenuScreen> {
   late TextEditingController _fatCtrl;
   // (เพิ่ม Controller วัตถุดิบ/วิธีทำ ได้ตามต้องการ)
 
-  File? _selectedImage;
+  XFile? _selectedImage;
+  Uint8List? _selectedBytes;
   String? _currentImageUrl; // เก็บ URL รูปเดิม
   bool _isUploading = false;
 
@@ -45,9 +46,11 @@ class _AdminEditMenuScreenState extends State<AdminEditMenuScreen> {
     final picker = ImagePicker();
     final pickedFile = await picker.pickImage(source: ImageSource.gallery);
     if (pickedFile != null) {
+      final bytes = await pickedFile.readAsBytes();
+      if (!mounted) return;
       setState(() {
-        _selectedImage = File(pickedFile.path); // 1. ต้องมีการ setState ตรงนี้
-        // _currentImageUrl = null; // (Optional) อาจจะเคลียร์ URL เดิมทิ้งด้วยก็ได้เพื่อความชัวร์
+        _selectedImage = pickedFile;
+        _selectedBytes = bytes;
       });
     }
   }
@@ -58,11 +61,15 @@ class _AdminEditMenuScreenState extends State<AdminEditMenuScreen> {
 
     try {
       // 2. ถ้ามีการเลือกรูปใหม่ ให้อัปโหลดและเปลี่ยน URL
-      if (_selectedImage != null) {
-        final streamRes = await ApiClient().uploadFile(
+      if (_selectedImage != null && _selectedBytes != null) {
+        final filename = _selectedImage!.name.isNotEmpty
+            ? _selectedImage!.name
+            : 'menu.jpg';
+        final streamRes = await ApiClient().uploadBytes(
           '/upload-image/',
           fieldName: 'file',
-          filePath: _selectedImage!.path,
+          bytes: _selectedBytes!,
+          fileName: filename,
         );
         if (streamRes.statusCode == 200) {
           var resData = await streamRes.stream.bytesToString();
@@ -127,11 +134,11 @@ class _AdminEditMenuScreenState extends State<AdminEditMenuScreen> {
                   color: Colors.white,
                   borderRadius: BorderRadius.circular(15),
                   border: Border.all(color: Colors.grey.shade300),
-                  image: _selectedImage != null
+                  image: _selectedBytes != null
                       ? DecorationImage(
-                          image: FileImage(_selectedImage!),
+                          image: MemoryImage(_selectedBytes!),
                           fit:
-                              BoxFit.cover) // ✅ 2. เช็ค _selectedImage ก่อนเสมอ
+                              BoxFit.cover) // ✅ 2. เช็ค _selectedBytes ก่อนเสมอ
                       : (_currentImageUrl != null &&
                               _currentImageUrl!.isNotEmpty)
                           ? DecorationImage(
@@ -139,7 +146,7 @@ class _AdminEditMenuScreenState extends State<AdminEditMenuScreen> {
                               fit: BoxFit.cover)
                           : null,
                 ),
-                child: (_selectedImage == null &&
+                child: (_selectedBytes == null &&
                         (_currentImageUrl == null || _currentImageUrl!.isEmpty))
                     ? const Center(
                         child: Column(

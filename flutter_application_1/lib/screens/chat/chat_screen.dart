@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:http/http.dart' as http;
@@ -69,6 +70,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
   // ─── Send Message ──────────────────────────────────────────────────────────
 
   Future<Position?> _getLocation() async {
+    if (kIsWeb) return null; // geolocator ไม่รองรับ flutter web ในแอปนี้
     try {
       var perm = await Geolocator.checkPermission();
       if (perm == LocationPermission.denied) {

@@ -1,5 +1,5 @@
 import 'dart:convert';
-import 'dart:io'; // จำเป็นสำหรับการจัดการไฟล์
+import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:flutter_application_1/services/api_client.dart';
@@ -24,7 +24,8 @@ class _AdminAddMenuScreenState extends State<AdminAddMenuScreen> {
   final TextEditingController _fatCtrl = TextEditingController();
   final TextEditingController _caloriesCtrl = TextEditingController();
 
-  File? _selectedImage; // ตัวแปรเก็บรูปที่เลือกจากเครื่อง
+  XFile? _selectedImage; // ตัวแปรเก็บรูปที่เลือกจากเครื่อง (web-safe)
+  Uint8List? _selectedBytes; // bytes สำหรับ preview + upload
   bool _isUploading = false; // สถานะกำลังโหลด
 
   @override
@@ -47,8 +48,11 @@ class _AdminAddMenuScreenState extends State<AdminAddMenuScreen> {
     final pickedFile = await picker.pickImage(source: ImageSource.gallery);
 
     if (pickedFile != null) {
+      final bytes = await pickedFile.readAsBytes();
+      if (!mounted) return;
       setState(() {
-        _selectedImage = File(pickedFile.path);
+        _selectedImage = pickedFile;
+        _selectedBytes = bytes;
       });
     }
   }
@@ -61,11 +65,15 @@ class _AdminAddMenuScreenState extends State<AdminAddMenuScreen> {
 
     try {
       // 1. ถ้ามีการเลือกรูป ให้อัปโหลดไปที่ API /upload-image/ ก่อน
-      if (_selectedImage != null) {
-        final streamRes = await ApiClient().uploadFile(
+      if (_selectedImage != null && _selectedBytes != null) {
+        final filename = _selectedImage!.name.isNotEmpty
+            ? _selectedImage!.name
+            : 'menu.jpg';
+        final streamRes = await ApiClient().uploadBytes(
           '/upload-image/',
           fieldName: 'file',
-          filePath: _selectedImage!.path,
+          bytes: _selectedBytes!,
+          fileName: filename,
         );
         if (streamRes.statusCode == 200) {
           var responseData = await streamRes.stream.bytesToString();
@@ -358,12 +366,12 @@ class _AdminAddMenuScreenState extends State<AdminAddMenuScreen> {
             decoration: BoxDecoration(
                 color: const Color(0xFFE8EFCF),
                 borderRadius: BorderRadius.circular(10),
-                image: _selectedImage != null
+                image: _selectedBytes != null
                     ? DecorationImage(
-                        image: FileImage(_selectedImage!),
+                        image: MemoryImage(_selectedBytes!),
                         fit: BoxFit.cover) // โชว์รูปที่เลือก
                     : null),
-            child: _selectedImage == null
+            child: _selectedBytes == null
                 ? const Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [

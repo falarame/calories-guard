@@ -25,31 +25,39 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
     setState(() => _isUploadingAvatar = true);
     try {
       final userId = ref.read(userDataProvider).userId;
-      final ext = picked.name.split('.').last.toLowerCase();
+      final bytes = await picked.readAsBytes();
+      final filename = picked.name.isNotEmpty ? picked.name : 'avatar.jpg';
 
-      final streamed = await ApiClient().uploadFile(
-        '/users/$userId/avatar',
+      // Step 1: upload bytes to /upload-image/ → ได้ public URL
+      final streamed = await ApiClient().uploadBytes(
+        '/upload-image/',
         fieldName: 'file',
-        filePath: picked.path,
-        fileName: 'avatar.$ext',
+        bytes: bytes,
+        fileName: filename,
       );
       final body = await streamed.stream.bytesToString();
+      if (streamed.statusCode != 200) throw Exception(body);
 
-      if (streamed.statusCode == 200) {
-        final data = jsonDecode(body);
-        final publicUrl = data['avatar_url'] as String;
-        final cacheBusted =
-            '$publicUrl?t=${DateTime.now().millisecondsSinceEpoch}';
-        ref.read(userDataProvider.notifier).setAvatarUrl(cacheBusted);
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-                content: Text('อัปโหลดรูปสำเร็จ ✅'),
-                backgroundColor: Colors.green),
-          );
-        }
-      } else {
-        throw Exception(body);
+      final data = jsonDecode(body) as Map<String, dynamic>;
+      final publicUrl = data['url'] as String?;
+      if (publicUrl == null) throw Exception('No URL in response');
+
+      // Step 2: PUT /users/{id} ส่ง avatar_url
+      final putRes = await ApiClient().put(
+        '/users/$userId',
+        body: {'avatar_url': publicUrl},
+      );
+      if (putRes.statusCode != 200) throw Exception(putRes.body);
+
+      final cacheBusted =
+          '$publicUrl?t=${DateTime.now().millisecondsSinceEpoch}';
+      ref.read(userDataProvider.notifier).setAvatarUrl(cacheBusted);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+              content: Text('อัปโหลดรูปสำเร็จ ✅'),
+              backgroundColor: Colors.green),
+        );
       }
     } catch (e) {
       if (mounted) {

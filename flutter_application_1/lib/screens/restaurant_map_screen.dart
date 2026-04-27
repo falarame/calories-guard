@@ -1,11 +1,13 @@
 import 'dart:async';
 import 'dart:convert';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:http/http.dart' as http;
 import 'dart:math' show cos, sqrt, asin;
 import '../config/secrets.dart';
+import '../widget/web_unsupported_placeholder.dart';
 
 class RestaurantMapScreen extends StatefulWidget {
   final double remainingCalories;
@@ -53,7 +55,9 @@ class _RestaurantMapScreenState extends State<RestaurantMapScreen> {
   @override
   void initState() {
     super.initState();
-    _initLocation();
+    if (!kIsWeb) {
+      _initLocation();
+    }
   }
 
   Future<void> _initLocation() async {
@@ -258,6 +262,13 @@ class _RestaurantMapScreenState extends State<RestaurantMapScreen> {
 
   @override
   Widget build(BuildContext context) {
+    if (kIsWeb) {
+      return const WebUnsupportedPlaceholder(
+        title: 'แผนที่ร้านอาหาร',
+        message: 'แผนที่ร้านอาหารใกล้คุณใช้งานได้เฉพาะบนแอปมือถือ\nกรุณาดาวน์โหลดแอปเพื่อใช้งาน',
+        icon: Icons.map_rounded,
+      );
+    }
     return Scaffold(
       backgroundColor: _bg,
       body: Stack(
