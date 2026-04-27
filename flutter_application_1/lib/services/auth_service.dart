@@ -48,6 +48,17 @@ class AuthService {
     String password,
   ) async {
     try {
+      final availability = await checkEmailAvailable(email);
+      if (availability['networkError'] != true &&
+          availability['available'] != true) {
+        return {
+          'success': false,
+          'message': availability['reason'] == 'taken'
+              ? 'อีเมลนี้ถูกใช้งานแล้ว กรุณาเข้าสู่ระบบหรือใช้ลืมรหัสผ่าน'
+              : 'รูปแบบอีเมลไม่ถูกต้อง',
+        };
+      }
+
       // 1. Sign up with Supabase Auth
       final authResponse = await _supabase.auth.signUp(
         email: email,
@@ -76,13 +87,21 @@ class AuthService {
         return {'success': true, 'data': data};
       } else {
         final errorData = jsonDecode(response.body);
+        if (response.statusCode == 409) {
+          await _supabase.auth.signOut();
+        }
         return {
           'success': false,
-          'message': errorData['detail'] ?? 'Backend sync failed',
+          'message': response.statusCode == 409
+              ? 'อีเมลนี้ถูกใช้งานแล้ว กรุณาเข้าสู่ระบบหรือใช้ลืมรหัสผ่าน'
+              : errorData['detail'] ?? 'Backend sync failed',
         };
       }
     } on AuthException catch (e) {
-      return {'success': false, 'message': e.message};
+      final message = e.message.toLowerCase().contains('already')
+          ? 'อีเมลนี้ถูกใช้งานแล้ว กรุณาเข้าสู่ระบบหรือใช้ลืมรหัสผ่าน'
+          : e.message;
+      return {'success': false, 'message': message};
     } catch (e) {
       return {'success': false, 'message': 'Connection error: $e'};
     }
@@ -254,8 +273,22 @@ class AuthService {
 
   Future<Map<String, dynamic>> requestPasswordReset(String email) async {
     try {
-      await _supabase.auth.resetPasswordForEmail(email);
+      await _supabase.auth.resetPasswordForEmail(
+        email,
+        redirectTo: oauthRedirectTo,
+      );
       return {'success': true, 'message': 'Password reset email sent'};
+    } on AuthException catch (e) {
+      return {'success': false, 'message': e.message};
+    } catch (e) {
+      return {'success': false, 'message': 'Connection error: $e'};
+    }
+  }
+
+  Future<Map<String, dynamic>> updatePassword(String password) async {
+    try {
+      await _supabase.auth.updateUser(UserAttributes(password: password));
+      return {'success': true};
     } on AuthException catch (e) {
       return {'success': false, 'message': e.message};
     } catch (e) {

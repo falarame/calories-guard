@@ -8,6 +8,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:sentry_flutter/sentry_flutter.dart';
 import 'l10n/app_localizations.dart';
 import 'login_register/screens/gender_selection_screen.dart';
+import 'login_register/screens/reset_password_screen.dart';
 import 'login_register/screens/welcome_screen.dart';
 import 'providers/user_data_provider.dart';
 import 'screens/admin/admin_dashboard_screen.dart';
@@ -146,6 +147,10 @@ class _AuthBootstrapState extends ConsumerState<AuthBootstrap> {
   void initState() {
     super.initState();
     _authSub = Supabase.instance.client.auth.onAuthStateChange.listen((event) {
+      if (event.event == AuthChangeEvent.passwordRecovery) {
+        _openResetPasswordScreen();
+        return;
+      }
       if (event.event == AuthChangeEvent.initialSession ||
           event.event == AuthChangeEvent.signedIn) {
         _resumeOAuthSession(event.session);
@@ -153,6 +158,18 @@ class _AuthBootstrapState extends ConsumerState<AuthBootstrap> {
     });
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _resumeOAuthSession();
+    });
+  }
+
+  void _openResetPasswordScreen() {
+    if (!mounted) return;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      Navigator.pushAndRemoveUntil(
+        context,
+        MaterialPageRoute(builder: (_) => const ResetPasswordScreen()),
+        (route) => false,
+      );
     });
   }
 

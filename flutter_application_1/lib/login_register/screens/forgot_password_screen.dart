@@ -5,9 +5,8 @@ import '../../services/auth_service.dart';
 /// Forgot-password flow is delegated to Supabase Auth.
 ///
 /// Supabase sends a password-reset *link* (not an OTP) to the user's inbox.
-/// Clicking the link opens a Supabase-hosted page where the user picks a new
-/// password. We therefore only collect the email here and show a clear
-/// "check your inbox" message — no in-app code entry, no birth-date challenge.
+/// Clicking the link returns to the app/web origin; AuthBootstrap listens for
+/// the passwordRecovery event and opens ResetPasswordScreen.
 ///
 /// The legacy OTP-based flow (backend `/password-reset/*`) is kept on the
 /// server for backwards compatibility but is no longer called from the app.
@@ -92,7 +91,8 @@ class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen> {
               const SizedBox(height: 10),
               const Text(
                 'กรอกอีเมลที่ใช้สมัครบัญชี ระบบจะส่งลิงก์รีเซ็ตรหัสผ่าน\nไปที่อีเมลของคุณ คลิกลิงก์เพื่อตั้งรหัสผ่านใหม่',
-                style: TextStyle(fontSize: 14, color: Colors.black87, height: 1.4),
+                style:
+                    TextStyle(fontSize: 14, color: Colors.black87, height: 1.4),
               ),
               const SizedBox(height: 24),
               TextField(
@@ -153,7 +153,9 @@ class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen> {
                                 color: Colors.white, strokeWidth: 2),
                           )
                         : Text(
-                            _sent ? 'ส่งลิงก์อีกครั้ง' : 'ส่งลิงก์รีเซ็ตรหัสผ่าน',
+                            _sent
+                                ? 'ส่งลิงก์อีกครั้ง'
+                                : 'ส่งลิงก์รีเซ็ตรหัสผ่าน',
                             style: const TextStyle(
                                 fontSize: 16, color: Colors.white),
                           ),
