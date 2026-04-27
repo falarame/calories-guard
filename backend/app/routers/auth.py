@@ -431,12 +431,19 @@ def social_login(body: SocialLoginRequest):
                 (today, total_days, streak, user['user_id'])
             )
             conn.commit()
+            role_id = int(user.get('role_id') or 2)
             return {
                 "user_id": int(user['user_id']),
                 "email": user['email'],
                 "username": user.get('username') or body.name,
-                "role_id": int(user.get('role_id') or 2),
+                "role_id": role_id,
                 "provider": body.provider,
+                "access_token": _issue_access_token(
+                    int(user['user_id']),
+                    user['email'],
+                    role_id,
+                ),
+                "token_type": "bearer",
             }
         else:
             fake_hash = secrets.token_hex(32)
@@ -457,6 +464,8 @@ def social_login(body: SocialLoginRequest):
                 "role_id": 2,
                 "provider": body.provider,
                 "is_new_user": True,
+                "access_token": _issue_access_token(int(new_id), email, 2),
+                "token_type": "bearer",
             }
     except Exception as e:
         conn.rollback()

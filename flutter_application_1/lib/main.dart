@@ -6,9 +6,13 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:sentry_flutter/sentry_flutter.dart';
 import 'l10n/app_localizations.dart';
 import 'login_register/screens/welcome_screen.dart';
+import 'providers/user_data_provider.dart';
+import 'screens/admin/admin_dashboard_screen.dart';
+import 'services/auth_service.dart';
 import 'services/notification_helper.dart';
 import 'services/api_client.dart';
 import 'constants/constants.dart';
+import 'widget/bottom_bar.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -119,7 +123,71 @@ class MyApp extends StatelessWidget {
         }
         return const Locale('th');
       },
-      home: const WelcomeScreen(),
+      home: const AuthBootstrap(),
     );
   }
+}
+
+class AuthBootstrap extends ConsumerStatefulWidget {
+  const AuthBootstrap({super.key});
+
+  @override
+  ConsumerState<AuthBootstrap> createState() => _AuthBootstrapState();
+}
+
+class _AuthBootstrapState extends ConsumerState<AuthBootstrap> {
+  bool _handledInitialSession = false;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _resumeOAuthSession();
+    });
+  }
+
+  Future<void> _resumeOAuthSession() async {
+    if (_handledInitialSession || !mounted) return;
+    _handledInitialSession = true;
+
+    final auth = Supabase.instance.client.auth;
+    final session = auth.currentSession;
+    final user = session?.user;
+    if (user == null || user.email == null || user.email!.isEmpty) return;
+
+    final providers = user.appMetadata['providers'];
+    final provider = providers is List && providers.isNotEmpty
+        ? providers.first.toString()
+        : (user.appMetadata['provider']?.toString() ?? '');
+    final isOAuthProvider =
+        provider.isNotEmpty && provider != 'email' && provider != 'phone';
+    if (!isOAuthProvider) return;
+
+    final result = await AuthService().socialLogin(
+      email: user.email!,
+      name: (user.userMetadata?['full_name'] as String?) ??
+          (user.userMetadata?['name'] as String?) ??
+          user.email!,
+      uid: user.id,
+      provider: provider,
+    );
+    if (!mounted || result['success'] != true) return;
+
+    final data = result['data'] as Map<String, dynamic>;
+    ref.read(userDataProvider.notifier).setUserId(data['user_id'] as int);
+    ref.read(userDataProvider.notifier).setLoginInfo(user.email!, '');
+
+    final roleId = data['role_id'] as int? ?? 2;
+    Navigator.pushAndRemoveUntil(
+      context,
+      MaterialPageRoute(
+        builder: (_) =>
+            roleId == 1 ? const AdminDashboardScreen() : const MainScreen(),
+      ),
+      (route) => false,
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) => const WelcomeScreen();
 }

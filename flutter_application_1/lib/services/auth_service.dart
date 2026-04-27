@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'api_client.dart';
 
@@ -11,6 +12,9 @@ import 'api_client.dart';
 class AuthService {
   final _supabase = Supabase.instance.client;
   final _api = ApiClient();
+
+  String get oauthRedirectTo =>
+      kIsWeb ? Uri.base.origin : 'com.caloriesguard.app://login-callback';
 
   // --- Live availability check (for register screen) ---
 
@@ -64,7 +68,12 @@ class AuthService {
       });
 
       if (response.statusCode == 200) {
-        return {'success': true, 'data': jsonDecode(response.body)};
+        final data = jsonDecode(response.body) as Map<String, dynamic>;
+        final backendToken = data['access_token'] as String?;
+        if (backendToken != null) {
+          ApiClient.setManualToken(backendToken);
+        }
+        return {'success': true, 'data': data};
       } else {
         final errorData = jsonDecode(response.body);
         return {
@@ -167,7 +176,7 @@ class AuthService {
     try {
       await _supabase.auth.signInWithOAuth(
         OAuthProvider.google,
-        redirectTo: 'com.caloriesguard.app://login-callback',
+        redirectTo: oauthRedirectTo,
       );
       return true;
     } catch (e) {
@@ -180,7 +189,7 @@ class AuthService {
     try {
       await _supabase.auth.signInWithOAuth(
         OAuthProvider.facebook,
-        redirectTo: 'com.caloriesguard.app://login-callback',
+        redirectTo: oauthRedirectTo,
       );
       return true;
     } catch (e) {

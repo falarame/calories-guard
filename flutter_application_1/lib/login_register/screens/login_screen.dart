@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
@@ -173,14 +172,9 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
   Future<void> _handleGoogleSignIn() async {
     setState(() => _isGoogleLoading = true);
     try {
-      // Web: redirect back to current origin (Supabase parses the URL hash and
-      // populates the session). Mobile: use the registered deep-link scheme.
-      final redirect = kIsWeb
-          ? Uri.base.origin
-          : 'com.caloriesguard.app://login-callback';
       await Supabase.instance.client.auth.signInWithOAuth(
         OAuthProvider.google,
-        redirectTo: redirect,
+        redirectTo: _authService.oauthRedirectTo,
       );
       // The actual session arrives asynchronously on the OAuth redirect.
       // _authSub (initState) handles _syncSocialBackend when the session lands.
