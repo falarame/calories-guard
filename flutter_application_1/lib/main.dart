@@ -7,6 +7,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:sentry_flutter/sentry_flutter.dart';
 import 'l10n/app_localizations.dart';
+import 'login_register/screens/gender_selection_screen.dart';
 import 'login_register/screens/welcome_screen.dart';
 import 'providers/user_data_provider.dart';
 import 'screens/admin/admin_dashboard_screen.dart';
@@ -195,11 +196,26 @@ class _AuthBootstrapState extends ConsumerState<AuthBootstrap> {
     ref.read(userDataProvider.notifier).setLoginInfo(user.email!, '');
 
     final roleId = data['role_id'] as int? ?? 2;
+    final shouldContinueOnboarding =
+        roleId != 1 && data['onboarding_required'] == true;
+    if (shouldContinueOnboarding) {
+      ref.read(userDataProvider.notifier).setPersonalInfo(
+            name: (data['username'] as String?) ??
+                (user.userMetadata?['full_name'] as String?) ??
+                user.email!,
+            birthDate: DateTime.now(),
+            height: 0,
+            weight: 0,
+          );
+    }
     Navigator.pushAndRemoveUntil(
       context,
       MaterialPageRoute(
-        builder: (_) =>
-            roleId == 1 ? const AdminDashboardScreen() : const MainScreen(),
+        builder: (_) => shouldContinueOnboarding
+            ? const GenderSelectionScreen()
+            : roleId == 1
+                ? const AdminDashboardScreen()
+                : const MainScreen(),
       ),
       (route) => false,
     );

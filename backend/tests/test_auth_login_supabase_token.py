@@ -43,6 +43,9 @@ class _Connection:
     def close(self):
         self.closed = True
 
+    def rollback(self):
+        self.rolled_back = True
+
 
 def _user_row():
     return {
@@ -127,3 +130,57 @@ def test_login_without_token_rejects_legacy_password_hash_without_500(monkeypatc
         auth._login_impl(SimpleNamespace(email="user@example.com", password="wrong"))
 
     assert exc.value.status_code == 401
+
+
+class _SocialCursor:
+    def __init__(self, rows):
+        self.rows = list(rows)
+        self.queries = []
+
+    def execute(self, query, *_args, **_kwargs):
+        self.queries.append(query)
+
+    def fetchone(self):
+        return self.rows.pop(0) if self.rows else None
+
+
+class _SocialConnection:
+    def __init__(self, rows):
+        self.cursor_obj = _SocialCursor(rows)
+        self.committed = False
+        self.closed = False
+        self.rolled_back = False
+
+    def cursor(self, *_args, **_kwargs):
+        return self.cursor_obj
+
+    def commit(self):
+        self.committed = True
+
+    def rollback(self):
+        self.rolled_back = True
+
+    def close(self):
+        self.closed = True
+
+
+def test_social_login_new_user_requires_onboarding(monkeypatch):
+    from app.routers import auth
+
+    conn = _SocialConnection([None, {"user_id": 99}])
+    monkeypatch.setattr(auth, "get_db_connection", lambda: conn)
+
+    result = auth.social_login(
+        SimpleNamespace(
+            email="new-google@example.com",
+            name="New Google",
+            uid="google-uid",
+            provider="google",
+        )
+    )
+
+    assert result["user_id"] == 99
+    assert result["is_new_user"] is True
+    assert result["onboarding_required"] is True
+    assert result["access_token"]
+    assert conn.committed is True

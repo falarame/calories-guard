@@ -7,6 +7,7 @@ import '../../l10n/app_localizations.dart';
 import '../../providers/user_data_provider.dart';
 import '../../services/auth_service.dart';
 import 'forgot_password_screen.dart';
+import 'gender_selection_screen.dart';
 import 'register_screen.dart';
 import '../../widget/bottom_bar.dart';
 import '/screens/admin/admin_dashboard_screen.dart';
@@ -86,13 +87,19 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
   }
 
   // ── Navigation helper ─────────────────────────────────────────
-  void _navigateAfterLogin(int roleId) {
+  void _navigateAfterAuthData(Map<String, dynamic> data) {
     if (!mounted) return;
+    final roleId = data['role_id'] as int? ?? 2;
+    final shouldContinueOnboarding =
+        roleId != 1 && data['onboarding_required'] == true;
     Navigator.pushAndRemoveUntil(
       context,
       PageRouteBuilder(
-        pageBuilder: (_, __, ___) =>
-            roleId == 1 ? const AdminDashboardScreen() : const MainScreen(),
+        pageBuilder: (_, __, ___) => shouldContinueOnboarding
+            ? const GenderSelectionScreen()
+            : roleId == 1
+                ? const AdminDashboardScreen()
+                : const MainScreen(),
         transitionsBuilder: (_, anim, __, child) =>
             FadeTransition(opacity: anim, child: child),
         transitionDuration: const Duration(milliseconds: 400),
@@ -135,6 +142,14 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
       ref
           .read(userDataProvider.notifier)
           .setLoginInfo(_emailCtrl.text.trim(), _passCtrl.text);
+      if (data['onboarding_required'] == true) {
+        ref.read(userDataProvider.notifier).setPersonalInfo(
+              name: (data['username'] as String?) ?? 'User',
+              birthDate: DateTime.now(),
+              height: 0,
+              weight: 0,
+            );
+      }
       final refreshToken = data['refresh_token'] as String?;
       if (refreshToken != null) {
         try {
@@ -142,7 +157,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
         } catch (_) {}
       }
       await Future.delayed(const Duration(milliseconds: 100));
-      _navigateAfterLogin(data['role_id'] ?? 2);
+      _navigateAfterAuthData(data);
     } else {
       _showError(result['message'] ?? 'อีเมลหรือรหัสผ่านไม่ถูกต้อง');
     }
@@ -161,8 +176,16 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
       final data = result['data'];
       ref.read(userDataProvider.notifier).setUserId(data['user_id'] as int);
       ref.read(userDataProvider.notifier).setLoginInfo(email, '');
+      if (data['onboarding_required'] == true) {
+        ref.read(userDataProvider.notifier).setPersonalInfo(
+              name: (data['username'] as String?) ?? name,
+              birthDate: DateTime.now(),
+              height: 0,
+              weight: 0,
+            );
+      }
       await Future.delayed(const Duration(milliseconds: 100));
-      _navigateAfterLogin(data['role_id'] ?? 2);
+      _navigateAfterAuthData(data);
     } else {
       _showError(result['message'] ?? 'ล็อกอินไม่สำเร็จ กรุณาลองใหม่');
     }

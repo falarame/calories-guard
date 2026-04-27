@@ -42,6 +42,21 @@ def _issue_access_token(user_id: int, email: str, role_id: int) -> str:
     return jwt.encode(payload, _JWT_SECRET, algorithm=_JWT_ALGO)
 
 
+def _onboarding_required(user: dict) -> bool:
+    """True when the profile still misses fields collected in onboarding."""
+    required_fields = (
+        "gender",
+        "birth_date",
+        "height_cm",
+        "current_weight_kg",
+        "activity_level",
+        "goal_type",
+        "target_weight_kg",
+        "goal_target_date",
+    )
+    return any(not user.get(field) for field in required_fields)
+
+
 def _decode_optional_bearer(request: Request) -> dict | None:
     """Return a verified Supabase/backend JWT payload if Authorization exists."""
     auth_header = request.headers.get("authorization") or ""
@@ -387,6 +402,7 @@ def _login_impl(user, request: Request | None = None):
             "current_streak": streak,
             "access_token": access_token,
             "token_type": "Bearer",
+            "onboarding_required": _onboarding_required(db_user),
         }
     except HTTPException:
         raise
@@ -432,12 +448,14 @@ def social_login(body: SocialLoginRequest):
             )
             conn.commit()
             role_id = int(user.get('role_id') or 2)
+            onboarding_required = _onboarding_required(user)
             return {
                 "user_id": int(user['user_id']),
                 "email": user['email'],
                 "username": user.get('username') or body.name,
                 "role_id": role_id,
                 "provider": body.provider,
+                "onboarding_required": onboarding_required,
                 "access_token": _issue_access_token(
                     int(user['user_id']),
                     user['email'],
@@ -464,6 +482,7 @@ def social_login(body: SocialLoginRequest):
                 "role_id": 2,
                 "provider": body.provider,
                 "is_new_user": True,
+                "onboarding_required": True,
                 "access_token": _issue_access_token(int(new_id), email, 2),
                 "token_type": "bearer",
             }
