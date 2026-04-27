@@ -22,9 +22,10 @@ class ApiClient {
   static String? _manualToken;
   static void setManualToken(String? token) => _manualToken = token;
 
-  /// Get the current Supabase access token, or null if not signed in.
+  /// Get the backend-issued token after login. Falls back to Supabase only
+  /// before `/login` has completed.
   String? get _accessToken =>
-      Supabase.instance.client.auth.currentSession?.accessToken ?? _manualToken;
+      _manualToken ?? Supabase.instance.client.auth.currentSession?.accessToken;
 
   Map<String, String> _headers({Map<String, String>? extra}) {
     final headers = <String, String>{

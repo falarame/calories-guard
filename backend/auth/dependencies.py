@@ -13,26 +13,63 @@ from fastapi import Depends, HTTPException, status
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from jose import jwt, JWTError
 from dotenv import load_dotenv
+import requests
+
+from database import get_db_connection
 
 # โหลด env
 load_dotenv(dotenv_path=os.path.join(os.path.dirname(__file__), '..', '..', '.env'))
 load_dotenv(dotenv_path=os.path.join(os.path.dirname(__file__), '..', '.env'))
 
 _JWT_SECRET = os.getenv("SUPABASE_JWT_SECRET", "")
+_SUPABASE_URL = os.getenv("SUPABASE_URL") or os.getenv("SUPABASE_PROJECT_URL", "")
+_SUPABASE_ANON_KEY = os.getenv("SUPABASE_ANON_KEY", "")
 _JWT_ALGO = "HS256"
 
 _bearer_scheme = HTTPBearer(auto_error=False)
 
 
-def _decode_token(token: str) -> dict:
-    """Verify backend-issued HS256 JWT signed with SUPABASE_JWT_SECRET."""
-    print(f"AUTH: token received len={len(token)} prefix={token[:20]}")
+def _fetch_supabase_user_payload(token: str) -> dict | None:
+    """Validate a Supabase access token with Supabase Auth as a fallback."""
+    if not _SUPABASE_URL or not _SUPABASE_ANON_KEY:
+        return None
     try:
-        payload = jwt.decode(token, _JWT_SECRET, algorithms=[_JWT_ALGO])
-        print(f"AUTH: verified sub={payload.get('sub')} email={payload.get('email')}")
+        response = requests.get(
+            f"{_SUPABASE_URL.rstrip('/')}/auth/v1/user",
+            headers={
+                "apikey": _SUPABASE_ANON_KEY,
+                "Authorization": f"Bearer {token}",
+            },
+            timeout=5,
+        )
+    except requests.RequestException:
+        return None
+    if response.status_code != 200:
+        return None
+    data = response.json()
+    return {
+        "sub": data.get("id"),
+        "email": data.get("email"),
+        "role": "authenticated",
+        "app_metadata": data.get("app_metadata") or {},
+        "user_metadata": data.get("user_metadata") or {},
+    }
+
+
+def _decode_token(token: str) -> dict:
+    """Verify backend-issued JWT or a Supabase access token."""
+    try:
+        payload = jwt.decode(
+            token,
+            _JWT_SECRET,
+            algorithms=[_JWT_ALGO],
+            options={"verify_aud": False},
+        )
         return payload
     except JWTError as e:
-        print(f"AUTH: JWTError: {e}")
+        payload = _fetch_supabase_user_payload(token)
+        if payload:
+            return payload
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid or expired token",
@@ -62,6 +99,26 @@ def _get_user_id_from_payload(payload: dict) -> Optional[int]:
     return None
 
 
+def _lookup_user_by_email(email: str | None) -> dict | None:
+    if not email:
+        return None
+    conn = get_db_connection()
+    if not conn:
+        return None
+    try:
+        cur = conn.cursor()
+        cur.execute(
+            "SELECT user_id, role_id FROM users WHERE LOWER(email) = LOWER(%s) LIMIT 1",
+            (email,),
+        )
+        row = cur.fetchone()
+        if not row:
+            return None
+        return {"user_id": int(row[0]), "role_id": int(row[1] or 2)}
+    finally:
+        conn.close()
+
+
 async def get_current_user(
     credentials: Optional[HTTPAuthorizationCredentials] = Depends(_bearer_scheme),
 ) -> dict:
@@ -79,7 +136,6 @@ async def get_current_user(
     Raises 401 if no token or invalid token.
     """
     if credentials is None:
-        print("AUTH: get_current_user → no Authorization header → 401")
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Authentication required",
@@ -89,11 +145,18 @@ async def get_current_user(
     payload = _decode_token(credentials.credentials)
 
     user_id = _get_user_id_from_payload(payload)
+    role_id = (payload.get("app_metadata") or {}).get("role_id")
+    if user_id is None or role_id is None:
+        db_user = _lookup_user_by_email(payload.get("email"))
+        if db_user:
+            user_id = user_id or db_user["user_id"]
+            role_id = role_id or db_user["role_id"]
 
     return {
         "sub": payload.get("sub"),
         "email": payload.get("email"),
         "user_id": user_id,
+        "role_id": role_id,
         "role": payload.get("role", "authenticated"),
     }
 
@@ -117,6 +180,12 @@ async def get_current_admin(
     payload = _decode_token(credentials.credentials)
     app_meta = payload.get("app_metadata") or {}
     role_id = app_meta.get("role_id")
+    user_id = _get_user_id_from_payload(payload)
+    if role_id is None or user_id is None:
+        db_user = _lookup_user_by_email(payload.get("email"))
+        if db_user:
+            role_id = role_id or db_user["role_id"]
+            user_id = user_id or db_user["user_id"]
     if role_id != 1:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
@@ -126,7 +195,7 @@ async def get_current_admin(
     return {
         "sub": payload.get("sub"),
         "email": payload.get("email"),
-        "user_id": _get_user_id_from_payload(payload),
+        "user_id": user_id,
         "role_id": role_id,
     }
 
@@ -144,10 +213,17 @@ def get_optional_user(
 
     payload = _decode_token(credentials.credentials)
     user_id = _get_user_id_from_payload(payload)
+    role_id = (payload.get("app_metadata") or {}).get("role_id")
+    if user_id is None or role_id is None:
+        db_user = _lookup_user_by_email(payload.get("email"))
+        if db_user:
+            user_id = user_id or db_user["user_id"]
+            role_id = role_id or db_user["role_id"]
 
     return {
         "sub": payload.get("sub"),
         "email": payload.get("email"),
         "user_id": user_id,
+        "role_id": role_id,
         "role": payload.get("role", "authenticated"),
     }

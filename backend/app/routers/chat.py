@@ -146,4 +146,11 @@ def chat_multi_agent(request: Request, payload: ChatMessage):
             raise
         except Exception as e:
             note_failure("chat.multi", e, user_id=payload.user_id)
-            raise HTTPException(status_code=500, detail=f"Multi-Agent Error: {str(e)}")
+            return {
+                "response": (
+                    "ขออภัยครับ ตอนนี้ AI Coach มีปัญหาในการประมวลผลชั่วคราว "
+                    "แต่ระบบยังใช้งานได้อยู่ ลองถามใหม่อีกครั้ง หรือถามแบบสั้นลงได้นะครับ"
+                ),
+                "agent": "fallback",
+                "error": "multi_agent_failed",
+            }
