@@ -81,6 +81,8 @@ def update_user(user_id: int, user_update: UserUpdate, current_user: dict = Depe
             user_fields.append("current_weight_kg=%s"); user_values.append(user_update.current_weight_kg)
         if user_update.goal_target_date:
             user_fields.append("goal_target_date=%s"); user_values.append(user_update.goal_target_date)
+        if user_update.avatar_url is not None:
+            user_fields.append("avatar_url=%s"); user_values.append(user_update.avatar_url)
 
         if user_fields:
             user_values.append(user_id)

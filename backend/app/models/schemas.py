@@ -58,6 +58,7 @@ class UserUpdate(BaseModel):
     unit_height: str | None = None
     unit_energy: str | None = None
     unit_water: str | None = None
+    avatar_url: str | None = None
 
 
 class PasswordResetRequest(BaseModel):

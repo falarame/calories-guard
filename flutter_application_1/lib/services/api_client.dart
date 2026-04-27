@@ -142,6 +142,29 @@ class ApiClient {
     );
   }
 
+  /// Upload raw bytes via multipart POST (works on Flutter web and native).
+  Future<http.StreamedResponse> uploadBytes(
+    String path, {
+    required String fieldName,
+    required List<int> bytes,
+    String? fileName,
+  }) async {
+    final uri = Uri.parse('$_baseUrl$path');
+    final request = http.MultipartRequest('POST', uri);
+    final token = _accessToken;
+    if (token != null) {
+      request.headers['Authorization'] = 'Bearer $token';
+    }
+    request.files.add(http.MultipartFile.fromBytes(
+      fieldName,
+      bytes,
+      filename: fileName,
+    ));
+    final streamed = await request.send().timeout(_defaultTimeout);
+    _checkApiVersion(streamed);
+    return streamed;
+  }
+
   /// Upload a file via multipart POST.
   Future<http.StreamedResponse> uploadFile(
     String path, {

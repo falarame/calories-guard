@@ -1,6 +1,10 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:http/http.dart' as http;
+import 'package:image_picker/image_picker.dart';
 import '../../providers/user_data_provider.dart';
+import '../../services/api_client.dart';
 
 // sub-screens imports
 import 'subprofile_screen/progress_screen.dart';
@@ -12,11 +16,56 @@ import '/login_register/screens/activity_level_screen.dart';
 import '/login_register/screens/food_allergy_screen.dart';
 import '/screens/chat/chat_screen.dart';
 
-class ProfileScreen extends ConsumerWidget {
+class ProfileScreen extends ConsumerStatefulWidget {
   const ProfileScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<ProfileScreen> createState() => _ProfileScreenState();
+}
+
+class _ProfileScreenState extends ConsumerState<ProfileScreen> {
+  bool _uploading = false;
+
+  Future<void> _pickAndUploadAvatar() async {
+    final picker = ImagePicker();
+    final xfile = await picker.pickImage(
+      source: ImageSource.gallery,
+      imageQuality: 80,
+      maxWidth: 512,
+      maxHeight: 512,
+    );
+    if (xfile == null || !mounted) return;
+    setState(() => _uploading = true);
+    try {
+      final bytes = await xfile.readAsBytes();
+      final filename = xfile.name.isNotEmpty ? xfile.name : 'avatar.jpg';
+      final streamed = await ApiClient().uploadBytes(
+        '/upload-image/',
+        fieldName: 'file',
+        bytes: bytes,
+        fileName: filename,
+      );
+      final response = await http.Response.fromStream(streamed);
+      if (response.statusCode != 200) throw Exception('Upload failed');
+      final data = jsonDecode(response.body) as Map<String, dynamic>;
+      final url = data['url'] as String?;
+      if (url == null) throw Exception('No URL');
+      final userId = ref.read(userDataProvider).userId;
+      await ApiClient().put('/users/$userId', body: {'avatar_url': url});
+      ref.read(userDataProvider.notifier).setAvatarUrl(url);
+    } catch (_) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('อัปโหลดรูปไม่สำเร็จ')),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _uploading = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final userData = ref.watch(userDataProvider);
 
     String daysLeftText = '0';
@@ -203,20 +252,49 @@ class ProfileScreen extends ConsumerWidget {
 
         // Avatar + Info
         Row(crossAxisAlignment: CrossAxisAlignment.center, children: [
-          // Avatar circle
-          Container(
-            width: 80,
-            height: 80,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              color: Colors.white.withValues(alpha: 0.2),
-              border: Border.all(color: Colors.white, width: 2.5),
-              image: DecorationImage(
-                  image: (userData.avatarUrl != null &&
-                          userData.avatarUrl!.isNotEmpty)
-                      ? NetworkImage(userData.avatarUrl!) as ImageProvider
-                      : const AssetImage('assets/images/profile/profile.png'),
-                  fit: BoxFit.cover),
+          // Avatar circle (tap to upload)
+          GestureDetector(
+            onTap: _uploading ? null : _pickAndUploadAvatar,
+            child: Stack(
+              alignment: Alignment.bottomRight,
+              children: [
+                Container(
+                  width: 80,
+                  height: 80,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: Colors.white.withValues(alpha: 0.2),
+                    border: Border.all(color: Colors.white, width: 2.5),
+                    image: DecorationImage(
+                        image: (userData.avatarUrl != null &&
+                                userData.avatarUrl!.isNotEmpty)
+                            ? NetworkImage(userData.avatarUrl!) as ImageProvider
+                            : const AssetImage(
+                                'assets/images/profile/profile.png'),
+                        fit: BoxFit.cover),
+                  ),
+                  child: _uploading
+                      ? const Center(
+                          child: CircularProgressIndicator(
+                              valueColor:
+                                  AlwaysStoppedAnimation(Colors.white),
+                              strokeWidth: 2))
+                      : null,
+                ),
+                if (!_uploading)
+                  Container(
+                    width: 24,
+                    height: 24,
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      shape: BoxShape.circle,
+                      border: Border.all(
+                          color: const Color(0xFF628141), width: 1.5),
+                    ),
+                    child: const Icon(Icons.camera_alt,
+                        size: 14, color: Color(0xFF628141)),
+                  ),
+              ],
             ),
           ),
           const SizedBox(width: 16),
