@@ -33,6 +33,7 @@ class UserRegister(BaseModel):
 class UserVerifyEmail(BaseModel):
     email: str
     code: str
+    supabase_verified: bool = False
 
 
 class UserLogin(BaseModel):

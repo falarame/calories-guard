@@ -162,6 +162,11 @@ def _email_exists(cur, email: str) -> bool:
     return cur.fetchone() is not None
 
 
+def _get_user_by_email(cur, email: str) -> dict | None:
+    cur.execute("SELECT * FROM users WHERE LOWER(email) = %s LIMIT 1", (email,))
+    return cur.fetchone()
+
+
 @router.get("/check-email")
 @limiter.limit("20/minute")
 def check_email(request: Request, email: str):
@@ -177,7 +182,10 @@ def check_email(request: Request, email: str):
     conn = get_db_connection()
     try:
         cur = conn.cursor(cursor_factory=RealDictCursor)
-        if _email_exists(cur, normalized):
+        existing_user = _get_user_by_email(cur, normalized)
+        if existing_user and not existing_user.get("is_email_verified"):
+            return {"available": False, "reason": "unverified"}
+        if existing_user:
             return {"available": False, "reason": "taken"}
         return {"available": True, "reason": None}
     finally:
@@ -199,22 +207,33 @@ def register(request: Request, user: UserRegister):
     conn = get_db_connection()
     try:
         cur = conn.cursor(cursor_factory=RealDictCursor)
-        if _email_exists(cur, email):
-            # 409 Conflict is the correct status for duplicate resource
-            raise HTTPException(status_code=409, detail="อีเมลนี้ถูกใช้งานแล้ว")
         hashed_pw = get_password_hash(user.password)
-        try:
-            cur.execute("""
-                INSERT INTO users (email, password_hash, username, role_id, is_email_verified)
-                VALUES (%s, %s, %s, 2, FALSE)
-                RETURNING user_id, email, username
-            """, (email, hashed_pw, username))
-        except Exception as e:
-            conn.rollback()
-            # psycopg2 UniqueViolation → race condition between check and insert
-            if 'unique' in str(e).lower() or 'duplicate' in str(e).lower():
+        existing_user = _get_user_by_email(cur, email)
+        if existing_user:
+            if existing_user.get("is_email_verified"):
+                # 409 Conflict is the correct status for duplicate resource
                 raise HTTPException(status_code=409, detail="อีเมลนี้ถูกใช้งานแล้ว")
-            raise
+            cur.execute("""
+                UPDATE users
+                SET username = %s,
+                    password_hash = %s,
+                    updated_at = NOW()
+                WHERE user_id = %s
+                RETURNING user_id, email, username
+            """, (username, hashed_pw, existing_user["user_id"]))
+        else:
+            try:
+                cur.execute("""
+                    INSERT INTO users (email, password_hash, username, role_id, is_email_verified)
+                    VALUES (%s, %s, %s, 2, FALSE)
+                    RETURNING user_id, email, username
+                """, (email, hashed_pw, username))
+            except Exception as e:
+                conn.rollback()
+                # psycopg2 UniqueViolation → race condition between check and insert
+                if 'unique' in str(e).lower() or 'duplicate' in str(e).lower():
+                    raise HTTPException(status_code=409, detail="อีเมลนี้ถูกใช้งานแล้ว")
+                raise
         new_user = cur.fetchone()
         code = str(randint(100000, 999999))
         expires = datetime.now() + timedelta(minutes=15)
@@ -224,6 +243,7 @@ def register(request: Request, user: UserRegister):
                 expires_at TIMESTAMP NOT NULL, used BOOLEAN DEFAULT FALSE
             )
         """)
+        cur.execute("UPDATE email_verification_codes SET used = TRUE WHERE user_id = %s", (new_user['user_id'],))
         cur.execute("INSERT INTO email_verification_codes (user_id, code, expires_at) VALUES (%s, %s, %s)",
                     (new_user['user_id'], code, expires))
         conn.commit()
@@ -266,16 +286,18 @@ def verify_email(req: UserVerifyEmail):
         if not user:
             raise HTTPException(status_code=404, detail="Email not found")
 
-        # Legacy OTP path — if a matching backend code exists, consume it.
-        # Missing/expired rows are fine: Supabase already verified on the client.
-        cur.execute(
-            """SELECT * FROM email_verification_codes
-               WHERE user_id = %s AND code = %s AND used = FALSE
-               ORDER BY id DESC LIMIT 1""",
-            (user['user_id'], req.code),
-        )
-        code_record = cur.fetchone()
-        if code_record and code_record['expires_at'] >= datetime.now():
+        if req.supabase_verified:
+            code_record = None
+        else:
+            cur.execute(
+                """SELECT * FROM email_verification_codes
+                   WHERE user_id = %s AND code = %s AND used = FALSE
+                   ORDER BY id DESC LIMIT 1""",
+                (user['user_id'], req.code),
+            )
+            code_record = cur.fetchone()
+            if not code_record or code_record['expires_at'] < datetime.now():
+                raise HTTPException(status_code=400, detail="รหัสไม่ถูกต้องหรือหมดอายุ")
             cur.execute(
                 "UPDATE email_verification_codes SET used = TRUE WHERE id = %s",
                 (code_record['id'],),

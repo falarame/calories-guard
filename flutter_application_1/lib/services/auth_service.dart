@@ -50,7 +50,8 @@ class AuthService {
     try {
       final availability = await checkEmailAvailable(email);
       if (availability['networkError'] != true &&
-          availability['available'] != true) {
+          availability['available'] != true &&
+          availability['reason'] != 'unverified') {
         return {
           'success': false,
           'message': availability['reason'] == 'taken'
@@ -60,14 +61,29 @@ class AuthService {
       }
 
       // 1. Sign up with Supabase Auth
-      final authResponse = await _supabase.auth.signUp(
-        email: email,
-        password: password,
-        data: {'username': username},
-      );
-
-      if (authResponse.user == null) {
-        return {'success': false, 'message': 'Registration failed'};
+      String? supabaseUid;
+      try {
+        final authResponse = await _supabase.auth.signUp(
+          email: email,
+          password: password,
+          data: {'username': username},
+        );
+        supabaseUid = authResponse.user?.id;
+      } on AuthException catch (e) {
+        final lower = e.message.toLowerCase();
+        final alreadyExists =
+            lower.contains('already') || lower.contains('registered');
+        if (!alreadyExists) {
+          return {'success': false, 'message': e.message};
+        }
+        // The user may exist in Supabase Auth from a previous interrupted
+        // registration. Continue with our backend's idempotent unverified-user
+        // flow, and ask Supabase to resend its signup OTP when possible.
+        try {
+          await _supabase.auth.resend(type: OtpType.signup, email: email);
+        } catch (_) {
+          // Backend also sends its own OTP; don't block recovery here.
+        }
       }
 
       // 2. Sync with our backend (create user row in our DB)
@@ -75,7 +91,7 @@ class AuthService {
         'username': username,
         'email': email,
         'password': password,
-        'supabase_uid': authResponse.user!.id,
+        if (supabaseUid != null) 'supabase_uid': supabaseUid,
       });
 
       if (response.statusCode == 200) {
@@ -97,11 +113,6 @@ class AuthService {
               : errorData['detail'] ?? 'Backend sync failed',
         };
       }
-    } on AuthException catch (e) {
-      final message = e.message.toLowerCase().contains('already')
-          ? 'อีเมลนี้ถูกใช้งานแล้ว กรุณาเข้าสู่ระบบหรือใช้ลืมรหัสผ่าน'
-          : e.message;
-      return {'success': false, 'message': message};
     } catch (e) {
       return {'success': false, 'message': 'Connection error: $e'};
     }
@@ -222,6 +233,7 @@ class AuthService {
   // the Supabase dashboard Email Template). We verify the OTP with Supabase
   // directly, then sync the verified flag to our backend so /login can pass.
   Future<Map<String, dynamic>> verifyEmail(String email, String code) async {
+    var supabaseVerified = false;
     try {
       // Step 1 — Verify the OTP with Supabase Auth.
       final authResponse = await _supabase.auth.verifyOTP(
@@ -232,27 +244,26 @@ class AuthService {
       if (authResponse.user == null) {
         return {'success': false, 'message': 'รหัสไม่ถูกต้องหรือหมดอายุ'};
       }
+      supabaseVerified = true;
+    } on AuthException {
+      // Some interrupted registrations only have the backend OTP. Fall through
+      // and let the backend validate its latest email_verification_codes row.
+    }
 
-      // Step 2 — Sync with our backend so users.is_email_verified = TRUE.
-      // If the backend call fails, we still consider the verification successful
-      // from the user's perspective (Supabase is the source of truth).
-      try {
-        final response = await _api.post('/verify-email', body: {
-          'email': email,
-          'code': code,
-        });
-        if (response.statusCode == 200) {
-          return {'success': true, 'data': jsonDecode(response.body)};
-        }
-      } catch (_) {
-        // Swallow backend sync errors — Supabase already confirmed the email.
+    try {
+      final response = await _api.post('/verify-email', body: {
+        'email': email,
+        'code': code,
+        'supabase_verified': supabaseVerified,
+      });
+      if (response.statusCode == 200) {
+        return {'success': true, 'data': jsonDecode(response.body)};
       }
+      final errorData = jsonDecode(response.body);
       return {
-        'success': true,
-        'data': {'message': 'ยืนยันอีเมลสำเร็จ'}
+        'success': false,
+        'message': errorData['detail'] ?? 'รหัสไม่ถูกต้องหรือหมดอายุ',
       };
-    } on AuthException catch (e) {
-      return {'success': false, 'message': e.message};
     } catch (e) {
       return {'success': false, 'message': 'Connection error: $e'};
     }
@@ -260,7 +271,16 @@ class AuthService {
 
   Future<Map<String, dynamic>> resendEmailVerification(String email) async {
     try {
-      await _supabase.auth.resend(type: OtpType.signup, email: email);
+      try {
+        await _supabase.auth.resend(type: OtpType.signup, email: email);
+      } catch (_) {
+        // Continue to backend resend for interrupted registrations.
+      }
+      try {
+        await _api.post('/resend-verification-email', body: {'email': email});
+      } catch (_) {
+        // If Supabase resend succeeded, this is still good enough.
+      }
       return {'success': true, 'message': 'Verification email sent'};
     } on AuthException catch (e) {
       return {'success': false, 'message': e.message};

@@ -106,6 +106,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
     final networkError = result['networkError'] == true;
     final available = result['available'] == true;
     final reason = result['reason'];
+    final canContinue = available || reason == 'unverified';
     setState(() {
       _isEmailChecking = false;
       if (networkError) {
@@ -121,13 +122,18 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
             'อีเมลนี้มีบัญชีอยู่แล้ว กรุณาเข้าสู่ระบบหรือลืมรหัสผ่าน';
         _emailStatusColor = Colors.redAccent;
         _isEmailTaken = true;
+      } else if (reason == 'unverified') {
+        _emailStatusText =
+            'อีเมลนี้สมัครค้างไว้แล้ว กด Done เพื่อส่งรหัสยืนยันใหม่';
+        _emailStatusColor = Colors.orange;
+        _isEmailTaken = false;
       } else {
         _emailStatusText = null;
         _isEmailTaken = false;
       }
     });
 
-    return !networkError && available;
+    return !networkError && canContinue;
   }
 
   void _showError(String message) {
