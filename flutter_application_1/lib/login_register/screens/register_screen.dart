@@ -52,11 +52,12 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
 
   void _onEmailChanged() {
     _emailDebounce?.cancel();
-    final email = _emailController.text.trim();
+    final email = _normalizeEmail(_emailController.text);
     if (email.isEmpty) {
       setState(() {
         _emailStatusText = null;
         _isEmailTaken = false;
+        _lastCheckedEmail = '';
       });
       return;
     }
@@ -66,38 +67,67 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
       setState(() {
         _emailStatusText = null;
         _isEmailTaken = false;
+        _lastCheckedEmail = '';
       });
       return;
     }
     _emailDebounce = Timer(const Duration(milliseconds: 600), () async {
-      if (!mounted || email == _lastCheckedEmail) return;
-      setState(() {
-        _isEmailChecking = true;
-        _emailStatusText = 'กำลังตรวจสอบ...';
-        _emailStatusColor = Colors.grey;
-      });
-      final result = await _authService.checkEmailAvailable(email);
-      if (!mounted) return;
-      _lastCheckedEmail = email;
-      setState(() {
-        _isEmailChecking = false;
-        if (result['networkError'] == true) {
-          _emailStatusText = null;
-          _isEmailTaken = false;
-        } else if (result['available'] == true) {
-          _emailStatusText = '✓ อีเมลนี้สามารถใช้งานได้';
-          _emailStatusColor = const Color(0xFF2E7D32);
-          _isEmailTaken = false;
-        } else if (result['reason'] == 'taken') {
-          _emailStatusText = 'อีเมลนี้ถูกใช้งานแล้ว';
-          _emailStatusColor = Colors.redAccent;
-          _isEmailTaken = true;
-        } else {
-          _emailStatusText = null;
-          _isEmailTaken = false;
-        }
-      });
+      await _checkEmailAvailability(email);
     });
+  }
+
+  String _normalizeEmail(String email) => email.trim().toLowerCase();
+
+  Future<bool> _checkEmailAvailability(
+    String email, {
+    bool force = false,
+  }) async {
+    final normalizedEmail = _normalizeEmail(email);
+    if (!mounted) return true;
+    if (!force && normalizedEmail == _lastCheckedEmail) {
+      return !_isEmailTaken;
+    }
+
+    setState(() {
+      _isEmailChecking = true;
+      _emailStatusText = 'กำลังตรวจสอบ...';
+      _emailStatusColor = Colors.grey;
+    });
+
+    final result = await _authService.checkEmailAvailable(normalizedEmail);
+    if (!mounted) return true;
+
+    // Ignore stale debounce responses from an older email value.
+    if (_normalizeEmail(_emailController.text) != normalizedEmail) {
+      return true;
+    }
+
+    _lastCheckedEmail = normalizedEmail;
+    final networkError = result['networkError'] == true;
+    final available = result['available'] == true;
+    final reason = result['reason'];
+    setState(() {
+      _isEmailChecking = false;
+      if (networkError) {
+        _emailStatusText = 'ตรวจสอบอีเมลไม่ได้ชั่วคราว กรุณาลองอีกครั้ง';
+        _emailStatusColor = Colors.orange;
+        _isEmailTaken = false;
+      } else if (available) {
+        _emailStatusText = '✓ อีเมลนี้สามารถใช้งานได้';
+        _emailStatusColor = const Color(0xFF2E7D32);
+        _isEmailTaken = false;
+      } else if (reason == 'taken') {
+        _emailStatusText =
+            'อีเมลนี้มีบัญชีอยู่แล้ว กรุณาเข้าสู่ระบบหรือลืมรหัสผ่าน';
+        _emailStatusColor = Colors.redAccent;
+        _isEmailTaken = true;
+      } else {
+        _emailStatusText = null;
+        _isEmailTaken = false;
+      }
+    });
+
+    return !networkError && available;
   }
 
   void _showError(String message) {
@@ -119,7 +149,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
     String firstName = _firstNameController.text.trim();
     String lastName = _lastNameController.text.trim();
     String fullName = '$firstName $lastName';
-    String email = _emailController.text.trim();
+    String email = _normalizeEmail(_emailController.text);
     String password = _passwordController.text;
     String confirmPassword = _confirmPasswordController.text;
 
@@ -145,8 +175,13 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
       _showError('กรุณากรอกอีเมลให้ถูกต้อง เช่น user@gmail.com');
       return;
     }
-    if (_isEmailTaken) {
-      _showError('อีเมลนี้ถูกใช้งานแล้ว กรุณาใช้อีเมลอื่น');
+    final isEmailAvailable = await _checkEmailAvailability(email, force: true);
+    if (!isEmailAvailable) {
+      _showError(
+        _isEmailTaken
+            ? 'อีเมลนี้มีบัญชีอยู่แล้ว กรุณาเข้าสู่ระบบหรือลืมรหัสผ่าน'
+            : 'ตรวจสอบอีเมลไม่ได้ชั่วคราว กรุณาลองอีกครั้ง',
+      );
       return;
     }
     if (_isEmailChecking) {
