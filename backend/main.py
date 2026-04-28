@@ -13,6 +13,7 @@ load_dotenv()
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import PlainTextResponse, Response
 from fastapi.staticfiles import StaticFiles
 from slowapi import Limiter, _rate_limit_exceeded_handler
 from slowapi.util import get_remote_address
@@ -52,6 +53,13 @@ app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=ALLOWED_ORIGINS,
+    allow_origin_regex=(
+        r"^https://([a-z0-9-]+\.)?caloriesguard\.com$|"
+        r"^https://([a-z0-9-]+\.)?calories-guard\.com$|"
+        r"^https://[a-z0-9-]+\.framesirisak\.workers\.dev$|"
+        r"^http://localhost(:\d+)?$|"
+        r"^http://127\.0\.0\.1(:\d+)?$"
+    ),
     allow_credentials=True,
     allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
     allow_headers=["Authorization", "Content-Type", "Accept"],
@@ -70,6 +78,31 @@ async def add_api_version_header(request, call_next):
     response = await call_next(request)
     response.headers["X-Api-Version"] = API_VERSION
     return response
+
+
+@app.get("/robots.txt", include_in_schema=False)
+def robots_txt():
+    return PlainTextResponse(
+        "User-agent: *\n"
+        "Allow: /health\n"
+        "Allow: /docs\n"
+        "Disallow: /\n"
+        "Sitemap: https://api.caloriesguard.com/sitemap.xml\n"
+    )
+
+
+@app.get("/sitemap.xml", include_in_schema=False)
+def sitemap_xml():
+    return Response(
+        """<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+  <url>
+    <loc>https://api.caloriesguard.com/health</loc>
+  </url>
+</urlset>
+""",
+        media_type="application/xml",
+    )
 
 # ── Static files (uploaded images) ───────────────────────────────────────────
 if not os.path.exists(IMAGEDIR):
