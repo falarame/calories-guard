@@ -289,17 +289,89 @@ def submit_regional_name(food_id: int, payload: RegionalNameSubmission):
             conn.close()
 
 
-def _shape_recipe_response(row: dict) -> dict:
+def _shape_recipe_response(
+    row: dict,
+    rel_steps: list | None = None,
+    rel_ingredients: list | None = None,
+    rel_tools: list | None = None,
+    rel_tips: list | None = None,
+    rel_reviews: list | None = None,
+) -> dict:
     """Flatten DB row into the shape RecipeDetailScreen consumes."""
-    instructions = (row.get("instructions") or "").strip()
-    steps = [s.strip() for s in instructions.split("\n") if s.strip()]
+    # ── Steps ──
+    if rel_steps:
+        steps = [dict(s) for s in rel_steps]
+    else:
+        instructions = (row.get("instructions") or "").strip()
+        instructions = instructions.replace("\\n", "\n")
+        raw = [s.strip() for s in instructions.split("\n") if s.strip()]
+        steps = [
+            {
+                "step_number": idx + 1,
+                "title": f"ขั้นตอนที่ {idx + 1}",
+                "instruction": s,
+                "time_minutes": 0,
+                "tips": "",
+                "image_url": "",
+            }
+            for idx, s in enumerate(raw)
+        ]
+
+    # ── Ingredients ──
+    if rel_ingredients:
+        ingredients = [dict(i) for i in rel_ingredients]
+    else:
+        ingredients = []
+        for ing in (row.get("ingredients_json") or []):
+            if isinstance(ing, dict):
+                ingredients.append({
+                    "ingredient_name": ing.get("ingredient_name") or ing.get("name") or "",
+                    "quantity": ing.get("quantity") or ing.get("amount"),
+                    "unit": ing.get("unit") or "",
+                    "is_optional": ing.get("is_optional", False),
+                    "note": ing.get("note") or "",
+                })
+
+    # ── Tools ──
+    if rel_tools:
+        tools = [dict(t) for t in rel_tools]
+    else:
+        tools = []
+        for t in (row.get("tools_json") or []):
+            if isinstance(t, str):
+                tools.append({"tool_name": t, "tool_emoji": "🔧"})
+            elif isinstance(t, dict):
+                tools.append({
+                    "tool_name": t.get("tool_name") or t.get("name") or "",
+                    "tool_emoji": t.get("tool_emoji") or "🔧",
+                })
+
+    # ── Tips ──
+    if rel_tips:
+        tips = [dict(t) for t in rel_tips]
+    else:
+        tips = []
+        for tip in (row.get("tips_json") or []):
+            if isinstance(tip, str):
+                tips.append({"tip_text": tip})
+            elif isinstance(tip, dict):
+                tips.append({"tip_text": tip.get("tip_text") or tip.get("text") or ""})
+
+    # ── Reviews ──
+    reviews = []
+    for rv in (rel_reviews or []):
+        r = dict(rv)
+        if r.get("created_at") and hasattr(r["created_at"], "isoformat"):
+            r["created_at"] = r["created_at"].isoformat()
+        reviews.append(r)
+
     return {
         **row,
-        "ingredients": row.get("ingredients_json") or [],
-        "tools": row.get("tools_json") or [],
-        "tips": row.get("tips_json") or [],
+        "ingredients": ingredients,
+        "tools": tools,
+        "tips": tips,
         "steps": steps,
-        "reviews": [],
+        "reviews": reviews,
     }
 
 
@@ -335,7 +407,47 @@ def get_recipe(food_id: int, user_id: int | None = None):
         )
         row = cur.fetchone()
         if row:
-            return _shape_recipe_response(row)
+            recipe_id = row["recipe_id"]
+            cur.execute(
+                "SELECT step_number, title, instruction, time_minutes, tips, image_url "
+                "FROM recipe_steps WHERE recipe_id = %s ORDER BY step_number",
+                (recipe_id,),
+            )
+            rel_steps = cur.fetchall() or None
+            cur.execute(
+                "SELECT ingredient_name, quantity, unit, is_optional, note "
+                "FROM recipe_ingredients WHERE recipe_id = %s ORDER BY sort_order",
+                (recipe_id,),
+            )
+            rel_ingredients = cur.fetchall() or None
+            cur.execute(
+                "SELECT tool_name, tool_emoji FROM recipe_tools WHERE recipe_id = %s ORDER BY sort_order",
+                (recipe_id,),
+            )
+            rel_tools = cur.fetchall() or None
+            cur.execute(
+                "SELECT tip_text FROM recipe_tips WHERE recipe_id = %s ORDER BY sort_order",
+                (recipe_id,),
+            )
+            rel_tips = cur.fetchall() or None
+            cur.execute(
+                """
+                SELECT rr.review_id, rr.user_id, u.username, rr.rating, rr.comment, rr.created_at
+                FROM recipe_reviews rr
+                JOIN users u ON u.user_id = rr.user_id
+                WHERE rr.recipe_id = %s ORDER BY rr.created_at DESC
+                """,
+                (recipe_id,),
+            )
+            rel_reviews = cur.fetchall()
+            return _shape_recipe_response(
+                row,
+                rel_steps=rel_steps,
+                rel_ingredients=rel_ingredients,
+                rel_tools=rel_tools,
+                rel_tips=rel_tips,
+                rel_reviews=rel_reviews,
+            )
 
         # No recipe yet — fetch food metadata and ask the LLM.
         cur.execute(

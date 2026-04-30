@@ -153,13 +153,23 @@ def upsert_recipe_review(food_id: int, review: RecipeReview):
     try:
         cur = conn.cursor(cursor_factory=RealDictCursor)
         recipe_id = _get_recipe_id_for_food(cur, food_id)
-        cur.execute("""
-            INSERT INTO recipe_reviews (recipe_id, user_id, rating, comment)
-            VALUES (%s, %s, %s, %s)
-            ON CONFLICT (recipe_id, user_id)
-            DO UPDATE SET rating = EXCLUDED.rating, comment = EXCLUDED.comment, created_at = NOW()
-            RETURNING review_id
-        """, (recipe_id, review.user_id, review.rating, review.comment))
+        cur.execute(
+            "SELECT review_id FROM recipe_reviews WHERE recipe_id = %s AND user_id = %s",
+            (recipe_id, review.user_id),
+        )
+        existing = cur.fetchone()
+        if existing:
+            cur.execute(
+                "UPDATE recipe_reviews SET rating = %s, comment = %s, created_at = NOW() "
+                "WHERE review_id = %s RETURNING review_id",
+                (review.rating, review.comment, existing["review_id"]),
+            )
+        else:
+            cur.execute(
+                "INSERT INTO recipe_reviews (recipe_id, user_id, rating, comment) "
+                "VALUES (%s, %s, %s, %s) RETURNING review_id",
+                (recipe_id, review.user_id, review.rating, review.comment),
+            )
         review_id = cur.fetchone()["review_id"]
         conn.commit()
         return {"message": "Review saved", "review_id": review_id}
