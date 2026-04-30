@@ -87,6 +87,97 @@ class _GoalSelectionScreenState extends ConsumerState<GoalSelectionScreen> {
     }
   }
 
+  void _showGoalInfo(BuildContext context) {
+    final items = [
+      {
+        'title': 'ลดน้ำหนัก',
+        'sub': 'แคลอรี่ต่ำกว่า TDEE • โปรตีน 30% • คาร์บ 40%',
+        'icon': Icons.trending_down_rounded,
+        'color': const Color(0xFFD76A3C),
+        'value': GoalOption.loseWeight,
+      },
+      {
+        'title': 'รักษาน้ำหนัก',
+        'sub': 'แคลอรี่เท่ากับ TDEE • สมดุลทุกสารอาหาร',
+        'icon': Icons.balance_rounded,
+        'color': const Color(0xFF2D58B6),
+        'value': GoalOption.maintainWeight,
+      },
+      {
+        'title': 'เพิ่มกล้ามเนื้อ',
+        'sub': 'แคลอรี่สูงกว่า TDEE • โปรตีน 30% • คาร์บ 50%',
+        'icon': Icons.fitness_center_rounded,
+        'color': const Color(0xFF628141),
+        'value': GoalOption.buildMuscle,
+      },
+    ];
+    showDialog(
+      context: context,
+      builder: (_) => Dialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(20, 20, 20, 16),
+          child: Column(mainAxisSize: MainAxisSize.min, children: [
+            const Row(children: [
+              Icon(Icons.flag_rounded, size: 18, color: Color(0xFF628141)),
+              SizedBox(width: 8),
+              Text('เป้าหมายแต่ละประเภท',
+                  style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold)),
+            ]),
+            const SizedBox(height: 6),
+            const Text('กระทบสัดส่วนสารอาหารรายวันที่แนะนำ',
+                style: TextStyle(fontSize: 11, color: Colors.grey)),
+            const SizedBox(height: 14),
+            ...items.map((it) {
+              final isMe = it['value'] == selectedGoal;
+              final c = it['color'] as Color;
+              return Container(
+                margin: const EdgeInsets.only(bottom: 7),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                decoration: BoxDecoration(
+                  color: isMe ? c.withValues(alpha: 0.10) : Colors.grey.shade50,
+                  borderRadius: BorderRadius.circular(10),
+                  border: isMe ? Border.all(color: c, width: 1.5) : null,
+                ),
+                child: Row(children: [
+                  Container(
+                    width: 32,
+                    height: 32,
+                    decoration: BoxDecoration(
+                        color: isMe
+                            ? c.withValues(alpha: 0.15)
+                            : Colors.grey.shade200,
+                        shape: BoxShape.circle),
+                    child: Icon(it['icon'] as IconData,
+                        size: 16, color: isMe ? c : Colors.grey.shade600),
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                      child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                        Text(it['title'] as String,
+                            style: TextStyle(
+                                fontSize: 12,
+                                fontWeight:
+                                    isMe ? FontWeight.bold : FontWeight.normal,
+                                color: isMe ? c : Colors.black87)),
+                        Text(it['sub'] as String,
+                            style: TextStyle(
+                                fontSize: 10, color: Colors.grey.shade500)),
+                      ])),
+                  if (isMe)
+                    Icon(Icons.chevron_left_rounded, color: c, size: 18),
+                ]),
+              );
+            }),
+          ]),
+        ),
+      ),
+    );
+  }
+
   Widget _buildWhiteCard({required Widget child}) {
     return Container(
       padding: const EdgeInsets.all(20),
@@ -215,6 +306,18 @@ class _GoalSelectionScreenState extends ConsumerState<GoalSelectionScreen> {
                                     fontSize: 10,
                                     color: bmiColor,
                                     fontWeight: FontWeight.bold)),
+                          ),
+                          const Spacer(),
+                          GestureDetector(
+                            onTap: () => _showGoalInfo(context),
+                            child: Container(
+                              padding: const EdgeInsets.all(3),
+                              decoration: BoxDecoration(
+                                  color: Colors.grey.shade100,
+                                  shape: BoxShape.circle),
+                              child: Icon(Icons.info_outline_rounded,
+                                  size: 15, color: Colors.grey.shade400),
+                            ),
                           ),
                         ],
                       ),
@@ -405,7 +508,7 @@ class _GoalSelectionScreenState extends ConsumerState<GoalSelectionScreen> {
         children: [
           // กล่องหลัก
           Container(
-            width: 356,
+            width: double.infinity,
             height: 116,
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(25),

@@ -16,19 +16,23 @@ class RecommendedFoodScreen extends ConsumerStatefulWidget {
   const RecommendedFoodScreen({super.key});
 
   @override
-  ConsumerState<RecommendedFoodScreen> createState() => _RecommendedFoodScreenState();
+  ConsumerState<RecommendedFoodScreen> createState() =>
+      _RecommendedFoodScreenState();
 }
 
 class _RecommendedFoodScreenState extends ConsumerState<RecommendedFoodScreen> {
-  int _foodFilterIndex    = 0;
-  int _drinkFilterIndex   = 0;
+  int _foodFilterIndex = 0;
+  int _drinkFilterIndex = 0;
   int _dessertFilterIndex = 0;
 
-  List<Map<String, dynamic>> _allFood    = [];
-  List<Map<String, dynamic>> _allDrinks  = [];
+  List<Map<String, dynamic>> _allFood = [];
+  List<Map<String, dynamic>> _allDrinks = [];
   List<Map<String, dynamic>> _allDesserts = [];
 
+  Map<int, int> _foodFrequency = {}; // food_id → จำนวนครั้งที่เคยกิน
+
   String _searchQuery = '';
+  String? _selectedMacroFilter; // 'protein' | 'carbs' | 'fat'
   final TextEditingController _searchController = TextEditingController();
   bool _isLoading = true;
   String? _errorMsg;
@@ -38,6 +42,37 @@ class _RecommendedFoodScreenState extends ConsumerState<RecommendedFoodScreen> {
   void initState() {
     super.initState();
     _fetchAllFood();
+  }
+
+  // ────────────────────────────────────────────
+  //  FETCH FREQUENCY
+  // ────────────────────────────────────────────
+  Future<void> _fetchFoodFrequency() async {
+    final userId = ref.read(userDataProvider).userId;
+    if (userId <= 0) return;
+    try {
+      final res = await ApiClient().get('/users/$userId/food-frequency');
+      if (res.statusCode == 200) {
+        final List<dynamic> data = jsonDecode(res.body);
+        setState(() {
+          _foodFrequency = {
+            for (final d in data) (d['food_id'] as int): (d['count'] as int)
+          };
+        });
+        _applyFrequencySort();
+      }
+    } catch (_) {}
+  }
+
+  void _applyFrequencySort() {
+    setState(() {
+      _allFood.sort((a, b) {
+        final fa = _foodFrequency[a['food_id'] as int? ?? 0] ?? 0;
+        final fb = _foodFrequency[b['food_id'] as int? ?? 0] ?? 0;
+        if (fb != fa) return fb.compareTo(fa); // กินบ่อยขึ้นก่อน
+        return 0; // เท่ากันคงไว้ลำดับ shuffle เดิม
+      });
+    });
   }
 
   // ────────────────────────────────────────────
@@ -56,11 +91,19 @@ class _RecommendedFoodScreenState extends ConsumerState<RecommendedFoodScreen> {
 
         setState(() {
           // ✅ แยกตาม food_type จริงจาก DB
-          _allFood     = all.where((f) => f['food_type'] == 'dish' || f['food_type'] == 'recipe_dish').toList();
-          _allDrinks   = all.where((f) => f['food_type'] == 'beverage').toList();
-          _allDesserts = all.where((f) => f['food_type'] == 'snack').toList();
-          _isLoading   = false;
+          _allFood = all
+              .where((f) =>
+                  f['food_type'] == 'dish' || f['food_type'] == 'recipe_dish')
+              .toList()
+            ..shuffle();
+          _allDrinks = all.where((f) => f['food_type'] == 'beverage').toList()
+            ..shuffle();
+          _allDesserts = all.where((f) => f['food_type'] == 'snack').toList()
+            ..shuffle();
+          _isLoading = false;
         });
+        // ดึง frequency แล้ว sort ทับ (non-blocking)
+        _fetchFoodFrequency();
       } else {
         setState(() {
           _isLoading = false;
@@ -108,20 +151,75 @@ class _RecommendedFoodScreenState extends ConsumerState<RecommendedFoodScreen> {
   // ✅ filter เครื่องดื่ม
   List<Map<String, dynamic>> get _filteredDrinks {
     switch (_drinkFilterIndex) {
-      case 1: return _allDrinks.where((f) => (f['sugar'] as num? ?? 0) == 0).toList(); // ไม่มีน้ำตาล
-      case 2: return _allDrinks.where((f) => (f['caffeine_mg'] as num? ?? 0) > 0).toList(); // มีคาเฟอีน
-      case 3: return _allDrinks.where((f) => (f['is_alcoholic'] as bool? ?? false)).toList(); // มีแอลกอฮอล์
-      default: return _allDrinks;
+      case 1:
+        return _allDrinks
+            .where((f) => (f['sugar'] as num? ?? 0) == 0)
+            .toList(); // ไม่มีน้ำตาล
+      case 2:
+        return _allDrinks
+            .where((f) => (f['caffeine_mg'] as num? ?? 0) > 0)
+            .toList(); // มีคาเฟอีน
+      case 3:
+        return _allDrinks
+            .where((f) => (f['is_alcoholic'] as bool? ?? false))
+            .toList(); // มีแอลกอฮอล์
+      default:
+        return _allDrinks;
     }
   }
 
   // ✅ filter ของหวาน
   List<Map<String, dynamic>> get _filteredDesserts {
     switch (_dessertFilterIndex) {
-      case 1: return _allDesserts.where((f) => (f['calories'] as num? ?? 0) <= 100).toList(); // คาลอรี่ต่ำ
-      case 2: return _allDesserts.where((f) => (f['calories'] as num? ?? 0) > 100).toList(); // คาลอรี่สูง
-      default: return _allDesserts;
+      case 1:
+        return _allDesserts
+            .where((f) => (f['calories'] as num? ?? 0) <= 100)
+            .toList(); // คาลอรี่ต่ำ
+      case 2:
+        return _allDesserts
+            .where((f) => (f['calories'] as num? ?? 0) > 100)
+            .toList(); // คาลอรี่สูง
+      default:
+        return _allDesserts;
     }
+  }
+
+  // ────────────────────────────────────────────
+  //  MACRO FILTER — เมนูที่ macro ≤ remaining
+  // ────────────────────────────────────────────
+  List<Map<String, dynamic>> _macroFilteredFood(String macro) {
+    final userData = ref.read(userDataProvider);
+    int consumed, target;
+    String field;
+    switch (macro) {
+      case 'protein':
+        consumed = userData.consumedProtein;
+        target = userData.targetProtein;
+        field = 'protein';
+        break;
+      case 'carbs':
+        consumed = userData.consumedCarbs;
+        target = userData.targetCarbs;
+        field = 'carbs';
+        break;
+      case 'fat':
+        consumed = userData.consumedFat;
+        target = userData.targetFat;
+        field = 'fat';
+        break;
+      default:
+        return [];
+    }
+    final remaining = (target - consumed).clamp(0, target);
+    if (remaining <= 0) return [];
+    final result = _allFood
+        .where((f) => !_isAllergicFood(f))
+        .where((f) =>
+            (f[field] as num? ?? 0) > 0 && (f[field] as num? ?? 0) <= remaining)
+        .toList();
+    result.sort(
+        (a, b) => (b[field] as num? ?? 0).compareTo(a[field] as num? ?? 0));
+    return result;
   }
 
   // ✅ ผลการค้นหา — ค้นจากทุกหมวด
@@ -132,7 +230,8 @@ class _RecommendedFoodScreenState extends ConsumerState<RecommendedFoodScreen> {
       final q = _searchQuery.toLowerCase();
       final name = item['food_name']?.toString().toLowerCase() ?? '';
       final displayName = item['display_name']?.toString().toLowerCase() ?? '';
-      final regionalName = item['regional_name']?.toString().toLowerCase() ?? '';
+      final regionalName =
+          item['regional_name']?.toString().toLowerCase() ?? '';
       return name.contains(q) ||
           displayName.contains(q) ||
           regionalName.contains(q);
@@ -198,15 +297,19 @@ class _RecommendedFoodScreenState extends ConsumerState<RecommendedFoodScreen> {
                       Expanded(
                         child: TextField(
                           controller: _searchController,
-                          onChanged: (val) => setState(() => _searchQuery = val.trim()),
+                          onChanged: (val) =>
+                              setState(() => _searchQuery = val.trim()),
                           decoration: const InputDecoration(
                             hintText: 'ค้นหาอาหาร',
                             hintStyle: TextStyle(
-                              fontFamily: 'Inter', fontSize: 16,
+                              fontFamily: 'Inter',
+                              fontSize: 16,
                               fontStyle: FontStyle.italic,
-                              fontWeight: FontWeight.w100, color: Colors.black54,
+                              fontWeight: FontWeight.w100,
+                              color: Colors.black54,
                             ),
-                            border: InputBorder.none, isDense: true,
+                            border: InputBorder.none,
+                            isDense: true,
                           ),
                         ),
                       ),
@@ -217,7 +320,8 @@ class _RecommendedFoodScreenState extends ConsumerState<RecommendedFoodScreen> {
                             _searchController.clear();
                             setState(() => _searchQuery = '');
                           },
-                          child: const Icon(Icons.close, size: 20, color: Colors.grey),
+                          child: const Icon(Icons.close,
+                              size: 20, color: Colors.grey),
                         )
                       else
                         Icon(Icons.search, size: 24, color: Colors.grey[600]),
@@ -230,14 +334,16 @@ class _RecommendedFoodScreenState extends ConsumerState<RecommendedFoodScreen> {
 
               // ── Allergy Filter Toggle ──
               Builder(builder: (_) {
-                final userAllergies = ref.watch(userDataProvider).allergyFlagIds;
+                final userAllergies =
+                    ref.watch(userDataProvider).allergyFlagIds;
                 if (userAllergies.isEmpty) return const SizedBox.shrink();
                 return Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 26),
                   child: GestureDetector(
                     onTap: () => setState(() => _hideAllergic = !_hideAllergic),
                     child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 14, vertical: 8),
                       decoration: BoxDecoration(
                         color: _hideAllergic
                             ? const Color(0xFF628141).withValues(alpha: 0.1)
@@ -282,10 +388,11 @@ class _RecommendedFoodScreenState extends ConsumerState<RecommendedFoodScreen> {
               const SizedBox(height: 12),
 
               if (_isLoading)
-                const Center(child: Padding(
-                  padding: EdgeInsets.all(40),
-                  child: CircularProgressIndicator(color: Color(0xFF628141))))
-
+                const Center(
+                    child: Padding(
+                        padding: EdgeInsets.all(40),
+                        child: CircularProgressIndicator(
+                            color: Color(0xFF628141))))
               else if (_errorMsg != null)
                 Center(
                   child: Padding(
@@ -321,71 +428,78 @@ class _RecommendedFoodScreenState extends ConsumerState<RecommendedFoodScreen> {
                 )
 
               // ── ผลการค้นหา ──
-              else if (isSearching)
-                ...[
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-                    child: Text(
+              else if (isSearching) ...[
+                Padding(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+                  child: Text(
                       'ผลการค้นหา: "$_searchQuery" (${_searchResults.length} รายการ)',
-                      style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
-                  ),
-                  _searchResults.isEmpty
-                      ? Center(
-                          child: Padding(
-                            padding: const EdgeInsets.all(40),
-                            child: Column(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Icon(Icons.search_off_rounded,
-                                    size: 52, color: Colors.grey.shade300),
-                                const SizedBox(height: 12),
-                                Text(
-                                  'ไม่พบ "$_searchQuery" ในฐานข้อมูล',
-                                  textAlign: TextAlign.center,
-                                  style: TextStyle(
-                                      fontSize: 14,
-                                      color: Colors.grey.shade600),
+                      style: const TextStyle(
+                          fontSize: 16, fontWeight: FontWeight.bold)),
+                ),
+                _searchResults.isEmpty
+                    ? Center(
+                        child: Padding(
+                          padding: const EdgeInsets.all(40),
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(Icons.search_off_rounded,
+                                  size: 52, color: Colors.grey.shade300),
+                              const SizedBox(height: 12),
+                              Text(
+                                'ไม่พบ "$_searchQuery" ในฐานข้อมูล',
+                                textAlign: TextAlign.center,
+                                style: TextStyle(
+                                    fontSize: 14, color: Colors.grey.shade600),
+                              ),
+                              const SizedBox(height: 20),
+                              ElevatedButton.icon(
+                                onPressed: () =>
+                                    _openSuggestFoodSheet(_searchQuery),
+                                icon: const Icon(Icons.add_circle_outline,
+                                    size: 18),
+                                label: const Text('ขอเพิ่มเมนูนี้',
+                                    style:
+                                        TextStyle(fontWeight: FontWeight.w700)),
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: const Color(0xFF628141),
+                                  foregroundColor: Colors.white,
+                                  padding: const EdgeInsets.symmetric(
+                                      horizontal: 24, vertical: 12),
+                                  shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(14)),
                                 ),
-                                const SizedBox(height: 20),
-                                ElevatedButton.icon(
-                                  onPressed: () =>
-                                      _openSuggestFoodSheet(_searchQuery),
-                                  icon: const Icon(Icons.add_circle_outline,
-                                      size: 18),
-                                  label: const Text('ขอเพิ่มเมนูนี้',
-                                      style:
-                                          TextStyle(fontWeight: FontWeight.w700)),
-                                  style: ElevatedButton.styleFrom(
-                                    backgroundColor: const Color(0xFF628141),
-                                    foregroundColor: Colors.white,
-                                    padding: const EdgeInsets.symmetric(
-                                        horizontal: 24, vertical: 12),
-                                    shape: RoundedRectangleBorder(
-                                        borderRadius:
-                                            BorderRadius.circular(14)),
-                                  ),
-                                ),
-                                const SizedBox(height: 8),
-                                Text(
-                                  'เมนูที่เพิ่มจะรอแอดมินตรวจสอบก่อนเผยแพร่',
-                                  style: TextStyle(
-                                      fontSize: 11,
-                                      color: Colors.grey.shade500),
-                                ),
-                              ],
-                            ),
+                              ),
+                              const SizedBox(height: 8),
+                              Text(
+                                'เมนูที่เพิ่มจะรอแอดมินตรวจสอบก่อนเผยแพร่',
+                                style: TextStyle(
+                                    fontSize: 11, color: Colors.grey.shade500),
+                              ),
+                            ],
                           ),
-                        )
-                      : _buildGrid(_searchResults),
-                ]
+                        ),
+                      )
+                    : _buildGrid(_searchResults),
+              ]
 
               // ── หน้าหลัก ──
               else ...[
+                // ── โภชนาการวันนี้ ──
+                _buildMacroNutritionPanel(),
+                const SizedBox(height: 8),
+
+                // ── ผลการกรองตาม macro ──
+                if (_selectedMacroFilter != null) ...[
+                  _buildMacroFilterSection(),
+                  const SizedBox(height: 24),
+                ],
 
                 // ── Macro Block ──
                 if (_allFood.isNotEmpty)
-                  _buildMacroBlockNew(context, 'อาหารแนะนำ (ทั้งหมด)', 'protein',
-                    _allFood.take(2).toList()),
+                  _buildMacroBlockNew(context, 'อาหารแนะนำ (ทั้งหมด)',
+                      'protein', _allFood.take(2).toList()),
 
                 const SizedBox(height: 32),
 
@@ -396,8 +510,11 @@ class _RecommendedFoodScreenState extends ConsumerState<RecommendedFoodScreen> {
                   color: const Color(0xFFD76A3C),
                   alignment: Alignment.center,
                   child: const Text('แนะนำสำหรับคุณ',
-                    style: TextStyle(fontFamily: 'Inter', fontWeight: FontWeight.w500,
-                      fontSize: 16, color: Colors.white)),
+                      style: TextStyle(
+                          fontFamily: 'Inter',
+                          fontWeight: FontWeight.w500,
+                          fontSize: 16,
+                          color: Colors.white)),
                 ),
                 const SizedBox(height: 24),
 
@@ -421,7 +538,12 @@ class _RecommendedFoodScreenState extends ConsumerState<RecommendedFoodScreen> {
                 // ── เครื่องดื่ม ──
                 _buildSectionHeader('สูตรเครื่องดื่มแนะนำสำหรับคุณ'),
                 _buildFilterChips(
-                  labels: const ['ทั้งหมด', 'ไม่มีน้ำตาล', 'ชา/กาแฟ', 'มีแอลกอฮอล์'],
+                  labels: const [
+                    'ทั้งหมด',
+                    'ไม่มีน้ำตาล',
+                    'ชา/กาแฟ',
+                    'มีแอลกอฮอล์'
+                  ],
                   selectedIndex: _drinkFilterIndex,
                   onTap: (i) => setState(() => _drinkFilterIndex = i),
                 ),
@@ -460,36 +582,262 @@ class _RecommendedFoodScreenState extends ConsumerState<RecommendedFoodScreen> {
   }
 
   // ────────────────────────────────────────────
+  //  MACRO NUTRITION PANEL
+  // ────────────────────────────────────────────
+
+  Widget _buildMacroNutritionPanel() {
+    final userData = ref.watch(userDataProvider);
+    final macros = [
+      {
+        'key': 'protein',
+        'label': 'โปรตีน',
+        'icon': Icons.egg_outlined,
+        'consumed': userData.consumedProtein,
+        'target': userData.targetProtein,
+        'color': const Color(0xFF628141)
+      },
+      {
+        'key': 'carbs',
+        'label': 'คาร์บ',
+        'icon': Icons.grain_rounded,
+        'consumed': userData.consumedCarbs,
+        'target': userData.targetCarbs,
+        'color': const Color(0xFFD76A3C)
+      },
+      {
+        'key': 'fat',
+        'label': 'ไขมัน',
+        'icon': Icons.water_drop_outlined,
+        'consumed': userData.consumedFat,
+        'target': userData.targetFat,
+        'color': const Color(0xFF3498DB)
+      },
+    ];
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+      child: Container(
+        padding: const EdgeInsets.fromLTRB(14, 12, 14, 14),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(20),
+          boxShadow: [
+            BoxShadow(
+                color: Colors.black.withValues(alpha: 0.06),
+                blurRadius: 12,
+                offset: const Offset(0, 4))
+          ],
+        ),
+        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Row(children: [
+            const Icon(Icons.bar_chart_rounded,
+                size: 16, color: Color(0xFF628141)),
+            const SizedBox(width: 6),
+            const Text('โภชนาการวันนี้',
+                style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold)),
+            const SizedBox(width: 6),
+            Text('กดเลือกเพื่อดูเมนูที่เหมาะ',
+                style: TextStyle(fontSize: 10, color: Colors.grey.shade500)),
+          ]),
+          const SizedBox(height: 10),
+          Row(
+              children: macros.map((m) {
+            final key = m['key'] as String;
+            final isSelected = _selectedMacroFilter == key;
+            final consumed = m['consumed'] as int;
+            final target = m['target'] as int;
+            final remaining = (target - consumed).clamp(0, target);
+            final progress =
+                target > 0 ? (consumed / target).clamp(0.0, 1.0) : 0.0;
+            final color = m['color'] as Color;
+            final isOver = consumed > target;
+            return Expanded(
+              child: GestureDetector(
+                onTap: () => setState(() {
+                  _selectedMacroFilter = isSelected ? null : key;
+                }),
+                child: AnimatedContainer(
+                  duration: const Duration(milliseconds: 180),
+                  margin: const EdgeInsets.symmetric(horizontal: 3),
+                  padding: const EdgeInsets.all(9),
+                  decoration: BoxDecoration(
+                    color: isSelected
+                        ? color.withValues(alpha: 0.12)
+                        : Colors.grey.shade50,
+                    borderRadius: BorderRadius.circular(14),
+                    border: Border.all(
+                        color: isSelected ? color : Colors.grey.shade200,
+                        width: isSelected ? 1.5 : 1),
+                  ),
+                  child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Icon(m['icon'] as IconData,
+                            size: 13,
+                            color: isSelected ? color : Colors.grey.shade500),
+                        const SizedBox(height: 4),
+                        Text(m['label'] as String,
+                            style: TextStyle(
+                                fontSize: 10,
+                                fontWeight: FontWeight.w600,
+                                color: isSelected ? color : Colors.black87)),
+                        const SizedBox(height: 5),
+                        ClipRRect(
+                          borderRadius: BorderRadius.circular(4),
+                          child: LinearProgressIndicator(
+                            value: progress,
+                            backgroundColor: Colors.grey.shade200,
+                            color: isOver ? Colors.red.shade400 : color,
+                            minHeight: 4,
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Text('$consumed/$target g',
+                            style: TextStyle(
+                                fontSize: 9, color: Colors.grey.shade500)),
+                        const SizedBox(height: 2),
+                        Text(
+                          isOver ? 'เกินเป้าหมาย' : 'ขาด ${remaining}g',
+                          style: TextStyle(
+                              fontSize: 10,
+                              fontWeight: FontWeight.bold,
+                              color: isOver ? Colors.red.shade400 : color),
+                        ),
+                      ]),
+                ),
+              ),
+            );
+          }).toList()),
+        ]),
+      ),
+    );
+  }
+
+  Widget _buildMacroFilterSection() {
+    final userData = ref.watch(userDataProvider);
+    final macro = _selectedMacroFilter!;
+    final labelMap = {'protein': 'โปรตีน', 'carbs': 'คาร์บ', 'fat': 'ไขมัน'};
+    final colorMap = {
+      'protein': const Color(0xFF628141),
+      'carbs': const Color(0xFFD76A3C),
+      'fat': const Color(0xFF3498DB)
+    };
+    final label = labelMap[macro]!;
+    final color = colorMap[macro]!;
+    final consumed = macro == 'protein'
+        ? userData.consumedProtein
+        : macro == 'carbs'
+            ? userData.consumedCarbs
+            : userData.consumedFat;
+    final target = macro == 'protein'
+        ? userData.targetProtein
+        : macro == 'carbs'
+            ? userData.targetCarbs
+            : userData.targetFat;
+    final remaining = (target - consumed).clamp(0, target);
+    final filtered = _macroFilteredFood(macro);
+
+    return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+      // ── header banner ──
+      Container(
+        margin: const EdgeInsets.symmetric(horizontal: 20),
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+        decoration: BoxDecoration(
+          color: color.withValues(alpha: 0.08),
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(color: color.withValues(alpha: 0.25)),
+        ),
+        child: Row(children: [
+          Icon(Icons.restaurant_rounded, size: 15, color: color),
+          const SizedBox(width: 8),
+          Expanded(
+            child: RichText(
+              text: TextSpan(
+                style: const TextStyle(fontSize: 12, color: Colors.black87),
+                children: [
+                  TextSpan(
+                    text: 'เมนูที่มี',
+                  ),
+                  TextSpan(
+                      text: label,
+                      style:
+                          TextStyle(fontWeight: FontWeight.bold, color: color)),
+                  const TextSpan(text: ' ≤ '),
+                  TextSpan(
+                      text: '${remaining}g',
+                      style:
+                          TextStyle(fontWeight: FontWeight.bold, color: color)),
+                  const TextSpan(text: '  •  เหมาะสำหรับมื้อถัดไป'),
+                ],
+              ),
+            ),
+          ),
+          Text('$consumed/$target g',
+              style: TextStyle(fontSize: 11, color: Colors.grey.shade500)),
+        ]),
+      ),
+      const SizedBox(height: 10),
+      // ── food list ──
+      if (remaining <= 0)
+        Padding(
+          padding: const EdgeInsets.symmetric(vertical: 24),
+          child: Column(children: [
+            Icon(Icons.check_circle_outline_rounded, size: 42, color: color),
+            const SizedBox(height: 8),
+            Text('ครบเป้าหมาย$labelแล้ววันนี้ 🎉',
+                style: TextStyle(
+                    fontSize: 14, color: color, fontWeight: FontWeight.w600)),
+          ]),
+        )
+      else if (filtered.isEmpty)
+        Padding(
+          padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 20),
+          child: Text(
+            'ไม่พบเมนูที่มี$label ≤ ${remaining}g ในฐานข้อมูล',
+            style: TextStyle(fontSize: 13, color: Colors.grey.shade500),
+            textAlign: TextAlign.center,
+          ),
+        )
+      else
+        _buildGrid(filtered.take(6).toList()),
+    ]);
+  }
+
+  // ────────────────────────────────────────────
   //  WIDGETS
   // ────────────────────────────────────────────
 
   Widget _buildMacroBlockNew(BuildContext context, String title,
       String macroType, List<Map<String, dynamic>> items) {
     const lightGreen = Color(0xFFE8EFCF);
-    const darkGreen  = Color(0xFF628141);
+    const darkGreen = Color(0xFF628141);
 
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 20),
       width: double.infinity,
       padding: const EdgeInsets.fromLTRB(16, 16, 16, 20),
-      decoration: BoxDecoration(color: lightGreen,
-        borderRadius: BorderRadius.circular(20)),
+      decoration: BoxDecoration(
+          color: lightGreen, borderRadius: BorderRadius.circular(20)),
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
         GestureDetector(
           onTap: () => Navigator.of(context).push(MaterialPageRoute(
-            builder: (_) => MacroDetailScreen(macroType: macroType))),
+              builder: (_) => MacroDetailScreen(macroType: macroType))),
           child: IntrinsicWidth(
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-              decoration: BoxDecoration(color: Colors.white,
-                borderRadius: BorderRadius.circular(30)),
+              decoration: BoxDecoration(
+                  color: Colors.white, borderRadius: BorderRadius.circular(30)),
               child: Row(mainAxisSize: MainAxisSize.min, children: [
-                Text(title, style: const TextStyle(
-                  fontWeight: FontWeight.bold, fontSize: 16)),
+                Text(title,
+                    style: const TextStyle(
+                        fontWeight: FontWeight.bold, fontSize: 16)),
                 const SizedBox(width: 8),
-                Container(width: 24, height: 24,
-                  decoration: const BoxDecoration(color: darkGreen, shape: BoxShape.circle),
-                  child: const Icon(Icons.chevron_right, color: Colors.white, size: 18)),
+                Container(
+                    width: 24,
+                    height: 24,
+                    decoration: const BoxDecoration(
+                        color: darkGreen, shape: BoxShape.circle),
+                    child: const Icon(Icons.chevron_right,
+                        color: Colors.white, size: 18)),
               ]),
             ),
           ),
@@ -512,7 +860,7 @@ class _RecommendedFoodScreenState extends ConsumerState<RecommendedFoodScreen> {
     final calories = item['calories']?.toString() ?? '0';
     final imageUrl = item['image_url']?.toString();
     // ✅ แปลง foodId เป็น int ให้ถูกต้อง
-    final foodId   = item['food_id'] != null
+    final foodId = item['food_id'] != null
         ? int.tryParse(item['food_id'].toString())
         : null;
 
@@ -527,18 +875,21 @@ class _RecommendedFoodScreenState extends ConsumerState<RecommendedFoodScreen> {
         ),
       ),
       const SizedBox(height: 12),
-      Text(foodName, style: const TextStyle(
-        fontWeight: FontWeight.bold, fontSize: 14), maxLines: 2,
-        overflow: TextOverflow.ellipsis),
-      Text('$calories kcal', style: TextStyle(
-        fontSize: 13, color: Colors.grey[600])),
+      Text(foodName,
+          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+          maxLines: 2,
+          overflow: TextOverflow.ellipsis),
+      Text('$calories kcal',
+          style: TextStyle(fontSize: 13, color: Colors.grey[600])),
       const Spacer(),
       const SizedBox(height: 10),
       GestureDetector(
         onTap: () {
           if (foodId != null) {
-            Navigator.push(context, MaterialPageRoute(
-              builder: (_) => RecipeDetailScreen(foodId: foodId)));
+            Navigator.push(
+                context,
+                MaterialPageRoute(
+                    builder: (_) => RecipeDetailScreen(foodId: foodId)));
           }
         },
         child: Container(
@@ -546,11 +897,15 @@ class _RecommendedFoodScreenState extends ConsumerState<RecommendedFoodScreen> {
           decoration: BoxDecoration(
             color: const Color(0xFFAFD198),
             borderRadius: BorderRadius.circular(12),
-            boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.1),
-              blurRadius: 4, offset: const Offset(0, 3))],
+            boxShadow: [
+              BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.1),
+                  blurRadius: 4,
+                  offset: const Offset(0, 3))
+            ],
           ),
           child: const Text('วิธีการทำ',
-            style: TextStyle(fontWeight: FontWeight.w500, fontSize: 12)),
+              style: TextStyle(fontWeight: FontWeight.w500, fontSize: 12)),
         ),
       ),
     ]);
@@ -565,10 +920,13 @@ class _RecommendedFoodScreenState extends ConsumerState<RecommendedFoodScreen> {
       color: const Color(0xFFE8EFCF),
       padding: const EdgeInsets.fromLTRB(25, 14, 25, 0),
       child: GridView.builder(
-        shrinkWrap: true, physics: const NeverScrollableScrollPhysics(),
+        shrinkWrap: true,
+        physics: const NeverScrollableScrollPhysics(),
         gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-          crossAxisCount: 2, crossAxisSpacing: 23,
-          mainAxisSpacing: 21, childAspectRatio: 0.62,
+          crossAxisCount: 2,
+          crossAxisSpacing: 23,
+          mainAxisSpacing: 21,
+          childAspectRatio: 0.62,
         ),
         itemCount: items.length,
         itemBuilder: (context, index) => _buildFoodCard(items[index]),
@@ -581,7 +939,7 @@ class _RecommendedFoodScreenState extends ConsumerState<RecommendedFoodScreen> {
     final calories = item['calories']?.toString() ?? '0';
     final imageUrl = item['image_url']?.toString();
     // ✅ cast int ให้ถูกต้องทุกที่
-    final foodId   = item['food_id'] != null
+    final foodId = item['food_id'] != null
         ? int.tryParse(item['food_id'].toString())
         : null;
 
@@ -589,29 +947,35 @@ class _RecommendedFoodScreenState extends ConsumerState<RecommendedFoodScreen> {
       ClipRRect(
         borderRadius: BorderRadius.circular(10),
         child: SizedBox(
-          width: 160, height: 160,
+          width: 160,
+          height: 160,
           child: (imageUrl != null && imageUrl.isNotEmpty)
               ? _networkImage(imageUrl)
               : _imagePlaceholder(),
         ),
       ),
       const SizedBox(height: 10),
-      Text(foodName, style: const TextStyle(
-        fontSize: 14, fontWeight: FontWeight.w500, height: 1.2),
-        maxLines: 2, overflow: TextOverflow.ellipsis),
+      Text(foodName,
+          style: const TextStyle(
+              fontSize: 14, fontWeight: FontWeight.w500, height: 1.2),
+          maxLines: 2,
+          overflow: TextOverflow.ellipsis),
       const SizedBox(height: 4),
-      Text('$calories kcal', style: TextStyle(fontSize: 12, color: Colors.grey[700])),
+      Text('$calories kcal',
+          style: TextStyle(fontSize: 12, color: Colors.grey[700])),
       const Spacer(),
       GestureDetector(
         onTap: () {
           if (foodId != null) {
-            Navigator.push(context, MaterialPageRoute(
-              builder: (_) => RecipeDetailScreen(foodId: foodId)));
+            Navigator.push(
+                context,
+                MaterialPageRoute(
+                    builder: (_) => RecipeDetailScreen(foodId: foodId)));
           } else {
             // ✅ แสดงแจ้งเตือนถ้ายังไม่มีสูตร
             ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-              content: Text('ยังไม่มีสูตรอาหารสำหรับเมนูนี้'),
-              duration: Duration(seconds: 2)));
+                content: Text('ยังไม่มีสูตรอาหารสำหรับเมนูนี้'),
+                duration: Duration(seconds: 2)));
           }
         },
         child: Container(
@@ -619,11 +983,15 @@ class _RecommendedFoodScreenState extends ConsumerState<RecommendedFoodScreen> {
           decoration: BoxDecoration(
             color: const Color(0xFFAFD198),
             borderRadius: BorderRadius.circular(10),
-            boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.25),
-              blurRadius: 4, offset: const Offset(0, 4))],
+            boxShadow: [
+              BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.25),
+                  blurRadius: 4,
+                  offset: const Offset(0, 4))
+            ],
           ),
           child: const Text('วิธีการทำ',
-            style: TextStyle(fontWeight: FontWeight.w500, fontSize: 14)),
+              style: TextStyle(fontWeight: FontWeight.w500, fontSize: 14)),
         ),
       ),
     ]);
@@ -638,7 +1006,8 @@ class _RecommendedFoodScreenState extends ConsumerState<RecommendedFoodScreen> {
       child: Column(children: [
         Icon(Icons.restaurant_menu, size: 40, color: Colors.grey.shade400),
         const SizedBox(height: 8),
-        Text(message, style: TextStyle(color: Colors.grey.shade500, fontSize: 13)),
+        Text(message,
+            style: TextStyle(color: Colors.grey.shade500, fontSize: 13)),
       ]),
     );
   }
@@ -650,8 +1019,8 @@ class _RecommendedFoodScreenState extends ConsumerState<RecommendedFoodScreen> {
       color: const Color(0xFF628141),
       alignment: Alignment.center,
       child: Text(title,
-        style: const TextStyle(fontWeight: FontWeight.w500,
-          fontSize: 20, color: Colors.white)),
+          style: const TextStyle(
+              fontWeight: FontWeight.w500, fontSize: 20, color: Colors.white)),
     );
   }
 
@@ -674,20 +1043,18 @@ class _RecommendedFoodScreenState extends ConsumerState<RecommendedFoodScreen> {
                 onTap: () => onTap(i),
                 borderRadius: BorderRadius.circular(100),
                 child: Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 14, vertical: 10),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
                   decoration: BoxDecoration(
-                    color: isSelected
-                        ? const Color(0xFFAFD198)
-                        : Colors.white,
+                    color: isSelected ? const Color(0xFFAFD198) : Colors.white,
                     borderRadius: BorderRadius.circular(100),
                     border: isSelected
                         ? null
                         : Border.all(color: const Color(0xFF4C6414)),
                   ),
                   child: Text(labels[i],
-                    style: const TextStyle(
-                      fontWeight: FontWeight.w500, fontSize: 16)),
+                      style: const TextStyle(
+                          fontWeight: FontWeight.w500, fontSize: 16)),
                 ),
               ),
             );
@@ -721,15 +1088,21 @@ class _RecommendedFoodScreenState extends ConsumerState<RecommendedFoodScreen> {
           decoration: BoxDecoration(
             color: const Color(0xFF628141),
             borderRadius: BorderRadius.circular(100),
-            boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.25),
-              blurRadius: 4, offset: const Offset(0, 4))],
+            boxShadow: [
+              BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.25),
+                  blurRadius: 4,
+                  offset: const Offset(0, 4))
+            ],
           ),
           child: const Row(
             mainAxisSize: MainAxisSize.min,
             children: [
               Text('ดูเพิ่มเติม',
-                style: TextStyle(fontWeight: FontWeight.w500,
-                  fontSize: 12, color: Colors.white)),
+                  style: TextStyle(
+                      fontWeight: FontWeight.w500,
+                      fontSize: 12,
+                      color: Colors.white)),
               SizedBox(width: 4),
               Icon(Icons.arrow_forward_rounded, size: 14, color: Colors.white),
             ],
@@ -871,8 +1244,7 @@ class FoodCategoryScreen extends StatelessWidget {
                 )
               : GridView.builder(
                   padding: const EdgeInsets.fromLTRB(24, 20, 24, 40),
-                  gridDelegate:
-                      const SliverGridDelegateWithFixedCrossAxisCount(
+                  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
                     crossAxisCount: 2,
                     crossAxisSpacing: 16,
                     mainAxisSpacing: 16,
@@ -1107,8 +1479,8 @@ class _SuggestFoodSheetState extends State<_SuggestFoodSheet> {
                 border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(12),
                     borderSide: BorderSide(color: Colors.grey.shade300)),
-                contentPadding: const EdgeInsets.symmetric(
-                    horizontal: 14, vertical: 12),
+                contentPadding:
+                    const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
               ),
             ),
             const SizedBox(height: 12),

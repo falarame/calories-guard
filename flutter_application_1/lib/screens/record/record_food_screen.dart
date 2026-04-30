@@ -6,6 +6,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import 'package:flutter_application_1/services/api_client.dart';
 import '/providers/user_data_provider.dart';
+import '/providers/pending_food_provider.dart';
 import '../../services/health_service.dart';
 import '../../services/notification_helper.dart';
 import '../../widget/ai_meal_estimate_sheet.dart';
@@ -245,7 +246,33 @@ class _FoodLogScreenState extends ConsumerState<FoodLogScreen>
       debugPrint('Error fetching daily log: $e');
     } finally {
       if (mounted) setState(() => _isLoadingData = false);
+      _applyPendingFood();
     }
+  }
+
+  Future<void> _applyPendingFood() async {
+    final pending = ref.read(pendingFoodProvider);
+    if (pending == null) return;
+    // consume it immediately so it won’t re-apply on the next load
+    ref.read(pendingFoodProvider.notifier).state = null;
+
+    // gap time (mealId == '') → let user pick manually
+    if (pending.mealId.isEmpty) return;
+
+    final meal = _meals.firstWhere(
+      (m) => m.id == pending.mealId,
+      orElse: () => _meals.first,
+    );
+    final food = LoggedFood(
+      name: pending.foodName,
+      calories: pending.calories,
+      protein: pending.protein,
+      carbs: pending.carbs,
+      fat: pending.fat,
+      foodId: pending.foodId,
+    );
+    if (mounted) setState(() => meal.foods.add(food));
+    await _saveSingleMeal(meal);
   }
 
   double get _totalCalIn => _meals.fold(0, (s, m) => s + m.totalCalories);
@@ -530,12 +557,13 @@ class _FoodLogScreenState extends ConsumerState<FoodLogScreen>
               onTap: () => _showAddFoodSheet(meal),
               child: Container(
                 padding: const EdgeInsets.symmetric(vertical: 12),
-                child: Row(mainAxisAlignment: MainAxisAlignment.center, children: [
+                child:
+                    Row(mainAxisAlignment: MainAxisAlignment.center, children: [
                   Container(
                     width: 24,
                     height: 24,
-                    decoration:
-                        const BoxDecoration(color: _greenL, shape: BoxShape.circle),
+                    decoration: const BoxDecoration(
+                        color: _greenL, shape: BoxShape.circle),
                     child: const Icon(Icons.add, size: 16, color: _green),
                   ),
                   const SizedBox(width: 8),
@@ -606,8 +634,7 @@ class _FoodLogScreenState extends ConsumerState<FoodLogScreen>
               : () => Navigator.push(
                     context,
                     MaterialPageRoute(
-                      builder: (_) =>
-                          RecipeDetailScreen(foodId: food.foodId!),
+                      builder: (_) => RecipeDetailScreen(foodId: food.foodId!),
                     ),
                   ),
           child: Column(
@@ -622,8 +649,8 @@ class _FoodLogScreenState extends ConsumerState<FoodLogScreen>
                 if (food.isPending) ...[
                   const SizedBox(width: 6),
                   Container(
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 6, vertical: 2),
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                     decoration: BoxDecoration(
                         color: const Color(0xFFFFF3E0),
                         borderRadius: BorderRadius.circular(99)),
@@ -681,7 +708,8 @@ class _FoodLogScreenState extends ConsumerState<FoodLogScreen>
             borderRadius: BorderRadius.circular(16),
             border: Border.all(color: _greenM, style: BorderStyle.solid),
           ),
-          child: const Row(mainAxisAlignment: MainAxisAlignment.center, children: [
+          child:
+              const Row(mainAxisAlignment: MainAxisAlignment.center, children: [
             Icon(Icons.add_circle_outline, color: _green, size: 20),
             SizedBox(width: 8),
             Text('เพิ่มมื้ออาหารเอง',
@@ -936,8 +964,7 @@ class _FoodLogScreenState extends ConsumerState<FoodLogScreen>
           return;
         case HealthReadiness.permissionDenied:
           ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-            content: Text(
-                'ไม่ได้รับสิทธิ์อ่านข้อมูลสุขภาพ\n'
+            content: Text('ไม่ได้รับสิทธิ์อ่านข้อมูลสุขภาพ\n'
                 'เปิดแอป Health Connect → Apps → Calories Guard → อนุญาตการอ่านทั้งหมด'),
             backgroundColor: Colors.red,
             duration: Duration(seconds: 5),
@@ -974,8 +1001,7 @@ class _FoodLogScreenState extends ConsumerState<FoodLogScreen>
         // Permissions are fine but no data — typically means Samsung Health
         // hasn't been linked to Health Connect yet.
         ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-          content: Text(
-              'ไม่พบข้อมูลกิจกรรมในวันนี้\n'
+          content: Text('ไม่พบข้อมูลกิจกรรมในวันนี้\n'
               'เปิด Samsung Health → ตั้งค่า → Health Connect และเปิดการซิงค์'),
           backgroundColor: Colors.orange,
           duration: Duration(seconds: 6),
@@ -1037,7 +1063,8 @@ class _FoodLogScreenState extends ConsumerState<FoodLogScreen>
       final dateStr = DateFormat('yyyy-MM-dd').format(_selectedDate);
 
       // 1. ลบข้อมูลเก่าของมื้อนี้ก่อน (เหมือนโค้ดที่ใช้งานได้)
-      debugPrint('🗑️ DELETE: /meals/clear/$userId?date_record=$dateStr&meal_type=$mealType');
+      debugPrint(
+          '🗑️ DELETE: /meals/clear/$userId?date_record=$dateStr&meal_type=$mealType');
       final delRes = await ApiClient().delete(
         '/meals/clear/$userId?date_record=$dateStr&meal_type=$mealType',
       );
@@ -1263,11 +1290,11 @@ class _AddFoodSheetState extends ConsumerState<_AddFoodSheet>
                 _nutriCol('พลังงาน', '${(cal * amount).toInt()}', 'kcal',
                     const Color(0xFF628141)),
                 _divider(),
-                _nutriCol('โปรตีน', (protein * amount).toStringAsFixed(1),
-                    'g', const Color(0xFF2563EB)),
+                _nutriCol('โปรตีน', (protein * amount).toStringAsFixed(1), 'g',
+                    const Color(0xFF2563EB)),
                 _divider(),
-                _nutriCol('คาร์บ', (carbs * amount).toStringAsFixed(1),
-                    'g', const Color(0xFFD97706)),
+                _nutriCol('คาร์บ', (carbs * amount).toStringAsFixed(1), 'g',
+                    const Color(0xFFD97706)),
                 _divider(),
                 _nutriCol('ไขมัน', (fat * amount).toStringAsFixed(1), 'g',
                     const Color(0xFFDC2626)),
@@ -1414,11 +1441,10 @@ class _AddFoodSheetState extends ConsumerState<_AddFoodSheet>
     if (_searchCtrl.text.isEmpty) return _dbResults;
     final q = _searchCtrl.text.toLowerCase();
     return _dbResults
-        .where(
-            (f) =>
-                (f['food_name']?.toString().toLowerCase() ?? '').contains(q) ||
-                (f['display_name']?.toString().toLowerCase() ?? '').contains(q) ||
-                (f['regional_name']?.toString().toLowerCase() ?? '').contains(q))
+        .where((f) =>
+            (f['food_name']?.toString().toLowerCase() ?? '').contains(q) ||
+            (f['display_name']?.toString().toLowerCase() ?? '').contains(q) ||
+            (f['regional_name']?.toString().toLowerCase() ?? '').contains(q))
         .toList();
   }
 

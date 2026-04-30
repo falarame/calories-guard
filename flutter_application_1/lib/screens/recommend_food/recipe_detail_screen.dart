@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_application_1/services/api_client.dart';
 import '/providers/user_data_provider.dart';
+import '/providers/pending_food_provider.dart';
 import '/services/error_reporter.dart';
 
 // ─────────────────────────────────────────────
@@ -190,8 +191,7 @@ class _RecipeDetailScreenState extends ConsumerState<RecipeDetailScreen> {
   Widget _buildSliverAppBar(Map<String, dynamic> r) {
     final imageUrl = r['image_url']?.toString();
     final category = r['category']?.toString() ?? 'อาหารไทย';
-    final name =
-        r['display_name']?.toString() ??
+    final name = r['display_name']?.toString() ??
         r['recipe_name']?.toString() ??
         r['food_name']?.toString() ??
         '';
@@ -1158,15 +1158,15 @@ class _RecipeDetailScreenState extends ConsumerState<RecipeDetailScreen> {
                             if (res.statusCode == 200) {
                               _fetchRecipe(); // refresh
                               nav.pop();
-                              messenger.showSnackBar(
-                                  const SnackBar(
-                                      content: Text('✅ บันทึกรีวิวแล้ว!')));
+                              messenger.showSnackBar(const SnackBar(
+                                  content: Text('✅ บันทึกรีวิวแล้ว!')));
                             }
                           } catch (_) {
                             if (mounted) {
                               ScaffoldMessenger.of(context).showSnackBar(
                                 const SnackBar(
-                                  content: Text('ไม่สามารถบันทึกรีวิวได้ กรุณาลองใหม่'),
+                                  content: Text(
+                                      'ไม่สามารถบันทึกรีวิวได้ กรุณาลองใหม่'),
                                   backgroundColor: Colors.red,
                                 ),
                               );
@@ -1199,12 +1199,24 @@ class _RecipeDetailScreenState extends ConsumerState<RecipeDetailScreen> {
   }
 
   // ────────────────────────────────────────────
+  //  TIME → MEAL TYPE
+  // ────────────────────────────────────────────
+  /// Returns meal id based on current hour:
+  /// breakfast 06-10, lunch 11-14, dinner 17-20, else '' (user picks)
+  String _mealIdFromTime() {
+    final h = DateTime.now().hour;
+    if (h >= 6 && h <= 10) return 'breakfast';
+    if (h >= 11 && h <= 14) return 'lunch';
+    if (h >= 17 && h <= 20) return 'dinner';
+    return ''; // gap / snack — let user pick
+  }
+
+  // ────────────────────────────────────────────
   //  ADD TO MEAL BAR
   // ────────────────────────────────────────────
   Widget _buildAddMealBar(Map<String, dynamic> r) {
     final cal = r['calories']?.toStringAsFixed(0) ?? '0';
-    final name =
-        r['display_name']?.toString() ??
+    final name = r['display_name']?.toString() ??
         r['recipe_name']?.toString() ??
         r['food_name']?.toString() ??
         '';
@@ -1243,8 +1255,37 @@ class _RecipeDetailScreenState extends ConsumerState<RecipeDetailScreen> {
           const Spacer(),
           ElevatedButton(
             onPressed: () {
-              ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(content: Text('✅ เพิ่ม "$name" แล้ว!')));
+              final mealId = _mealIdFromTime();
+              final mealLabel = {
+                'breakfast': 'มื้อเช้า',
+                'lunch': 'มื้อกลางวัน',
+                'dinner': 'มื้อเย็น',
+              }[mealId];
+              // Set pending food for FoodLogScreen to pick up
+              ref.read(pendingFoodProvider.notifier).state = PendingFoodEntry(
+                foodId: widget.foodId,
+                foodName: name,
+                mealId: mealId,
+                calories: (r['calories'] as num?)?.toDouble() ?? 0,
+                protein: (r['protein'] as num?)?.toDouble() ?? 0,
+                carbs: (r['carbs'] as num?)?.toDouble() ?? 0,
+                fat: (r['fat'] as num?)?.toDouble() ?? 0,
+              );
+              // Switch to record tab
+              ref.read(navIndexProvider.notifier).state = 1;
+              Navigator.popUntil(context, (route) => route.isFirst);
+              if (mealLabel != null) {
+                ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                  content: Text('เพิ่ม "$name" ไปยัง $mealLabel ✔️'),
+                  backgroundColor: const Color(0xFF628141),
+                  duration: const Duration(seconds: 2),
+                ));
+              } else {
+                ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+                  content: Text('กรุณาเลือกมื้ออาหารที่ต้องการบันทึก'),
+                  duration: Duration(seconds: 3),
+                ));
+              }
             },
             style: ElevatedButton.styleFrom(
               backgroundColor: Colors.white,

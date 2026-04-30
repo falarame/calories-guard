@@ -132,344 +132,83 @@ class _AppHomeScreenState extends ConsumerState<AppHomeScreen> {
     }
   }
 
-  // ─── Meal Actions ─────────────────────────────────────────────────────────
-
-  Future<void> _editMeal(String mealType, String mealLabel) async {
-    final userId = ref.read(userDataProvider).userId;
-    final dateStr =
-        "${_viewDate.year}-${_viewDate.month.toString().padLeft(2, '0')}-${_viewDate.day.toString().padLeft(2, '0')}";
-
-    // Fetch meal detail from backend
-    List<dynamic> items = [];
-    Map<String, dynamic> summary = {};
-    try {
-      debugPrint('🔍 Fetching meal detail: /meals/$userId/detail?date_record=$dateStr&meal_type=$mealType');
-      final res = await ApiClient().get(
-        '/meals/$userId/detail',
-        queryParams: {'date_record': dateStr, 'meal_type': mealType},
-      );
-      debugPrint('📦 Response ${res.statusCode}: ${res.body}');
-      if (res.statusCode == 200) {
-        final data = json.decode(utf8.decode(res.bodyBytes));
-        items = data['items'] as List? ?? [];
-        summary = (data['summary'] as Map<String, dynamic>?) ?? {};
-      }
-    } catch (e, st) {
-      ErrorReporter.report('home.fetch_meal_detail', e, st);
-    }
-
-    if (!mounted) return;
-
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      shape: const RoundedRectangleBorder(
-          borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
-      backgroundColor: Colors.white,
-      builder: (sheetCtx) => DraggableScrollableSheet(
-        expand: false,
-        initialChildSize: 0.55,
-        minChildSize: 0.35,
-        maxChildSize: 0.85,
-        builder: (_, scrollCtrl) => Column(children: [
-          // ── Header ──────────────────────────────────────────────────────
-          Padding(
-            padding: const EdgeInsets.fromLTRB(20, 14, 20, 0),
-            child: Column(children: [
-              // Handle
-              Container(
-                width: 40,
-                height: 4,
-                decoration: BoxDecoration(
-                    color: Colors.grey.shade300,
-                    borderRadius: BorderRadius.circular(2)),
-              ),
-              const SizedBox(height: 14),
-              Row(children: [
-                Container(
-                  width: 38,
-                  height: 38,
-                  decoration: BoxDecoration(
-                      color: _greenLight,
-                      borderRadius: BorderRadius.circular(10)),
-                  child: Icon(_mealIcon(mealType), color: _green, size: 20),
-                ),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(mealLabel,
-                            style: const TextStyle(
-                                fontSize: 16,
-                                fontWeight: FontWeight.bold,
-                                color: Colors.black87)),
-                        if (summary['total_cal'] != null)
-                          Text(
-                            'รวม ${(summary['total_cal'] as num).toStringAsFixed(0)} kcal  '
-                            '· P ${(summary['total_protein'] as num).toStringAsFixed(0)}g  '
-                            '· C ${(summary['total_carbs'] as num).toStringAsFixed(0)}g  '
-                            '· F ${(summary['total_fat'] as num).toStringAsFixed(0)}g',
-                            style: TextStyle(
-                                fontSize: 12, color: Colors.grey.shade600),
-                          ),
-                      ]),
-                ),
-              ]),
-              const SizedBox(height: 12),
-              const Divider(height: 1),
-            ]),
-          ),
-
-          // ── Food list ────────────────────────────────────────────────────
-          Expanded(
-            child: items.isEmpty
-                ? Center(
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(Icons.restaurant_menu,
-                            size: 48, color: Colors.grey.shade300),
-                        const SizedBox(height: 8),
-                        Text('ยังไม่มีรายการอาหาร',
-                            style: TextStyle(color: Colors.grey.shade400)),
-                      ],
-                    ),
-                  )
-                : ListView.separated(
-                    controller: scrollCtrl,
-                    padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
-                    itemCount: items.length,
-                    separatorBuilder: (_, __) => const SizedBox(height: 8),
-                    itemBuilder: (_, i) {
-                      final item = items[i] as Map<String, dynamic>;
-                      final cal =
-                          (item['total_cal'] as num?)?.toStringAsFixed(0) ??
-                              '-';
-                      final protein =
-                          (item['total_protein'] as num?)?.toStringAsFixed(1) ??
-                              '0';
-                      final carbs =
-                          (item['total_carbs'] as num?)?.toStringAsFixed(1) ??
-                              '0';
-                      final fat =
-                          (item['total_fat'] as num?)?.toStringAsFixed(1) ??
-                              '0';
-                      final imageUrl = item['image_url'] as String? ?? '';
-                      final foodName = item['food_name'] as String? ?? '';
-                      final amount = item['amount'];
-
-                      return Container(
-                        padding: const EdgeInsets.all(12),
-                        decoration: BoxDecoration(
-                          color: _bg,
-                          borderRadius: BorderRadius.circular(16),
-                        ),
-                        child: Row(children: [
-                          // Food image / placeholder
-                          ClipRRect(
-                            borderRadius: BorderRadius.circular(12),
-                            child: imageUrl.isNotEmpty
-                                ? Image.network(imageUrl,
-                                    width: 60,
-                                    height: 60,
-                                    fit: BoxFit.cover,
-                                    errorBuilder: (_, __, ___) =>
-                                        _foodPlaceholder())
-                                : _foodPlaceholder(),
-                          ),
-                          const SizedBox(width: 12),
-                          // Info
-                          Expanded(
-                            child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(foodName,
-                                      style: const TextStyle(
-                                          fontSize: 14,
-                                          fontWeight: FontWeight.w600,
-                                          color: Colors.black87)),
-                                  const SizedBox(height: 2),
-                                  Text('${amount ?? 1} หน่วย',
-                                      style: TextStyle(
-                                          fontSize: 12,
-                                          color: Colors.grey.shade500)),
-                                  const SizedBox(height: 6),
-                                  // Macro chips
-                                  Row(children: [
-                                    _macroChip(
-                                        'P', protein, const Color(0xFF628141)),
-                                    const SizedBox(width: 4),
-                                    _macroChip(
-                                        'C', carbs, const Color(0xFF3D5A27)),
-                                    const SizedBox(width: 4),
-                                    _macroChip(
-                                        'F', fat, const Color(0xFF4A7A20)),
-                                  ]),
-                                ]),
-                          ),
-                          // Calorie badge
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                                horizontal: 10, vertical: 6),
-                            decoration: BoxDecoration(
-                              color: _green,
-                              borderRadius: BorderRadius.circular(10),
-                            ),
-                            child: Column(children: [
-                              Text(cal,
-                                  style: const TextStyle(
-                                      fontSize: 16,
-                                      fontWeight: FontWeight.bold,
-                                      color: Colors.white)),
-                              const Text('kcal',
-                                  style: TextStyle(
-                                      fontSize: 10, color: Colors.white70)),
-                            ]),
-                          ),
-                        ]),
-                      );
-                    },
-                  ),
-          ),
-
-          // ── Action buttons ───────────────────────────────────────────────
-          Padding(
-            padding: EdgeInsets.fromLTRB(
-                16, 8, 16, MediaQuery.of(sheetCtx).viewInsets.bottom + 16),
-            child: Row(children: [
-              Expanded(
-                child: OutlinedButton.icon(
-                  onPressed: () {
-                    Navigator.pop(sheetCtx);
-                    _confirmDeleteMeal(mealType, mealLabel);
-                  },
-                  icon: const Icon(Icons.delete_outline,
-                      size: 18, color: Colors.red),
-                  label: const Text('ลบมื้อนี้',
-                      style: TextStyle(color: Colors.red)),
-                  style: OutlinedButton.styleFrom(
-                    side: BorderSide(color: Colors.red.shade300),
-                    shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(14)),
-                    padding: const EdgeInsets.symmetric(vertical: 12),
-                  ),
-                ),
-              ),
-              const SizedBox(width: 10),
-              Expanded(
-                flex: 2,
-                child: ElevatedButton.icon(
-                  onPressed: () {
-                    Navigator.pop(sheetCtx);
-                    ref.read(navIndexProvider.notifier).state = 1;
-                  },
-                  icon: const Icon(Icons.add_rounded, size: 18),
-                  label: const Text('เพิ่มจานอาหาร'),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: _green,
-                    foregroundColor: Colors.white,
-                    shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(14)),
-                    padding: const EdgeInsets.symmetric(vertical: 12),
-                  ),
-                ),
-              ),
-            ]),
-          ),
-        ]),
-      ),
-    );
-  }
-
-  Widget _foodPlaceholder() => Container(
-      width: 60,
-      height: 60,
-      decoration: BoxDecoration(
-          color: _greenLight, borderRadius: BorderRadius.circular(12)),
-      child: const Icon(Icons.restaurant, color: _green, size: 28));
-
-  Widget _macroChip(String label, String value, Color color) => Container(
-      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-      decoration: BoxDecoration(
-          color: color.withValues(alpha: 0.12),
-          borderRadius: BorderRadius.circular(6)),
-      child: Text('$label $value g',
-          style: TextStyle(
-              fontSize: 10, fontWeight: FontWeight.w600, color: color)));
-
-  void _confirmDeleteMeal(String mealType, String mealLabel) {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: const Text('ยืนยันการลบ',
-            style: TextStyle(fontWeight: FontWeight.bold)),
-        content: Text('ลบรายการอาหารใน "$mealLabel" ทั้งหมด?'),
-        actions: [
-          TextButton(
-              onPressed: () => Navigator.pop(context),
-              child:
-                  const Text('ยกเลิก', style: TextStyle(color: Colors.grey))),
-          TextButton(
-            onPressed: () {
-              Navigator.pop(context);
-              _deleteMeal(mealType);
-            },
-            child: const Text('ลบ',
-                style:
-                    TextStyle(color: Colors.red, fontWeight: FontWeight.bold)),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Future<void> _deleteMeal(String mealType) async {
-    final userId = ref.read(userDataProvider).userId;
-    final dateStr =
-        "${_viewDate.year}-${_viewDate.month.toString().padLeft(2, '0')}-${_viewDate.day.toString().padLeft(2, '0')}";
-
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (ctx) =>
-          const Center(child: CircularProgressIndicator(color: _green)),
-    );
-
-    try {
-      final response = await ApiClient().delete(
-        '/meals/clear/$userId?date_record=$dateStr&meal_type=$mealType',
-      );
-
-      if (response.statusCode == 200) {
-        if (mounted) {
-          Navigator.pop(context);
-          await _fetchAllData();
-          if (mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(
-                  content: Text('ลบรายการเรียบร้อย'),
-                  backgroundColor: Colors.green),
-            );
-          }
-        }
-      } else {
-        throw Exception('Failed to delete: ${response.body}');
-      }
-    } catch (e) {
-      if (mounted) {
-        Navigator.pop(context);
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-              content: Text('เกิดข้อผิดพลาดในการลบ'),
-              backgroundColor: Colors.red),
-        );
-      }
-    }
-  }
-
   // ─── Helpers ─────────────────────────────────────────────────────────────
+
+  void _showBmiRangePopup(BuildContext context, double currentBmi) {
+    final rows = [
+      _BmiRange('< 18.5', 'น้ำหนักน้อยกว่าเกณฑ์', const Color(0xFF3498DB),
+          currentBmi > 0 && currentBmi < 18.5),
+      _BmiRange('18.5 – 22.9', 'น้ำหนักสมส่วน', const Color(0xFF628141),
+          currentBmi >= 18.5 && currentBmi < 23.0),
+      _BmiRange('23.0 – 24.9', 'น้ำหนักเกินมาตรฐาน', const Color(0xFFF39C12),
+          currentBmi >= 23.0 && currentBmi < 25.0),
+      _BmiRange('25.0 – 29.9', 'อ้วนระดับ 1', const Color(0xFFE67E22),
+          currentBmi >= 25.0 && currentBmi < 30.0),
+      _BmiRange(
+          '≥ 30.0', 'อ้วนระดับ 2', const Color(0xFFE74C3C), currentBmi >= 30.0),
+    ];
+    showDialog(
+      context: context,
+      builder: (_) => Dialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(20, 20, 20, 16),
+          child: Column(mainAxisSize: MainAxisSize.min, children: [
+            const Row(children: [
+              Icon(Icons.speed_rounded, size: 18, color: Color(0xFF628141)),
+              SizedBox(width: 8),
+              Text('เกณฑ์ BMI (สำหรับชาวเอเชีย)',
+                  style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold)),
+            ]),
+            const SizedBox(height: 14),
+            ...rows.map((r) => Container(
+                  margin: const EdgeInsets.only(bottom: 7),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
+                  decoration: BoxDecoration(
+                    color: r.isMe
+                        ? r.color.withValues(alpha: 0.12)
+                        : Colors.grey.shade50,
+                    borderRadius: BorderRadius.circular(10),
+                    border:
+                        r.isMe ? Border.all(color: r.color, width: 1.5) : null,
+                  ),
+                  child: Row(children: [
+                    Container(
+                        width: 9,
+                        height: 9,
+                        decoration: BoxDecoration(
+                            color: r.color, shape: BoxShape.circle)),
+                    const SizedBox(width: 10),
+                    Text(r.range,
+                        style: TextStyle(
+                            fontSize: 12,
+                            color: r.isMe ? r.color : Colors.black87,
+                            fontWeight:
+                                r.isMe ? FontWeight.bold : FontWeight.normal)),
+                    const Spacer(),
+                    Text(r.label,
+                        style: TextStyle(
+                            fontSize: 11,
+                            color: r.isMe ? r.color : Colors.grey.shade600,
+                            fontWeight:
+                                r.isMe ? FontWeight.w600 : FontWeight.normal)),
+                    if (r.isMe) ...[
+                      const SizedBox(width: 4),
+                      Icon(Icons.chevron_left_rounded, color: r.color, size: 16)
+                    ],
+                  ]),
+                )),
+            if (currentBmi > 0) ...[
+              const Divider(height: 16),
+              Text('BMI ของคุณ: ${currentBmi.toStringAsFixed(1)}',
+                  style: TextStyle(fontSize: 12, color: Colors.grey.shade500))
+            ],
+          ]),
+        ),
+      ),
+    );
+  }
 
   String getBMIStatus(double bmi) {
     if (bmi <= 0) return '-';
@@ -729,8 +468,8 @@ class _AppHomeScreenState extends ConsumerState<AppHomeScreen> {
             decoration: BoxDecoration(
               color: Colors.white.withValues(alpha: 0.2),
               borderRadius: BorderRadius.circular(50),
-              border:
-                  Border.all(color: Colors.white.withValues(alpha: 0.4), width: 1),
+              border: Border.all(
+                  color: Colors.white.withValues(alpha: 0.4), width: 1),
             ),
             child: Row(mainAxisSize: MainAxisSize.min, children: [
               const Icon(Icons.calendar_today_outlined,
@@ -1149,7 +888,8 @@ class _AppHomeScreenState extends ConsumerState<AppHomeScreen> {
                   width: 32,
                   height: 32,
                   decoration: BoxDecoration(
-                      color: _green.withValues(alpha: 0.1), shape: BoxShape.circle),
+                      color: _green.withValues(alpha: 0.1),
+                      shape: BoxShape.circle),
                   child: const Icon(Icons.monitor_weight_outlined,
                       size: 16, color: _green),
                 ),
@@ -1266,6 +1006,18 @@ class _AppHomeScreenState extends ConsumerState<AppHomeScreen> {
                               fontSize: 13,
                               fontWeight: FontWeight.w600,
                               color: Colors.black87)),
+                      const Spacer(),
+                      GestureDetector(
+                        onTap: () => _showBmiRangePopup(context, bmi),
+                        child: Container(
+                          padding: const EdgeInsets.all(3),
+                          decoration: BoxDecoration(
+                              color: Colors.grey.shade100,
+                              shape: BoxShape.circle),
+                          child: Icon(Icons.info_outline_rounded,
+                              size: 15, color: Colors.grey.shade400),
+                        ),
+                      ),
                     ]),
                     const SizedBox(height: 12),
                     bmi > 0
@@ -1401,6 +1153,7 @@ class _AppHomeScreenState extends ConsumerState<AppHomeScreen> {
         ],
       ),
       child: ListTile(
+        onTap: () => ref.read(navIndexProvider.notifier).state = 1,
         contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
         leading: Container(
           width: 44,
@@ -1424,38 +1177,17 @@ class _AppHomeScreenState extends ConsumerState<AppHomeScreen> {
           maxLines: 2,
           overflow: TextOverflow.ellipsis,
         ),
-        trailing: hasMenu
-            ? Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  GestureDetector(
-                    onTap: () async => _editMeal(mealType, mealLabel),
-                    child: Container(
-                      width: 34,
-                      height: 34,
-                      decoration: const BoxDecoration(
-                          color: Color(0xFFEAF0FF),
-                          shape: BoxShape.circle),
-                      child: const Icon(Icons.edit_outlined,
-                          size: 16, color: Color(0xFF3498DB)),
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  GestureDetector(
-                    onTap: () => _confirmDeleteMeal(mealType, mealLabel),
-                    child: Container(
-                      width: 34,
-                      height: 34,
-                      decoration: BoxDecoration(
-                          color: Colors.red.shade50, shape: BoxShape.circle),
-                      child: const Icon(Icons.delete_outline,
-                          size: 16, color: Colors.red),
-                    ),
-                  ),
-                ],
-              )
-            : null,
+        trailing: Icon(Icons.chevron_right_rounded,
+            color: Colors.grey.shade400, size: 20),
       ),
     );
   }
+}
+
+class _BmiRange {
+  final String range;
+  final String label;
+  final Color color;
+  final bool isMe;
+  const _BmiRange(this.range, this.label, this.color, this.isMe);
 }

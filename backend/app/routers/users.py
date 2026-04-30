@@ -482,3 +482,31 @@ def recalc_tdee(user_id: int, current_user: dict = Depends(get_current_user)):
     finally:
         if conn:
             conn.close()
+
+
+@router.get("/{user_id}/food-frequency")
+def get_food_frequency(user_id: int):
+    """Return how many times the user has eaten each food_id, sorted descending."""
+    conn = None
+    try:
+        conn = get_db_connection()
+        with conn.cursor(cursor_factory=RealDictCursor) as cur:
+            cur.execute(
+                """
+                SELECT d.food_id, COUNT(*) AS count
+                FROM cleangoal.detail_items d
+                JOIN cleangoal.meals m ON m.meal_id = d.meal_id
+                WHERE m.user_id = %s
+                  AND d.food_id IS NOT NULL
+                GROUP BY d.food_id
+                ORDER BY count DESC
+                """,
+                (user_id,),
+            )
+            rows = cur.fetchall()
+        return [{"food_id": r["food_id"], "count": int(r["count"])} for r in rows]
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+    finally:
+        if conn:
+            conn.close()
