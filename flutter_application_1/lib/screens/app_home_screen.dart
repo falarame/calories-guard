@@ -10,6 +10,7 @@ import '../../services/error_reporter.dart';
 import '/screens/macro/macro_detail_screen.dart';
 import '/screens/restaurant_map_screen.dart';
 import '/screens/bmi/bmi_detail_screen.dart';
+import '/screens/tamagotchi/tamagotchi_screen.dart';
 
 class AppHomeScreen extends ConsumerStatefulWidget {
   const AppHomeScreen({super.key});
@@ -375,6 +376,8 @@ class _AppHomeScreenState extends ConsumerState<AppHomeScreen> {
                         _buildWeightBMIRow(userData, bmi, bmiStatus),
                         const SizedBox(height: 16),
                         _buildRestaurantButton(targetCal - currentCal),
+                        const SizedBox(height: 12),
+                        _buildTamagotchiBanner(),
                         const SizedBox(height: 12),
                         _buildMealsSection(userData),
                         const SizedBox(height: 100),
@@ -1179,6 +1182,65 @@ class _AppHomeScreenState extends ConsumerState<AppHomeScreen> {
         ),
         trailing: Icon(Icons.chevron_right_rounded,
             color: Colors.grey.shade400, size: 20),
+      ),
+    );
+  }
+
+  // ─── Tamagotchi Banner ────────────────────────────────────────────────────
+  Widget _buildTamagotchiBanner() {
+    return GestureDetector(
+      onTap: () => Navigator.push(
+          context, MaterialPageRoute(builder: (_) => const TamagotchiScreen())),
+      child: Container(
+        margin: const EdgeInsets.symmetric(horizontal: 16),
+        padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
+        decoration: BoxDecoration(
+          gradient: const LinearGradient(
+            colors: [Color(0xFF1A0533), Color(0xFF2D1265)],
+            begin: Alignment.centerLeft,
+            end: Alignment.centerRight,
+          ),
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(color: const Color(0xFFAB47BC).withOpacity(0.5)),
+          boxShadow: [
+            BoxShadow(
+                color: const Color(0xFF7B1FA2).withOpacity(0.3),
+                blurRadius: 16,
+                offset: const Offset(0, 4)),
+          ],
+        ),
+        child: Row(children: [
+          const Text('🐣', style: TextStyle(fontSize: 34)),
+          const SizedBox(width: 14),
+          const Expanded(
+            child:
+                Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              Text('ต้อกของฉัน',
+                  style: TextStyle(
+                      color: Colors.white,
+                      fontFamily: 'Inter',
+                      fontWeight: FontWeight.w700,
+                      fontSize: 15)),
+              Text('ทำภารกิจวันนี้เพื่อสะสมคะแนน',
+                  style: TextStyle(color: Colors.white60, fontSize: 12)),
+            ]),
+          ),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
+            decoration: BoxDecoration(
+              color: const Color(0xFFAB47BC).withOpacity(0.25),
+              borderRadius: BorderRadius.circular(12),
+              border:
+                  Border.all(color: const Color(0xFFAB47BC).withOpacity(0.5)),
+            ),
+            child: const Text('ดูต้อก →',
+                style: TextStyle(
+                    color: Color(0xFFCE93D8),
+                    fontFamily: 'Inter',
+                    fontWeight: FontWeight.w600,
+                    fontSize: 12)),
+          ),
+        ]),
       ),
     );
   }
