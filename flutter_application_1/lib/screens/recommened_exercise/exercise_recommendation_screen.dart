@@ -13,6 +13,20 @@ String? _rewardBadge(List<dynamic> badges) {
   return null;
 }
 
+List<Color> _badgeGradient(String? badge) {
+  if (badge == '✨') return [const Color(0xFFFFD700), const Color(0xFFFFA000)];
+  if (badge == '🌾') return [const Color(0xFF8BC34A), const Color(0xFF558B2F)];
+  if (badge == '🌱') return [const Color(0xFF4CAF50), const Color(0xFF2E7D32)];
+  return [];
+}
+
+Color _badgeGlow(String? badge) {
+  if (badge == '✨') return const Color(0xFFFFD700);
+  if (badge == '🌾') return const Color(0xFF8BC34A);
+  if (badge == '🌱') return const Color(0xFF4CAF50);
+  return Colors.transparent;
+}
+
 String _tierEmoji(int streak) {
   if (streak >= 90) return '✨';
   if (streak >= 60) return '🌾';
@@ -499,24 +513,39 @@ class _ExerciseRecommendationScreenState
     final tColor = _tierColor(streak);
     final badge = _rewardBadge(badges);
 
+    final glowColor = _badgeGlow(badge);
+    final grad = _badgeGradient(badge);
+
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 5),
       decoration: BoxDecoration(
-        color: isMe ? tColor.withOpacity(0.09) : Colors.white,
+        color: badge != null
+            ? glowColor.withOpacity(0.06)
+            : (isMe ? tColor.withOpacity(0.09) : Colors.white),
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
-            color: isMe ? tColor.withOpacity(0.5) : const Color(0xFFE8F0E2),
-            width: isMe ? 1.5 : 1),
-        boxShadow: [
-          BoxShadow(
-              color: Colors.black.withValues(alpha: 0.04),
-              blurRadius: 8,
-              offset: const Offset(0, 3))
-        ],
+            color: badge != null
+                ? glowColor.withOpacity(0.45)
+                : (isMe ? tColor.withOpacity(0.5) : const Color(0xFFE8F0E2)),
+            width: badge != null ? 1.8 : (isMe ? 1.5 : 1)),
+        boxShadow: badge != null
+            ? [
+                BoxShadow(
+                    color: glowColor.withOpacity(0.25),
+                    blurRadius: 14,
+                    offset: const Offset(0, 4)),
+              ]
+            : [
+                BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.04),
+                    blurRadius: 8,
+                    offset: const Offset(0, 3))
+              ],
       ),
-      child: ListTile(
-        contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
-        leading: Row(mainAxisSize: MainAxisSize.min, children: [
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+        child: Row(children: [
+          // ── Rank number ──
           SizedBox(
             width: 26,
             child: Text('#$rank',
@@ -527,54 +556,132 @@ class _ExerciseRecommendationScreenState
                     color: isMe ? tColor : Colors.grey.shade400)),
           ),
           const SizedBox(width: 6),
-          Container(
-            width: 42,
-            height: 42,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              color: tColor.withOpacity(0.15),
-              border: Border.all(color: tColor.withOpacity(0.5), width: 1.5),
-            ),
-            child: Center(
-              child: Text(
-                name.isNotEmpty ? name[0].toUpperCase() : '?',
-                style: TextStyle(
-                    fontWeight: FontWeight.bold, fontSize: 16, color: tColor),
+          // ── Avatar with badge overlay ──
+          Stack(clipBehavior: Clip.none, children: [
+            Container(
+              width: 46,
+              height: 46,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: tColor.withOpacity(0.15),
+                border: Border.all(
+                    color: badge != null ? glowColor : tColor.withOpacity(0.5),
+                    width: badge != null ? 2.5 : 1.5),
+                boxShadow: badge != null
+                    ? [
+                        BoxShadow(
+                            color: glowColor.withOpacity(0.5),
+                            blurRadius: 10,
+                            spreadRadius: 1)
+                      ]
+                    : [],
+              ),
+              child: Center(
+                child: Text(
+                  name.isNotEmpty ? name[0].toUpperCase() : '?',
+                  style: TextStyle(
+                      fontWeight: FontWeight.bold, fontSize: 17, color: tColor),
+                ),
               ),
             ),
+            if (badge != null)
+              Positioned(
+                bottom: -4,
+                right: -6,
+                child: Container(
+                  width: 24,
+                  height: 24,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    gradient: LinearGradient(
+                        colors: grad,
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight),
+                    border: Border.all(color: Colors.white, width: 2),
+                    boxShadow: [
+                      BoxShadow(
+                          color: glowColor.withOpacity(0.6), blurRadius: 6)
+                    ],
+                  ),
+                  child: Center(
+                    child: Text(badge, style: const TextStyle(fontSize: 11)),
+                  ),
+                ),
+              ),
+          ]),
+          const SizedBox(width: 12),
+          // ── Name + tier chip ──
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(name + (isMe ? ' (คุณ)' : ''),
+                    style: TextStyle(
+                        fontWeight: FontWeight.w700,
+                        fontSize: 14,
+                        fontFamily: 'Inter',
+                        color: isMe ? _green : Colors.black87)),
+                const SizedBox(height: 3),
+                Row(children: [
+                  Container(
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                    decoration: BoxDecoration(
+                        color: tColor.withOpacity(0.15),
+                        borderRadius: BorderRadius.circular(6),
+                        border: Border.all(color: tColor.withOpacity(0.4))),
+                    child: Text('${_tierEmoji(streak)} ${_tierName(streak)}',
+                        style: TextStyle(
+                            fontSize: 9,
+                            color: tColor,
+                            fontFamily: 'Inter',
+                            fontWeight: FontWeight.w600)),
+                  ),
+                  const SizedBox(width: 6),
+                  Text('รดน้ำ $totalDays วัน',
+                      style:
+                          TextStyle(fontSize: 10, color: Colors.grey.shade500)),
+                ]),
+              ],
+            ),
+          ),
+          const SizedBox(width: 8),
+          // ── Score + badge pill ──
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.end,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              _tabIndex == 0
+                  ? _streakBadge(streak, tColor)
+                  : _pointsBadge((user['tama_points'] as int?) ?? 0),
+              if (badge != null) ...[
+                const SizedBox(height: 5),
+                Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                        colors: grad,
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight),
+                    borderRadius: BorderRadius.circular(20),
+                    boxShadow: [
+                      BoxShadow(
+                          color: glowColor.withOpacity(0.4), blurRadius: 6)
+                    ],
+                  ),
+                  child: Text('$badge มีบาดจ์',
+                      style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 9,
+                          fontFamily: 'Inter',
+                          fontWeight: FontWeight.w700)),
+                ),
+              ],
+            ],
           ),
         ]),
-        title: Row(children: [
-          if (badge != null) ...[
-            Text(badge, style: const TextStyle(fontSize: 14)),
-            const SizedBox(width: 4)
-          ],
-          Text(name + (isMe ? ' (คุณ)' : ''),
-              style: TextStyle(
-                  fontWeight: FontWeight.w600,
-                  fontSize: 14,
-                  fontFamily: 'Inter',
-                  color: isMe ? _green : Colors.black87)),
-          const SizedBox(width: 6),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-            decoration: BoxDecoration(
-                color: tColor.withOpacity(0.15),
-                borderRadius: BorderRadius.circular(6),
-                border: Border.all(color: tColor.withOpacity(0.4))),
-            child: Text('${_tierEmoji(streak)} ${_tierName(streak)}',
-                style: TextStyle(
-                    fontSize: 9,
-                    color: tColor,
-                    fontFamily: 'Inter',
-                    fontWeight: FontWeight.w600)),
-          ),
-        ]),
-        subtitle: Text('รดน้ำ $totalDays วัน',
-            style: TextStyle(fontSize: 11, color: Colors.grey.shade500)),
-        trailing: _tabIndex == 0
-            ? _streakBadge(streak, tColor)
-            : _pointsBadge((user['tama_points'] as int?) ?? 0),
       ),
     );
   }
