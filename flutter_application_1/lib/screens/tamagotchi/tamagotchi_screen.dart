@@ -67,13 +67,6 @@ const _tiers = [
       emoji: '✨'),
 ];
 
-_Tier _tierOf(int pts) {
-  for (int i = _tiers.length - 1; i >= 0; i--) {
-    if (pts >= _tiers[i].minPts) return _tiers[i];
-  }
-  return _tiers[0];
-}
-
 // ─────────────────────────────────────────────────────────
 //  Mission model
 // ─────────────────────────────────────────────────────────
@@ -159,6 +152,8 @@ class TamagotchiScreen extends ConsumerStatefulWidget {
 class _TamagotchiScreenState extends ConsumerState<TamagotchiScreen>
     with SingleTickerProviderStateMixin {
   int _totalPoints = 0;
+  int _maxTierIdx =
+      0; // never decreases — tier earned, not tier from current pts
   Set<String> _claimedToday = {};
   int? _demoTierIdx; // null = show real tier
   late AnimationController _bounceCtrl;
@@ -166,15 +161,12 @@ class _TamagotchiScreenState extends ConsumerState<TamagotchiScreen>
 
   static const _bg = Color(0xFF0A1A0E);
 
-  /// Tier index used for display (demo-aware)
+  /// Tier index used for display — uses maxTierIdx so spending never lowers tier
   int get _activeTierIdx =>
-      (_demoTierIdx ?? _tiers.lastIndexWhere((t) => _totalPoints >= t.minPts))
-          .clamp(0, _tiers.length - 1);
+      (_demoTierIdx ?? _maxTierIdx).clamp(0, _tiers.length - 1);
 
-  /// Real tier index based on actual points (used when claiming)
-  int get _realTierIdx => _tiers
-      .lastIndexWhere((t) => _totalPoints >= t.minPts)
-      .clamp(0, _tiers.length - 1);
+  /// Real tier for reward multiplier — also uses maxTierIdx
+  int get _realTierIdx => _maxTierIdx;
 
   /// Points shown in UI — demo-aware
   int _missionPoints(_Mission m) =>
@@ -199,6 +191,16 @@ class _TamagotchiScreenState extends ConsumerState<TamagotchiScreen>
       ..repeat(reverse: true);
     _bounceAnim = Tween<double>(begin: -8, end: 8)
         .animate(CurvedAnimation(parent: _bounceCtrl, curve: Curves.easeInOut));
+    // Quick local init — prevents tier-0 flicker before backend responds
+    SharedPreferences.getInstance().then((prefs) {
+      final uid = ref.read(userDataProvider).userId;
+      if (!mounted) return;
+      setState(() {
+        _totalPoints = prefs.getInt(_pointsKey(uid)) ?? 0;
+        _maxTierIdx = prefs.getInt(_maxTierKey(uid)) ?? 0;
+        _claimedToday = (prefs.getStringList(_claimedKey(uid)) ?? []).toSet();
+      });
+    });
     _load();
   }
 
@@ -215,23 +217,31 @@ class _TamagotchiScreenState extends ConsumerState<TamagotchiScreen>
 
   String _pointsKey(int userId) => 'tama_points_$userId';
   String _claimedKey(int userId) => 'tama_claimed_${userId}_$_todayKey';
+  String _maxTierKey(int userId) => 'tama_max_tier_$userId';
 
   Future<void> _load() async {
     final userId = ref.read(userDataProvider).userId;
     final prefs = await SharedPreferences.getInstance();
     final localPts = prefs.getInt(_pointsKey(userId)) ?? 0;
+    final localMaxTier = prefs.getInt(_maxTierKey(userId)) ?? 0;
     final claimed = (prefs.getStringList(_claimedKey(userId)) ?? []).toSet();
 
     int pts = localPts;
+    int maxTier = localMaxTier;
     if (userId > 0) {
       try {
         final res = await ApiClient().get('/users/$userId/tama-points');
         if (res.statusCode == 200) {
           final data = jsonDecode(res.body);
           final backendPts = (data['tama_points'] as num?)?.toInt() ?? 0;
+          final backendTier = (data['tier_level'] as num?)?.toInt() ?? 0;
           if (backendPts > localPts) {
             pts = backendPts;
             await prefs.setInt(_pointsKey(userId), pts);
+          }
+          if (backendTier > localMaxTier) {
+            maxTier = backendTier;
+            await prefs.setInt(_maxTierKey(userId), maxTier);
           }
         }
       } catch (_) {}
@@ -240,6 +250,7 @@ class _TamagotchiScreenState extends ConsumerState<TamagotchiScreen>
     if (mounted) {
       setState(() {
         _totalPoints = pts;
+        _maxTierIdx = maxTier;
         _claimedToday = claimed;
       });
     }
@@ -252,10 +263,19 @@ class _TamagotchiScreenState extends ConsumerState<TamagotchiScreen>
     final prefs = await SharedPreferences.getInstance();
     final newPts = _totalPoints + pts;
     final newClaimed = {..._claimedToday, m.id};
+    // Tier can only go up
+    final earnedTier = _tiers
+        .lastIndexWhere((t) => newPts >= t.minPts)
+        .clamp(0, _tiers.length - 1);
+    final newMaxTier = earnedTier > _maxTierIdx ? earnedTier : _maxTierIdx;
     await prefs.setInt(_pointsKey(userId), newPts);
     await prefs.setStringList(_claimedKey(userId), newClaimed.toList());
+    if (newMaxTier > _maxTierIdx) {
+      await prefs.setInt(_maxTierKey(userId), newMaxTier);
+    }
     setState(() {
       _totalPoints = newPts;
+      _maxTierIdx = newMaxTier;
       _claimedToday = newClaimed;
     });
     _syncPointsToBackend(newPts);
@@ -272,28 +292,23 @@ class _TamagotchiScreenState extends ConsumerState<TamagotchiScreen>
     if (!mounted) return;
     final userId = ref.read(userDataProvider).userId;
     if (userId <= 0) return;
-    final tierIdx = _tiers
-        .lastIndexWhere((t) => pts >= t.minPts)
-        .clamp(0, _tiers.length - 1);
     ApiClient().patch(
       '/users/$userId/tama-points',
-      body: {'tama_points': pts, 'tier_level': tierIdx},
+      body: {'tama_points': pts, 'tier_level': _maxTierIdx},
     ).ignore();
   }
 
   @override
   Widget build(BuildContext context) {
     final userData = ref.watch(userDataProvider);
-    final realTier = _tierOf(_totalPoints);
-    final realTierIdx = _tiers.indexOf(realTier);
     final isDemo = _demoTierIdx != null;
-    final tierIdx = _demoTierIdx ?? realTierIdx;
+    final tierIdx = _demoTierIdx ?? _maxTierIdx;
     final tier = _tiers[tierIdx];
     final nextTier = tierIdx < _tiers.length - 1 ? _tiers[tierIdx + 1] : null;
     final demoPoints = isDemo ? tier.minPts : _totalPoints;
     final progress = nextTier != null
-        ? ((isDemo ? tier.minPts : _totalPoints) - tier.minPts) /
-            (nextTier.minPts - tier.minPts)
+        ? ((_totalPoints - tier.minPts) / (nextTier.minPts - tier.minPts))
+            .clamp(0.0, 1.0)
         : 1.0;
 
     return Scaffold(
@@ -336,7 +351,9 @@ class _TamagotchiScreenState extends ConsumerState<TamagotchiScreen>
                   context,
                   MaterialPageRoute(
                     builder: (_) => RewardShopScreen(
+                      userId: ref.read(userDataProvider).userId,
                       currentPoints: _totalPoints,
+                      maxTierIdx: _maxTierIdx,
                       onPointsUpdated: (pts) =>
                           setState(() => _totalPoints = pts),
                     ),
@@ -382,7 +399,7 @@ class _TamagotchiScreenState extends ConsumerState<TamagotchiScreen>
           const SizedBox(height: 20),
 
           // ── Tier ladder (tappable) ──
-          _buildTierLadder(tierIdx, realTierIdx),
+          _buildTierLadder(tierIdx, _maxTierIdx),
           const SizedBox(height: 24),
 
           // ── Missions ──

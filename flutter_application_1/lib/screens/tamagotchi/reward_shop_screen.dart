@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import '/services/api_client.dart';
 
 // ─── Reward model ────────────────────────────────────────
 class _Reward {
@@ -64,12 +65,16 @@ const _rewards = [
 
 // ─── Screen ───────────────────────────────────────────────
 class RewardShopScreen extends StatefulWidget {
+  final int userId;
   final int currentPoints;
+  final int maxTierIdx;
   final void Function(int newPoints) onPointsUpdated;
 
   const RewardShopScreen({
     super.key,
+    required this.userId,
     required this.currentPoints,
+    required this.maxTierIdx,
     required this.onPointsUpdated,
   });
 
@@ -92,9 +97,12 @@ class _RewardShopScreenState extends State<RewardShopScreen> {
     _loadClaimed();
   }
 
+  String get _claimedKey => 'tama_rewards_claimed_${widget.userId}';
+  String get _pointsKey => 'tama_points_${widget.userId}';
+
   Future<void> _loadClaimed() async {
     final prefs = await SharedPreferences.getInstance();
-    final list = prefs.getStringList('tama_rewards_claimed') ?? [];
+    final list = prefs.getStringList(_claimedKey) ?? [];
     setState(() => _claimed = list.toSet());
   }
 
@@ -138,13 +146,18 @@ class _RewardShopScreenState extends State<RewardShopScreen> {
     final prefs = await SharedPreferences.getInstance();
     final newPts = _points - r.cost;
     final newClaimed = {..._claimed, r.id};
-    await prefs.setInt('tama_points', newPts);
-    await prefs.setStringList('tama_rewards_claimed', newClaimed.toList());
+    await prefs.setInt(_pointsKey, newPts);
+    await prefs.setStringList(_claimedKey, newClaimed.toList());
     setState(() {
       _points = newPts;
       _claimed = newClaimed;
     });
     widget.onPointsUpdated(newPts);
+    // Sync deducted points to backend (keep tier_level unchanged)
+    ApiClient().patch(
+      '/users/${widget.userId}/tama-points',
+      body: {'tama_points': newPts, 'tier_level': widget.maxTierIdx},
+    ).ignore();
     if (mounted) {
       HapticFeedback.mediumImpact();
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(
