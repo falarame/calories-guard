@@ -444,11 +444,16 @@ class _ExerciseRecommendationScreenState
               color: isMe ? rankColor : Colors.black87)),
       const SizedBox(height: 2),
       Row(mainAxisSize: MainAxisSize.min, children: [
-        const Text('☀️', style: TextStyle(fontSize: 10)),
+        Text(_tabIndex == 1 ? '🌾' : '☀️',
+            style: const TextStyle(fontSize: 10)),
         const SizedBox(width: 2),
-        Text('$streak วัน',
-            style: TextStyle(
-                fontSize: 10, color: rankColor, fontWeight: FontWeight.w600)),
+        Text(
+          _tabIndex == 1
+              ? '${(user['tama_points'] as int?) ?? 0} เมล็ด'
+              : '$streak วัน',
+          style: TextStyle(
+              fontSize: 10, color: rankColor, fontWeight: FontWeight.w600),
+        ),
       ]),
       const SizedBox(height: 8),
       // Podium block
