@@ -163,7 +163,7 @@ def _email_exists(cur, email: str) -> bool:
 
 
 def _get_user_by_email(cur, email: str) -> dict | None:
-    cur.execute("SELECT * FROM users WHERE LOWER(email) = %s LIMIT 1", (email,))
+    cur.execute("SELECT * FROM users WHERE LOWER(email) = %s AND deleted_at IS NULL LIMIT 1", (email,))
     return cur.fetchone()
 
 
@@ -369,7 +369,7 @@ def _login_impl(user, request: Request | None = None):
     conn = get_db_connection()
     try:
         cur = conn.cursor(cursor_factory=RealDictCursor)
-        cur.execute("SELECT * FROM users WHERE LOWER(email) = %s", (email,))
+        cur.execute("SELECT * FROM users WHERE LOWER(email) = %s AND deleted_at IS NULL", (email,))
         db_user = cur.fetchone()
         if not db_user:
             raise HTTPException(status_code=401, detail="Invalid email or password")

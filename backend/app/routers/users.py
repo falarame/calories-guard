@@ -138,7 +138,7 @@ def get_user_profile(user_id: int, current_user: dict = Depends(get_current_user
     conn = get_db_connection()
     try:
         cur = conn.cursor(cursor_factory=RealDictCursor)
-        cur.execute("SELECT * FROM users WHERE user_id = %s", (user_id,))
+        cur.execute("SELECT * FROM users WHERE user_id = %s AND deleted_at IS NULL", (user_id,))
         user = cur.fetchone()
         if not user:
             raise HTTPException(status_code=404, detail="User not found")
