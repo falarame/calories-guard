@@ -484,7 +484,38 @@ def recalc_tdee(user_id: int, current_user: dict = Depends(get_current_user)):
             conn.close()
 
 
-@router.get("/{user_id}/food-frequency")
+@router.patch("/users/{user_id}/tama-points")
+def sync_tama_points(user_id: int, payload: dict):
+    """Upsert tama_points + tier_level into user_gamification."""
+    points = int(payload.get("tama_points", 0))
+    tier   = int(payload.get("tier_level", 0))
+    conn = None
+    try:
+        conn = get_db_connection()
+        with conn.cursor() as cur:
+            cur.execute(
+                """
+                INSERT INTO cleangoal.user_gamification (user_id, tama_points, tier_level, updated_at)
+                VALUES (%s, %s, %s, NOW())
+                ON CONFLICT (user_id) DO UPDATE
+                  SET tama_points = EXCLUDED.tama_points,
+                      tier_level  = EXCLUDED.tier_level,
+                      updated_at  = NOW()
+                """,
+                (user_id, points, tier),
+            )
+        conn.commit()
+        return {"ok": True}
+    except Exception as e:
+        if conn:
+            conn.rollback()
+        raise HTTPException(status_code=500, detail=str(e))
+    finally:
+        if conn:
+            conn.close()
+
+
+@router.get("/users/{user_id}/food-frequency")
 def get_food_frequency(user_id: int):
     """Return how many times the user has eaten each food_id, sorted descending."""
     conn = None

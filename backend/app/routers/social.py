@@ -250,12 +250,19 @@ def get_leaderboard(limit: int = 50):
     try:
         cur = conn.cursor(cursor_factory=RealDictCursor)
         cur.execute("""
-            SELECT user_id, COALESCE(username, 'ผู้ใช้') AS username,
-                   COALESCE(current_streak, 0) AS current_streak,
-                   COALESCE(total_login_days, 0) AS total_login_days, avatar_url
-            FROM users
-            WHERE deleted_at IS NULL AND (current_streak > 0 OR total_login_days > 0)
-            ORDER BY current_streak DESC, total_login_days DESC LIMIT %s
+            SELECT u.user_id,
+                   COALESCE(u.username, 'ผู้ใช้') AS username,
+                   COALESCE(u.current_streak, 0)   AS current_streak,
+                   COALESCE(u.total_login_days, 0)  AS total_login_days,
+                   u.avatar_url,
+                   COALESCE(g.tama_points, 0) AS tama_points,
+                   COALESCE(g.tier_level, 0)  AS tier_level
+            FROM cleangoal.users u
+            LEFT JOIN cleangoal.user_gamification g ON g.user_id = u.user_id
+            WHERE u.deleted_at IS NULL
+              AND (u.current_streak > 0 OR u.total_login_days > 0 OR COALESCE(g.tama_points, 0) > 0)
+            ORDER BY u.current_streak DESC, u.total_login_days DESC
+            LIMIT %s
         """, (limit,))
         rows = cur.fetchall()
         result = []
