@@ -212,11 +212,14 @@ class _TamagotchiScreenState extends ConsumerState<TamagotchiScreen>
     return '${now.year}-${now.month}-${now.day}';
   }
 
+  String _pointsKey(int userId) => 'tama_points_$userId';
+  String _claimedKey(int userId) => 'tama_claimed_${userId}_$_todayKey';
+
   Future<void> _load() async {
+    final userId = ref.read(userDataProvider).userId;
     final prefs = await SharedPreferences.getInstance();
-    final pts = prefs.getInt('tama_points') ?? 0;
-    final claimed =
-        (prefs.getStringList('tama_claimed_$_todayKey') ?? []).toSet();
+    final pts = prefs.getInt(_pointsKey(userId)) ?? 0;
+    final claimed = (prefs.getStringList(_claimedKey(userId)) ?? []).toSet();
 
     if (mounted) {
       setState(() {
@@ -228,12 +231,13 @@ class _TamagotchiScreenState extends ConsumerState<TamagotchiScreen>
 
   Future<void> _claimMission(_Mission m) async {
     if (_claimedToday.contains(m.id)) return;
+    final userId = ref.read(userDataProvider).userId;
     final pts = _missionPointsReal(m);
     final prefs = await SharedPreferences.getInstance();
     final newPts = _totalPoints + pts;
     final newClaimed = {..._claimedToday, m.id};
-    await prefs.setInt('tama_points', newPts);
-    await prefs.setStringList('tama_claimed_$_todayKey', newClaimed.toList());
+    await prefs.setInt(_pointsKey(userId), newPts);
+    await prefs.setStringList(_claimedKey(userId), newClaimed.toList());
     setState(() {
       _totalPoints = newPts;
       _claimedToday = newClaimed;
