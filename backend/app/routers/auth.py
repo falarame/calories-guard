@@ -1,7 +1,7 @@
 import os
 import re
 import secrets
-from datetime import date, datetime, timedelta
+from datetime import date, datetime, timedelta, timezone
 from random import randint
 
 from fastapi import APIRouter, HTTPException, Request, Depends
@@ -236,7 +236,7 @@ def register(request: Request, user: UserRegister):
                 raise
         new_user = cur.fetchone()
         code = str(randint(100000, 999999))
-        expires = datetime.now() + timedelta(minutes=15)
+        expires = datetime.now(timezone.utc) + timedelta(minutes=15)
         cur.execute("""
             CREATE TABLE IF NOT EXISTS email_verification_codes (
                 id BIGSERIAL PRIMARY KEY, user_id BIGINT NOT NULL, code VARCHAR(10) NOT NULL,
@@ -296,7 +296,7 @@ def verify_email(req: UserVerifyEmail):
                 (user['user_id'], req.code),
             )
             code_record = cur.fetchone()
-            if not code_record or code_record['expires_at'] < datetime.now():
+            if not code_record or code_record['expires_at'] < datetime.now(timezone.utc):
                 raise HTTPException(status_code=400, detail="รหัสไม่ถูกต้องหรือหมดอายุ")
             cur.execute(
                 "UPDATE email_verification_codes SET used = TRUE WHERE id = %s",
@@ -340,7 +340,7 @@ def resend_verification_email(req: PasswordResetRequest):
             raise HTTPException(status_code=400, detail="อีเมลนี้ได้รับการยืนยันแล้ว")
         cur.execute("UPDATE email_verification_codes SET used = TRUE WHERE user_id = %s", (user['user_id'],))
         code = str(randint(100000, 999999))
-        expires = datetime.now() + timedelta(minutes=15)
+        expires = datetime.now(timezone.utc) + timedelta(minutes=15)
         cur.execute("INSERT INTO email_verification_codes (user_id, code, expires_at) VALUES (%s, %s, %s)",
                     (user['user_id'], code, expires))
         conn.commit()
@@ -526,7 +526,7 @@ def password_reset_request(req: PasswordResetRequest):
         if not user:
             raise HTTPException(status_code=404, detail="อีเมลไม่ถูกต้อง")
         code = _generate_code()
-        expires = datetime.now() + timedelta(minutes=15)
+        expires = datetime.now(timezone.utc) + timedelta(minutes=15)
         cur.execute(
             "INSERT INTO password_reset_codes (user_id, code, expires_at, used) VALUES (%s, %s, %s, %s)",
             (user['user_id'], code, expires, False),
@@ -562,7 +562,7 @@ def password_reset_verify(req: PasswordResetVerify):
             raise HTTPException(status_code=401, detail="วันเดือนปีเกิดไม่ตรงกับบัญชี")
         cur.execute("SELECT * FROM password_reset_codes WHERE user_id = %s AND code = %s AND used = FALSE ORDER BY created_at DESC LIMIT 1", (user['user_id'], req.code))
         row = cur.fetchone()
-        if not row or row['expires_at'] < datetime.now():
+        if not row or row['expires_at'] < datetime.now(timezone.utc):
             raise HTTPException(status_code=401, detail="รหัสไม่ถูกต้องหรือหมดอายุ")
         return {"message": "ยืนยันโค้ดสำเร็จ"}
     except HTTPException:
@@ -593,7 +593,7 @@ def password_reset_confirm(req: PasswordResetConfirm):
             raise HTTPException(status_code=401, detail="วันเดือนปีเกิดไม่ตรงกับบัญชี")
         cur.execute("SELECT * FROM password_reset_codes WHERE user_id = %s AND code = %s AND used = FALSE ORDER BY created_at DESC LIMIT 1", (user['user_id'], req.code))
         row = cur.fetchone()
-        if not row or row['expires_at'] < datetime.now():
+        if not row or row['expires_at'] < datetime.now(timezone.utc):
             raise HTTPException(status_code=401, detail="รหัสไม่ถูกต้องหรือหมดอายุ")
         new_hash = get_password_hash(req.new_password)
         cur.execute("UPDATE users SET password_hash = %s WHERE user_id = %s", (new_hash, user['user_id']))
