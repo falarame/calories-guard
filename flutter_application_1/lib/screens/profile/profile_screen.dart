@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:http/http.dart' as http;
@@ -109,7 +110,12 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
               child: _buildStatsRow(userData, daysLeftText),
             ),
 
-            const SizedBox(height: 24),
+            const SizedBox(height: 20),
+
+            // ─── Badges ───────────────────────────────────
+            _BadgesSection(userId: userData.userId),
+
+            const SizedBox(height: 4),
 
             // ─── Section: ข้อมูลส่วนตัว ───────────────────────
             _buildSectionLabel('ข้อมูลส่วนตัว'),
@@ -472,4 +478,78 @@ class _MenuEntry {
   final String? assetIcon;
   const _MenuEntry(this.icon, this.label, this.iconBg, this.onTap,
       {this.isLast = false, this.assetIcon});
+}
+
+// ─── Badge showcase (reads from local SharedPrefs) ────────────
+class _BadgesSection extends StatefulWidget {
+  final int userId;
+  const _BadgesSection({required this.userId});
+  @override
+  State<_BadgesSection> createState() => _BadgesSectionState();
+}
+
+class _BadgesSectionState extends State<_BadgesSection> {
+  Set<String> _claimed = {};
+
+  static const _badgeInfo = {
+    'badge_newbie': ('🌱', 'ชาวนามือใหม่'),
+    'badge_grower': ('🌾', 'รวงทอง'),
+    'badge_champion': ('✨', 'วิ้งค์'),
+  };
+
+  @override
+  void initState() {
+    super.initState();
+    SharedPreferences.getInstance().then((prefs) {
+      if (!mounted) return;
+      final key = 'tama_rewards_claimed_${widget.userId}';
+      setState(() => _claimed = (prefs.getStringList(key) ?? []).toSet());
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final earned =
+        _badgeInfo.entries.where((e) => _claimed.contains(e.key)).toList();
+    if (earned.isEmpty) return const SizedBox.shrink();
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
+      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        const Text('🏆  บาดจ์ของฉัน',
+            style: TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.w700,
+                color: Color(0xFF3D5A27),
+                fontFamily: 'Inter')),
+        const SizedBox(height: 10),
+        Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: earned.map((e) {
+              final emoji = e.value.$1;
+              final label = e.value.$2;
+              return Container(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF628141).withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(
+                      color: const Color(0xFF628141).withOpacity(0.4)),
+                ),
+                child: Row(mainAxisSize: MainAxisSize.min, children: [
+                  Text(emoji, style: const TextStyle(fontSize: 18)),
+                  const SizedBox(width: 6),
+                  Text(label,
+                      style: const TextStyle(
+                          color: Color(0xFF3D5A27),
+                          fontFamily: 'Inter',
+                          fontWeight: FontWeight.w600,
+                          fontSize: 12)),
+                ]),
+              );
+            }).toList()),
+      ]),
+    );
+  }
 }

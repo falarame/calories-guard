@@ -155,6 +155,7 @@ class _TamagotchiScreenState extends ConsumerState<TamagotchiScreen>
   int _maxTierIdx =
       0; // never decreases — tier earned, not tier from current pts
   Set<String> _claimedToday = {};
+  Set<String> _claimedRewards = {};
   int? _demoTierIdx; // null = show real tier
   late AnimationController _bounceCtrl;
   late Animation<double> _bounceAnim;
@@ -199,6 +200,8 @@ class _TamagotchiScreenState extends ConsumerState<TamagotchiScreen>
         _totalPoints = prefs.getInt(_pointsKey(uid)) ?? 0;
         _maxTierIdx = prefs.getInt(_maxTierKey(uid)) ?? 0;
         _claimedToday = (prefs.getStringList(_claimedKey(uid)) ?? []).toSet();
+        _claimedRewards =
+            (prefs.getStringList('tama_rewards_claimed_$uid') ?? []).toSet();
       });
     });
     _load();
@@ -248,10 +251,13 @@ class _TamagotchiScreenState extends ConsumerState<TamagotchiScreen>
     }
 
     if (mounted) {
+      final rewardKey = 'tama_rewards_claimed_$userId';
+      final claimedRewards = (prefs.getStringList(rewardKey) ?? []).toSet();
       setState(() {
         _totalPoints = pts;
         _maxTierIdx = maxTier;
         _claimedToday = claimed;
+        _claimedRewards = claimedRewards;
       });
     }
   }
@@ -434,9 +440,67 @@ class _TamagotchiScreenState extends ConsumerState<TamagotchiScreen>
           ),
           const SizedBox(height: 12),
           ..._missions.map((m) => _buildMissionCard(m, userData)),
+          // ── Rewards showcase ──
+          if (_claimedRewards.isNotEmpty) ...[
+            const SizedBox(height: 24),
+            _buildRewardsShowcase(),
+          ],
         ]),
       ),
     );
+  }
+
+  static const _badgeInfo = {
+    'badge_newbie': ('🌱', 'ชาวนามือใหม่'),
+    'badge_grower': ('🌾', 'รวงทอง'),
+    'badge_champion': ('✨', 'วิ้งค์'),
+  };
+
+  Widget _buildRewardsShowcase() {
+    final earned = _badgeInfo.entries
+        .where((e) => _claimedRewards.contains(e.key))
+        .toList();
+    return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+      const Text('🏆  บาดจ์ที่ได้รับ',
+          style: TextStyle(
+              color: Colors.white,
+              fontSize: 16,
+              fontWeight: FontWeight.w700,
+              fontFamily: 'Inter')),
+      const SizedBox(height: 12),
+      Wrap(
+          spacing: 10,
+          runSpacing: 10,
+          children: earned.map((e) {
+            final emoji = e.value.$1;
+            final label = e.value.$2;
+            return Container(
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+              decoration: BoxDecoration(
+                gradient: const LinearGradient(
+                    colors: [Color(0xFF1B5E35), Color(0xFF2E7D32)]),
+                borderRadius: BorderRadius.circular(14),
+                border:
+                    Border.all(color: const Color(0xFF66BB6A).withOpacity(0.5)),
+                boxShadow: [
+                  BoxShadow(
+                      color: const Color(0xFF66BB6A).withOpacity(0.2),
+                      blurRadius: 8)
+                ],
+              ),
+              child: Row(mainAxisSize: MainAxisSize.min, children: [
+                Text(emoji, style: const TextStyle(fontSize: 22)),
+                const SizedBox(width: 8),
+                Text(label,
+                    style: const TextStyle(
+                        color: Colors.white,
+                        fontFamily: 'Inter',
+                        fontWeight: FontWeight.w700,
+                        fontSize: 13)),
+              ]),
+            );
+          }).toList()),
+    ]);
   }
 
   // ─── Pet Card ───────────────────────────────────────────

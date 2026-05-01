@@ -6,6 +6,13 @@ import 'package:flutter_application_1/constants/constants.dart';
 import '/providers/user_data_provider.dart';
 
 // ── Tier helper (mirrors tamagotchi_screen tiers) ───────────────
+String? _rewardBadge(int tierLevel) {
+  if (tierLevel >= 5) return '✨';
+  if (tierLevel >= 3) return '🌾';
+  if (tierLevel >= 1) return '🌱';
+  return null;
+}
+
 String _tierEmoji(int streak) {
   if (streak >= 90) return '✨';
   if (streak >= 60) return '🌾';
@@ -487,8 +494,10 @@ class _ExerciseRecommendationScreenState
     final name = (user['username'] as String?) ?? 'ผู้ใช้';
     final streak = (user['current_streak'] as int?) ?? 0;
     final totalDays = (user['total_login_days'] as int?) ?? 0;
+    final tierLevel = (user['tier_level'] as int?) ?? 0;
     final isMe = user['user_id'] == myUserId;
     final tColor = _tierColor(streak);
+    final badge = _rewardBadge(tierLevel);
 
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 5),
@@ -536,6 +545,10 @@ class _ExerciseRecommendationScreenState
           ),
         ]),
         title: Row(children: [
+          if (badge != null) ...[
+            Text(badge, style: const TextStyle(fontSize: 14)),
+            const SizedBox(width: 4)
+          ],
           Text(name + (isMe ? ' (คุณ)' : ''),
               style: TextStyle(
                   fontWeight: FontWeight.w600,
