@@ -255,8 +255,9 @@ def get_leaderboard(limit: int = 50):
                    COALESCE(u.current_streak, 0)   AS current_streak,
                    COALESCE(u.total_login_days, 0)  AS total_login_days,
                    u.avatar_url,
-                   COALESCE(g.tama_points, 0) AS tama_points,
-                   COALESCE(g.tier_level, 0)  AS tier_level
+                   COALESCE(g.tama_points, 0)    AS tama_points,
+                   COALESCE(g.tier_level, 0)     AS tier_level,
+                   COALESCE(g.claimed_badges, '{}') AS claimed_badges
             FROM cleangoal.users u
             LEFT JOIN cleangoal.user_gamification g ON g.user_id = u.user_id
             WHERE u.deleted_at IS NULL

@@ -6,10 +6,10 @@ import 'package:flutter_application_1/constants/constants.dart';
 import '/providers/user_data_provider.dart';
 
 // ── Tier helper (mirrors tamagotchi_screen tiers) ───────────────
-String? _rewardBadge(int tierLevel) {
-  if (tierLevel >= 5) return '✨';
-  if (tierLevel >= 3) return '🌾';
-  if (tierLevel >= 1) return '🌱';
+String? _rewardBadge(List<dynamic> badges) {
+  if (badges.contains('badge_champion')) return '✨';
+  if (badges.contains('badge_grower')) return '🌾';
+  if (badges.contains('badge_newbie')) return '🌱';
   return null;
 }
 
@@ -494,10 +494,10 @@ class _ExerciseRecommendationScreenState
     final name = (user['username'] as String?) ?? 'ผู้ใช้';
     final streak = (user['current_streak'] as int?) ?? 0;
     final totalDays = (user['total_login_days'] as int?) ?? 0;
-    final tierLevel = (user['tier_level'] as int?) ?? 0;
+    final badges = (user['claimed_badges'] as List?) ?? [];
     final isMe = user['user_id'] == myUserId;
     final tColor = _tierColor(streak);
-    final badge = _rewardBadge(tierLevel);
+    final badge = _rewardBadge(badges);
 
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 5),

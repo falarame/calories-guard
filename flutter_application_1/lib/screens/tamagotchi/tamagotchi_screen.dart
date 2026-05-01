@@ -238,6 +238,10 @@ class _TamagotchiScreenState extends ConsumerState<TamagotchiScreen>
           final data = jsonDecode(res.body);
           final backendPts = (data['tama_points'] as num?)?.toInt() ?? 0;
           final backendTier = (data['tier_level'] as num?)?.toInt() ?? 0;
+          final backendBadges = (data['claimed_badges'] as List?)
+                  ?.map((e) => e.toString())
+                  .toList() ??
+              [];
           if (backendPts > localPts) {
             pts = backendPts;
             await prefs.setInt(_pointsKey(userId), pts);
@@ -245,6 +249,10 @@ class _TamagotchiScreenState extends ConsumerState<TamagotchiScreen>
           if (backendTier > localMaxTier) {
             maxTier = backendTier;
             await prefs.setInt(_maxTierKey(userId), maxTier);
+          }
+          if (backendBadges.isNotEmpty) {
+            await prefs.setStringList(
+                'tama_rewards_claimed_$userId', backendBadges);
           }
         }
       } catch (_) {}

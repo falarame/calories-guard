@@ -492,13 +492,13 @@ def get_tama_points(user_id: int):
         conn = get_db_connection()
         with conn.cursor() as cur:
             cur.execute(
-                "SELECT tama_points, tier_level FROM cleangoal.user_gamification WHERE user_id = %s",
+                "SELECT tama_points, tier_level, claimed_badges FROM cleangoal.user_gamification WHERE user_id = %s",
                 (user_id,),
             )
             row = cur.fetchone()
         if row:
-            return {"tama_points": row[0], "tier_level": row[1]}
-        return {"tama_points": 0, "tier_level": 0}
+            return {"tama_points": row[0], "tier_level": row[1], "claimed_badges": row[2] or []}
+        return {"tama_points": 0, "tier_level": 0, "claimed_badges": []}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
     finally:
@@ -508,24 +508,39 @@ def get_tama_points(user_id: int):
 
 @router.patch("/users/{user_id}/tama-points")
 def sync_tama_points(user_id: int, payload: dict):
-    """Upsert tama_points + tier_level into user_gamification."""
-    points = int(payload.get("tama_points", 0))
-    tier   = int(payload.get("tier_level", 0))
+    """Upsert tama_points + tier_level + claimed_badges into user_gamification."""
+    points  = int(payload.get("tama_points", 0))
+    tier    = int(payload.get("tier_level", 0))
+    badges  = payload.get("claimed_badges")  # list[str] or None
     conn = None
     try:
         conn = get_db_connection()
         with conn.cursor() as cur:
-            cur.execute(
-                """
-                INSERT INTO cleangoal.user_gamification (user_id, tama_points, tier_level, updated_at)
-                VALUES (%s, %s, %s, NOW())
-                ON CONFLICT (user_id) DO UPDATE
-                  SET tama_points = EXCLUDED.tama_points,
-                      tier_level  = EXCLUDED.tier_level,
-                      updated_at  = NOW()
-                """,
-                (user_id, points, tier),
-            )
+            if badges is not None:
+                cur.execute(
+                    """
+                    INSERT INTO cleangoal.user_gamification (user_id, tama_points, tier_level, claimed_badges, updated_at)
+                    VALUES (%s, %s, %s, %s, NOW())
+                    ON CONFLICT (user_id) DO UPDATE
+                      SET tama_points    = EXCLUDED.tama_points,
+                          tier_level     = EXCLUDED.tier_level,
+                          claimed_badges = EXCLUDED.claimed_badges,
+                          updated_at     = NOW()
+                    """,
+                    (user_id, points, tier, badges),
+                )
+            else:
+                cur.execute(
+                    """
+                    INSERT INTO cleangoal.user_gamification (user_id, tama_points, tier_level, updated_at)
+                    VALUES (%s, %s, %s, NOW())
+                    ON CONFLICT (user_id) DO UPDATE
+                      SET tama_points = EXCLUDED.tama_points,
+                          tier_level  = EXCLUDED.tier_level,
+                          updated_at  = NOW()
+                    """,
+                    (user_id, points, tier),
+                )
         conn.commit()
         return {"ok": True}
     except Exception as e:

@@ -153,10 +153,14 @@ class _RewardShopScreenState extends State<RewardShopScreen> {
       _claimed = newClaimed;
     });
     widget.onPointsUpdated(newPts);
-    // Sync deducted points to backend (keep tier_level unchanged)
+    // Sync deducted points + full badge list to backend
     ApiClient().patch(
       '/users/${widget.userId}/tama-points',
-      body: {'tama_points': newPts, 'tier_level': widget.maxTierIdx},
+      body: {
+        'tama_points': newPts,
+        'tier_level': widget.maxTierIdx,
+        'claimed_badges': newClaimed.toList(),
+      },
     ).ignore();
     if (mounted) {
       HapticFeedback.mediumImpact();
