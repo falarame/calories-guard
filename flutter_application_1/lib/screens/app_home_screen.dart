@@ -1196,46 +1196,46 @@ class _AppHomeScreenState extends ConsumerState<AppHomeScreen> {
         padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
         decoration: BoxDecoration(
           gradient: const LinearGradient(
-            colors: [Color(0xFF1A0533), Color(0xFF2D1265)],
+            colors: [Color(0xFF0A2E10), Color(0xFF1B5E20)],
             begin: Alignment.centerLeft,
             end: Alignment.centerRight,
           ),
           borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: const Color(0xFFAB47BC).withOpacity(0.5)),
+          border: Border.all(color: const Color(0xFF66BB6A).withOpacity(0.4)),
           boxShadow: [
             BoxShadow(
-                color: const Color(0xFF7B1FA2).withOpacity(0.3),
+                color: const Color(0xFF2E7D32).withOpacity(0.35),
                 blurRadius: 16,
                 offset: const Offset(0, 4)),
           ],
         ),
         child: Row(children: [
-          const Text('🐣', style: TextStyle(fontSize: 34)),
+          const Text('🌾', style: TextStyle(fontSize: 34)),
           const SizedBox(width: 14),
           const Expanded(
             child:
                 Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              Text('ต้อกของฉัน',
+              Text('ไร่ข้าวของฉัน',
                   style: TextStyle(
                       color: Colors.white,
                       fontFamily: 'Inter',
                       fontWeight: FontWeight.w700,
                       fontSize: 15)),
-              Text('ทำภารกิจวันนี้เพื่อสะสมคะแนน',
+              Text('รดน้ำต้นข้าววันนี้ — สะสมเมล็ดข้าว',
                   style: TextStyle(color: Colors.white60, fontSize: 12)),
             ]),
           ),
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
             decoration: BoxDecoration(
-              color: const Color(0xFFAB47BC).withOpacity(0.25),
+              color: const Color(0xFF388E3C).withOpacity(0.3),
               borderRadius: BorderRadius.circular(12),
               border:
-                  Border.all(color: const Color(0xFFAB47BC).withOpacity(0.5)),
+                  Border.all(color: const Color(0xFF66BB6A).withOpacity(0.5)),
             ),
-            child: const Text('ดูต้อก →',
+            child: const Text('ดูไร่ →',
                 style: TextStyle(
-                    color: Color(0xFFCE93D8),
+                    color: Color(0xFFA5D6A7),
                     fontFamily: 'Inter',
                     fontWeight: FontWeight.w600,
                     fontSize: 12)),
