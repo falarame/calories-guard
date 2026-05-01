@@ -10,11 +10,35 @@ from app.core.config import (
     FROM_EMAIL, FROM_NAME,
 )
 
-RESEND_API_KEY = os.getenv("RESEND_API_KEY", "")
+RESEND_API_KEY   = os.getenv("RESEND_API_KEY", "")
+SENDGRID_API_KEY = os.getenv("SENDGRID_API_KEY", "")
 
 
 def send_email(to_email: str, subject: str, html_body: str) -> bool:
-    # ── Resend (HTTPS — works on Railway) ────────────────────────────────
+    # ── SendGrid (HTTPS — works on Railway) ──────────────────────────────
+    if SENDGRID_API_KEY:
+        try:
+            resp = httpx.post(
+                "https://api.sendgrid.com/v3/mail/send",
+                headers={"Authorization": f"Bearer {SENDGRID_API_KEY}"},
+                json={
+                    "personalizations": [{"to": [{"email": to_email}]}],
+                    "from": {"email": FROM_EMAIL, "name": FROM_NAME},
+                    "subject": subject,
+                    "content": [{"type": "text/html", "value": html_body}],
+                },
+                timeout=10,
+            )
+            if resp.status_code in (200, 202):
+                print(f"[Email] ✅ SendGrid sent to {to_email}: {subject}")
+                return True
+            print(f"[Email] SendGrid error {resp.status_code}: {resp.text}")
+            return False
+        except Exception as e:
+            print(f"[Email] SendGrid exception for {to_email}: {e}")
+            return False
+
+    # ── Resend (HTTPS fallback) ───────────────────────────────────────────
     if RESEND_API_KEY:
         try:
             resp = httpx.post(
