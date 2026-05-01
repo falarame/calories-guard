@@ -234,6 +234,7 @@ class _TamagotchiScreenState extends ConsumerState<TamagotchiScreen>
     if (earned > 0) {
       await prefs.setInt('tama_points', pts + earned);
       await prefs.setStringList('tama_claimed_$_todayKey', newClaimed.toList());
+      _syncPointsToBackend(pts + earned);
     }
 
     if (mounted) {
@@ -267,9 +268,12 @@ class _TamagotchiScreenState extends ConsumerState<TamagotchiScreen>
   }
 
   void _syncPointsToBackend(int pts) {
+    if (!mounted) return;
     final userId = ref.read(userDataProvider).userId;
     if (userId <= 0) return;
-    final tierIdx = _tierOf(pts);
+    final tierIdx = _tiers
+        .lastIndexWhere((t) => pts >= t.minPts)
+        .clamp(0, _tiers.length - 1);
     ApiClient().patch(
       '/users/$userId/tama-points',
       body: {'tama_points': pts, 'tier_level': tierIdx},
