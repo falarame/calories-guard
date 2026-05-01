@@ -257,7 +257,10 @@ class AuthService {
         'supabase_verified': supabaseVerified,
       });
       if (response.statusCode == 200) {
-        return {'success': true, 'data': jsonDecode(response.body)};
+        final data = jsonDecode(response.body) as Map<String, dynamic>;
+        final backendToken = data['access_token'] as String?;
+        if (backendToken != null) ApiClient.setManualToken(backendToken);
+        return {'success': true, 'data': data};
       }
       final errorData = jsonDecode(response.body);
       return {

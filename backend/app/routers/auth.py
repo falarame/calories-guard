@@ -315,7 +315,12 @@ def verify_email(req: UserVerifyEmail):
         except Exception as e:
             print(f"[verify-email] send_welcome_email failed: {e}")
 
-        return {"message": "Email verified successfully", "user_id": user['user_id']}
+        return {
+            "message": "Email verified successfully",
+            "user_id": user['user_id'],
+            "access_token": _issue_access_token(user['user_id'], user['email'], int(user.get('role_id') or 2)),
+            "token_type": "bearer",
+        }
     except HTTPException:
         conn.rollback()
         raise
