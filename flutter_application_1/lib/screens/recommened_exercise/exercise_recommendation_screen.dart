@@ -512,40 +512,52 @@ class _ExerciseRecommendationScreenState
     final isMe = user['user_id'] == myUserId;
     final tColor = _tierColor(streak);
     final badge = _rewardBadge(badges);
-
     final glowColor = _badgeGlow(badge);
     final grad = _badgeGradient(badge);
 
     return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 5),
+      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
       decoration: BoxDecoration(
-        color: badge != null
-            ? glowColor.withOpacity(0.06)
-            : (isMe ? tColor.withOpacity(0.09) : Colors.white),
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(18),
+        gradient: badge != null
+            ? LinearGradient(
+                colors: [
+                  glowColor.withOpacity(0.13),
+                  Colors.white,
+                  glowColor.withOpacity(0.07),
+                ],
+                begin: Alignment.centerLeft,
+                end: Alignment.centerRight,
+              )
+            : LinearGradient(
+                colors: isMe
+                    ? [tColor.withOpacity(0.10), tColor.withOpacity(0.04)]
+                    : [Colors.white, Colors.white],
+              ),
         border: Border.all(
             color: badge != null
-                ? glowColor.withOpacity(0.45)
-                : (isMe ? tColor.withOpacity(0.5) : const Color(0xFFE8F0E2)),
-            width: badge != null ? 1.8 : (isMe ? 1.5 : 1)),
+                ? glowColor.withOpacity(0.6)
+                : (isMe ? tColor.withOpacity(0.45) : const Color(0xFFE8F0E2)),
+            width: badge != null ? 2 : (isMe ? 1.5 : 1)),
         boxShadow: badge != null
             ? [
                 BoxShadow(
-                    color: glowColor.withOpacity(0.25),
-                    blurRadius: 14,
+                    color: glowColor.withOpacity(0.30),
+                    blurRadius: 18,
+                    spreadRadius: 1,
                     offset: const Offset(0, 4)),
               ]
             : [
                 BoxShadow(
                     color: Colors.black.withValues(alpha: 0.04),
                     blurRadius: 8,
-                    offset: const Offset(0, 3))
+                    offset: const Offset(0, 2))
               ],
       ),
       child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 11),
         child: Row(children: [
-          // ── Rank number ──
+          // ── Rank ──
           SizedBox(
             width: 26,
             child: Text('#$rank',
@@ -556,61 +568,35 @@ class _ExerciseRecommendationScreenState
                     color: isMe ? tColor : Colors.grey.shade400)),
           ),
           const SizedBox(width: 6),
-          // ── Avatar with badge overlay ──
-          Stack(clipBehavior: Clip.none, children: [
-            Container(
-              width: 46,
-              height: 46,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                color: tColor.withOpacity(0.15),
-                border: Border.all(
-                    color: badge != null ? glowColor : tColor.withOpacity(0.5),
-                    width: badge != null ? 2.5 : 1.5),
-                boxShadow: badge != null
-                    ? [
-                        BoxShadow(
-                            color: glowColor.withOpacity(0.5),
-                            blurRadius: 10,
-                            spreadRadius: 1)
-                      ]
-                    : [],
-              ),
-              child: Center(
-                child: Text(
-                  name.isNotEmpty ? name[0].toUpperCase() : '?',
-                  style: TextStyle(
-                      fontWeight: FontWeight.bold, fontSize: 17, color: tColor),
-                ),
+          // ── Avatar ──
+          Container(
+            width: 46,
+            height: 46,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              color: tColor.withOpacity(0.15),
+              border: Border.all(
+                  color: badge != null ? glowColor : tColor.withOpacity(0.5),
+                  width: badge != null ? 2.5 : 1.5),
+              boxShadow: badge != null
+                  ? [
+                      BoxShadow(
+                          color: glowColor.withOpacity(0.55),
+                          blurRadius: 12,
+                          spreadRadius: 1)
+                    ]
+                  : [],
+            ),
+            child: Center(
+              child: Text(
+                name.isNotEmpty ? name[0].toUpperCase() : '?',
+                style: TextStyle(
+                    fontWeight: FontWeight.bold, fontSize: 17, color: tColor),
               ),
             ),
-            if (badge != null)
-              Positioned(
-                bottom: -4,
-                right: -6,
-                child: Container(
-                  width: 24,
-                  height: 24,
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    gradient: LinearGradient(
-                        colors: grad,
-                        begin: Alignment.topLeft,
-                        end: Alignment.bottomRight),
-                    border: Border.all(color: Colors.white, width: 2),
-                    boxShadow: [
-                      BoxShadow(
-                          color: glowColor.withOpacity(0.6), blurRadius: 6)
-                    ],
-                  ),
-                  child: Center(
-                    child: Text(badge, style: const TextStyle(fontSize: 11)),
-                  ),
-                ),
-              ),
-          ]),
+          ),
           const SizedBox(width: 12),
-          // ── Name + tier chip ──
+          // ── Name + tier ──
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -647,7 +633,7 @@ class _ExerciseRecommendationScreenState
             ),
           ),
           const SizedBox(width: 8),
-          // ── Score + badge pill ──
+          // ── Right: score + big badge medallion ──
           Column(
             crossAxisAlignment: CrossAxisAlignment.end,
             mainAxisSize: MainAxisSize.min,
@@ -656,27 +642,31 @@ class _ExerciseRecommendationScreenState
                   ? _streakBadge(streak, tColor)
                   : _pointsBadge((user['tama_points'] as int?) ?? 0),
               if (badge != null) ...[
-                const SizedBox(height: 5),
+                const SizedBox(height: 6),
                 Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                  width: 52,
+                  height: 52,
                   decoration: BoxDecoration(
+                    shape: BoxShape.circle,
                     gradient: LinearGradient(
                         colors: grad,
                         begin: Alignment.topLeft,
                         end: Alignment.bottomRight),
-                    borderRadius: BorderRadius.circular(20),
+                    border: Border.all(color: Colors.white, width: 2.5),
                     boxShadow: [
                       BoxShadow(
-                          color: glowColor.withOpacity(0.4), blurRadius: 6)
+                          color: glowColor.withOpacity(0.7),
+                          blurRadius: 18,
+                          spreadRadius: 2),
+                      BoxShadow(
+                          color: glowColor.withOpacity(0.35),
+                          blurRadius: 32,
+                          spreadRadius: 4),
                     ],
                   ),
-                  child: Text('$badge มีบาดจ์',
-                      style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 9,
-                          fontFamily: 'Inter',
-                          fontWeight: FontWeight.w700)),
+                  child: Center(
+                    child: Text(badge, style: const TextStyle(fontSize: 24)),
+                  ),
                 ),
               ],
             ],
