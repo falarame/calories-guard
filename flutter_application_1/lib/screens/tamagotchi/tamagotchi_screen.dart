@@ -218,29 +218,10 @@ class _TamagotchiScreenState extends ConsumerState<TamagotchiScreen>
     final claimed =
         (prefs.getStringList('tama_claimed_$_todayKey') ?? []).toSet();
 
-    // Auto-claim unclaimed missions that are done
-    final userData = ref.read(userDataProvider);
-    final newClaimed = <String>{...claimed};
-    int earned = 0;
-    final autoTierIdx = _tiers
-        .lastIndexWhere((t) => pts >= t.minPts)
-        .clamp(0, _tiers.length - 1);
-    for (final m in _missions) {
-      if (!claimed.contains(m.id) && m.autoCheck(userData)) {
-        newClaimed.add(m.id);
-        earned += (m.points * _tierMultipliers[autoTierIdx]).round();
-      }
-    }
-    if (earned > 0) {
-      await prefs.setInt('tama_points', pts + earned);
-      await prefs.setStringList('tama_claimed_$_todayKey', newClaimed.toList());
-      _syncPointsToBackend(pts + earned);
-    }
-
     if (mounted) {
       setState(() {
-        _totalPoints = pts + earned;
-        _claimedToday = newClaimed;
+        _totalPoints = pts;
+        _claimedToday = claimed;
       });
     }
   }
