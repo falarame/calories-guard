@@ -484,6 +484,28 @@ def recalc_tdee(user_id: int, current_user: dict = Depends(get_current_user)):
             conn.close()
 
 
+@router.get("/users/{user_id}/tama-points")
+def get_tama_points(user_id: int):
+    """Fetch tama_points + tier_level for a user."""
+    conn = None
+    try:
+        conn = get_db_connection()
+        with conn.cursor() as cur:
+            cur.execute(
+                "SELECT tama_points, tier_level FROM cleangoal.user_gamification WHERE user_id = %s",
+                (user_id,),
+            )
+            row = cur.fetchone()
+        if row:
+            return {"tama_points": row[0], "tier_level": row[1]}
+        return {"tama_points": 0, "tier_level": 0}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+    finally:
+        if conn:
+            conn.close()
+
+
 @router.patch("/users/{user_id}/tama-points")
 def sync_tama_points(user_id: int, payload: dict):
     """Upsert tama_points + tier_level into user_gamification."""

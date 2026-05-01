@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -218,8 +219,23 @@ class _TamagotchiScreenState extends ConsumerState<TamagotchiScreen>
   Future<void> _load() async {
     final userId = ref.read(userDataProvider).userId;
     final prefs = await SharedPreferences.getInstance();
-    final pts = prefs.getInt(_pointsKey(userId)) ?? 0;
+    final localPts = prefs.getInt(_pointsKey(userId)) ?? 0;
     final claimed = (prefs.getStringList(_claimedKey(userId)) ?? []).toSet();
+
+    int pts = localPts;
+    if (userId > 0) {
+      try {
+        final res = await ApiClient().get('/users/$userId/tama-points');
+        if (res.statusCode == 200) {
+          final data = jsonDecode(res.body);
+          final backendPts = (data['tama_points'] as num?)?.toInt() ?? 0;
+          if (backendPts > localPts) {
+            pts = backendPts;
+            await prefs.setInt(_pointsKey(userId), pts);
+          }
+        }
+      } catch (_) {}
+    }
 
     if (mounted) {
       setState(() {
