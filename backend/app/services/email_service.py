@@ -1,16 +1,45 @@
+import os
 import smtplib
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
+
+import httpx
 
 from app.core.config import (
     SMTP_SERVER, SMTP_PORT, SMTP_USERNAME, SMTP_PASSWORD,
     FROM_EMAIL, FROM_NAME,
 )
 
+RESEND_API_KEY = os.getenv("RESEND_API_KEY", "")
+
 
 def send_email(to_email: str, subject: str, html_body: str) -> bool:
+    # ── Resend (HTTPS — works on Railway) ────────────────────────────────
+    if RESEND_API_KEY:
+        try:
+            resp = httpx.post(
+                "https://api.resend.com/emails",
+                headers={"Authorization": f"Bearer {RESEND_API_KEY}"},
+                json={
+                    "from": f"{FROM_NAME} <{FROM_EMAIL}>",
+                    "to": [to_email],
+                    "subject": subject,
+                    "html": html_body,
+                },
+                timeout=10,
+            )
+            if resp.status_code in (200, 201):
+                print(f"[Email] ✅ Resend sent to {to_email}: {subject}")
+                return True
+            print(f"[Email] Resend error {resp.status_code}: {resp.text}")
+            return False
+        except Exception as e:
+            print(f"[Email] Resend exception for {to_email}: {e}")
+            return False
+
+    # ── SMTP fallback (local dev) ─────────────────────────────────────────
     if not SMTP_USERNAME or not SMTP_PASSWORD:
-        print(f"[Email] SMTP not configured. Would send to {to_email}: {subject}")
+        print(f"[Email] Not configured. Would send to {to_email}: {subject}")
         return False
     try:
         msg = MIMEMultipart("alternative")
@@ -18,12 +47,11 @@ def send_email(to_email: str, subject: str, html_body: str) -> bool:
         msg["From"] = f"{FROM_NAME} <{FROM_EMAIL}>"
         msg["To"] = to_email
         msg.attach(MIMEText(html_body, "html"))
-
-        with smtplib.SMTP(SMTP_SERVER, SMTP_PORT) as server:
+        with smtplib.SMTP(SMTP_SERVER, SMTP_PORT, timeout=10) as server:
             server.starttls()
             server.login(SMTP_USERNAME, SMTP_PASSWORD)
             server.sendmail(FROM_EMAIL, to_email, msg.as_string())
-        print(f"[Email] Sent to {to_email}: {subject}")
+        print(f"[Email] ✅ SMTP sent to {to_email}: {subject}")
         return True
     except Exception as e:
         print(f"[Email] Failed to send to {to_email}: {e}")
