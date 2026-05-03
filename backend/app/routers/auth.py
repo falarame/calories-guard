@@ -107,7 +107,7 @@ def _token_email_matches(payload: dict | None, email: str) -> bool:
     token_email = (payload.get("email") or "").strip().lower()
     return bool(token_email) and token_email == email
 from app.services.email_service import (
-    send_welcome_email, send_verification_email, send_password_reset_email,
+    send_welcome_email, send_password_reset_email,
 )
 from app.models.schemas import (
     UserRegister, UserLogin, UserVerifyEmail,
@@ -235,24 +235,8 @@ def register(request: Request, user: UserRegister):
                     raise HTTPException(status_code=409, detail="อีเมลนี้ถูกใช้งานแล้ว")
                 raise
         new_user = cur.fetchone()
-        code = str(randint(100000, 999999))
-        expires = datetime.now(timezone.utc) + timedelta(minutes=15)
-        cur.execute("""
-            CREATE TABLE IF NOT EXISTS email_verification_codes (
-                id BIGSERIAL PRIMARY KEY, user_id BIGINT NOT NULL, code VARCHAR(10) NOT NULL,
-                expires_at TIMESTAMP NOT NULL, used BOOLEAN DEFAULT FALSE
-            )
-        """)
-        cur.execute("UPDATE email_verification_codes SET used = TRUE WHERE user_id = %s", (new_user['user_id'],))
-        cur.execute("INSERT INTO email_verification_codes (user_id, code, expires_at) VALUES (%s, %s, %s)",
-                    (new_user['user_id'], code, expires))
         conn.commit()
-        try:
-            send_verification_email(new_user['email'], new_user['username'], code)
-        except Exception as e:
-            # Don't fail registration if email send fails — user can request resend.
-            print(f"[register] send_verification_email failed: {e}")
-        return {"message": "User created. Please check email for verification code.", "user": new_user}
+        return {"message": "User created. Please check Supabase email for verification code.", "user": new_user}
     except HTTPException:
         conn.rollback()
         raise
@@ -274,8 +258,9 @@ def verify_email(req: UserVerifyEmail):
     first; only on success does it hit this endpoint to mirror the state into
     our DB so /login can pass the is_email_verified check.
 
-    As a fallback, we still honour the legacy backend-generated OTP stored in
-    email_verification_codes (for dev environments that skip Supabase email).
+    We intentionally do not accept the legacy backend-generated OTP here:
+    accepting it would mark our DB verified while Supabase Auth still rejects
+    password login with "email not confirmed".
     """
     conn = get_db_connection()
     try:
@@ -286,21 +271,10 @@ def verify_email(req: UserVerifyEmail):
         if not user:
             raise HTTPException(status_code=404, detail="Email not found")
 
-        if req.supabase_verified:
-            code_record = None
-        else:
-            cur.execute(
-                """SELECT * FROM email_verification_codes
-                   WHERE user_id = %s AND code = %s AND used = FALSE
-                   ORDER BY id DESC LIMIT 1""",
-                (user['user_id'], req.code),
-            )
-            code_record = cur.fetchone()
-            if not code_record or code_record['expires_at'] < datetime.now(timezone.utc):
-                raise HTTPException(status_code=400, detail="รหัสไม่ถูกต้องหรือหมดอายุ")
-            cur.execute(
-                "UPDATE email_verification_codes SET used = TRUE WHERE id = %s",
-                (code_record['id'],),
+        if not req.supabase_verified:
+            raise HTTPException(
+                status_code=400,
+                detail="กรุณาใช้รหัสยืนยันจากอีเมล Supabase ล่าสุด",
             )
 
         cur.execute(
@@ -334,6 +308,10 @@ def verify_email(req: UserVerifyEmail):
 
 @router.post("/resend-verification-email")
 def resend_verification_email(req: PasswordResetRequest):
+    """
+    Kept for older clients, but the mobile app now resends through Supabase
+    Auth directly. Do not send a second backend OTP email.
+    """
     conn = get_db_connection()
     try:
         cur = conn.cursor(cursor_factory=RealDictCursor)
@@ -343,14 +321,9 @@ def resend_verification_email(req: PasswordResetRequest):
             raise HTTPException(status_code=404, detail="ไม่พบอีเมลนี้ในระบบ")
         if user['is_email_verified']:
             raise HTTPException(status_code=400, detail="อีเมลนี้ได้รับการยืนยันแล้ว")
-        cur.execute("UPDATE email_verification_codes SET used = TRUE WHERE user_id = %s", (user['user_id'],))
-        code = str(randint(100000, 999999))
-        expires = datetime.now(timezone.utc) + timedelta(minutes=15)
-        cur.execute("INSERT INTO email_verification_codes (user_id, code, expires_at) VALUES (%s, %s, %s)",
-                    (user['user_id'], code, expires))
-        conn.commit()
-        send_verification_email(user['email'], user['username'], code)
-        return {"message": "ส่งรหัสยืนยันใหม่ไปยังอีเมลแล้ว"}
+        return {"message": "กรุณาตรวจสอบอีเมลยืนยันจาก Supabase"}
+    except HTTPException:
+        raise
     except Exception as e:
         conn.rollback()
         raise HTTPException(status_code=500, detail=str(e))
