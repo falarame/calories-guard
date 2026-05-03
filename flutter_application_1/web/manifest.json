@@ -1,6 +1,6 @@
 {
-    "name": "Calorie Guard",
-    "short_name": "CalorieGuard",
+    "name": "Calories Guard",
+    "short_name": "CaloriesGuard",
     "start_url": ".",
     "display": "standalone",
     "background_color": "#628141",
