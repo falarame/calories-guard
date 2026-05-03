@@ -748,12 +748,12 @@ class _ProgressScreenState extends ConsumerState<ProgressScreen> {
                       ),
                     ),
                     const Expanded(
-                        child: Text('ความคืบหน้า',
+                        child: Text('รายงานผลรายสัปดาห์',
                             textAlign: TextAlign.center,
                             style: TextStyle(
                                 fontFamily: 'Inter',
-                                fontSize: 24,
-                                fontWeight: FontWeight.w400,
+                                fontSize: 22,
+                                fontWeight: FontWeight.w500,
                                 color: Colors.black))),
                     const SizedBox(width: 40),
                   ],
@@ -929,7 +929,7 @@ class _ProgressScreenState extends ConsumerState<ProgressScreen> {
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              const Text('สถิติบันทึกต่อเนื่อง',
+                              const Text('ประวัติการบันทึก',
                                   style: TextStyle(
                                       fontFamily: 'Inter',
                                       fontSize: 16,
@@ -1252,7 +1252,6 @@ class _ProgressScreenState extends ConsumerState<ProgressScreen> {
   Widget _buildQuickStats(
       DateTime weekMonday, double targetCal, UserData userData) {
     final totalCal = _getWeekTotalCal(weekMonday);
-    final daysMet = _getWeekDaysMetGoal(weekMonday, targetCal);
     final weeklyTarget = (targetCal * 7).toInt();
     final remaining = weeklyTarget - totalCal; // บวก=เหลือ, ลบ=เกิน
     final weekPctRaw =
@@ -1338,7 +1337,7 @@ class _ProgressScreenState extends ConsumerState<ProgressScreen> {
             const SizedBox(width: 10),
             const Expanded(
               child: Text(
-                'เป้าแคลรวมสัปดาห์',
+                'ผลรวมแคลลอรีในสัปดาห์นี้',
                 style: TextStyle(
                     fontSize: 14,
                     fontWeight: FontWeight.w700,
@@ -1477,20 +1476,6 @@ class _ProgressScreenState extends ConsumerState<ProgressScreen> {
           ),
         ]),
       ),
-      const SizedBox(height: 10),
-      // ── การ์ดเสริม: วันที่ทานตามเป้า (คงเดิมแต่ย่อลง) ──────────────────
-      _statCardWithBar(
-        icon: Icons.gps_fixed,
-        iconBg: greenOk.withValues(alpha: 0.12),
-        iconColor: greenOk,
-        value: '$daysMet/7',
-        unit: 'วัน',
-        label: 'วันที่ทานตามเป้า',
-        subLabel: 'นับเฉพาะวันที่ทานแคลฯ ≤ เป้าหมายต่อวัน',
-        progress: daysMet / 7,
-        barColor: greenOk,
-        pctText: '${((daysMet / 7) * 100).toInt()}%',
-      ),
     ]);
   }
 
@@ -1535,93 +1520,6 @@ class _ProgressScreenState extends ConsumerState<ProgressScreen> {
           ),
         ),
       ],
-    );
-  }
-
-  Widget _statCardWithBar({
-    required IconData icon,
-    required Color iconBg,
-    required Color iconColor,
-    required String value,
-    required String unit,
-    required String label,
-    required String subLabel,
-    required double progress,
-    required Color barColor,
-    required String pctText,
-  }) {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: const Color(0xFFE8EFCF)),
-        boxShadow: [
-          BoxShadow(
-              color: Colors.black.withValues(alpha: 0.05),
-              blurRadius: 10,
-              offset: const Offset(0, 2))
-        ],
-      ),
-      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        Row(children: [
-          Container(
-            width: 38, height: 38,
-            decoration: BoxDecoration(
-                color: iconBg, borderRadius: BorderRadius.circular(12)),
-            child: Icon(icon, size: 20, color: iconColor),
-          ),
-          const Spacer(),
-          Text(pctText,
-              style: TextStyle(
-                  fontSize: 12,
-                  fontWeight: FontWeight.w700,
-                  color: barColor)),
-        ]),
-        const SizedBox(height: 10),
-        RichText(
-          text: TextSpan(
-            children: [
-              TextSpan(
-                  text: value,
-                  style: TextStyle(
-                      fontSize: 22,
-                      fontWeight: FontWeight.w800,
-                      color: iconColor,
-                      fontFamily: 'Inter')),
-              TextSpan(
-                  text: '  $unit',
-                  style: const TextStyle(
-                      fontSize: 12,
-                      color: Colors.grey,
-                      fontFamily: 'Inter')),
-            ],
-          ),
-        ),
-        const SizedBox(height: 2),
-        Text(label,
-            style: const TextStyle(
-                fontSize: 13,
-                fontWeight: FontWeight.w600,
-                color: Colors.black87,
-                fontFamily: 'Inter')),
-        Text(subLabel,
-            style: const TextStyle(
-                fontSize: 10,
-                color: Colors.grey,
-                fontFamily: 'Inter')),
-        const SizedBox(height: 10),
-        // Progress bar
-        ClipRRect(
-          borderRadius: BorderRadius.circular(4),
-          child: LinearProgressIndicator(
-            value: progress,
-            backgroundColor: Colors.grey.shade200,
-            valueColor: AlwaysStoppedAnimation<Color>(barColor),
-            minHeight: 6,
-          ),
-        ),
-      ]),
     );
   }
 
@@ -1696,7 +1594,7 @@ class _ProgressScreenState extends ConsumerState<ProgressScreen> {
           const SizedBox(width: 10),
           Expanded(
             child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              const Text('ความคืบหน้าเป้าหมาย',
+              const Text('เป้าหมายของฉัน',
                   style: TextStyle(
                       fontSize: 15, fontWeight: FontWeight.bold)),
               Text(goalLabel,
@@ -2171,24 +2069,6 @@ class _ProgressScreenState extends ConsumerState<ProgressScreen> {
     }
 
     return sum;
-  }
-
-  /// จำนวนวันที่ผ่านเป้า (ไม่เกินเป้า) ของสัปดาห์
-
-  int _getWeekDaysMetGoal(DateTime weekMonday, double targetCal) {
-    final data = _getWeekBarData(weekMonday);
-
-    int count = 0;
-
-    for (final d in data) {
-      if (d['hasData'] == true &&
-          (d['calories'] as num).toDouble() > 0 &&
-          (d['calories'] as num).toDouble() <= targetCal) {
-        count++;
-      }
-    }
-
-    return count;
   }
 
   /// หมายเลขสัปดาห์ของปี (1–53) สำหรับแสดง "สัปดาห์ที่ X"

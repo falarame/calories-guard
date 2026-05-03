@@ -1142,6 +1142,13 @@ class _AppHomeScreenState extends ConsumerState<AppHomeScreen> {
   Widget _buildMealCard(String mealType, String mealLabel, String menuText) {
     final bool hasMenu =
         menuText.isNotEmpty && menuText != '-' && menuText != '';
+    final List<String> items = hasMenu
+        ? menuText
+            .split(RegExp(r',\s*'))
+            .map((s) => s.trim())
+            .where((s) => s.isNotEmpty)
+            .toList()
+        : const [];
 
     return Container(
       margin: const EdgeInsets.only(bottom: 10),
@@ -1155,33 +1162,68 @@ class _AppHomeScreenState extends ConsumerState<AppHomeScreen> {
               offset: const Offset(0, 3))
         ],
       ),
-      child: ListTile(
-        onTap: () => ref.read(navIndexProvider.notifier).state = 1,
-        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-        leading: Container(
-          width: 44,
-          height: 44,
-          decoration: const BoxDecoration(
-            color: _greenLight,
-            shape: BoxShape.circle,
+      child: Theme(
+        data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
+        child: ExpansionTile(
+          tilePadding:
+              const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+          childrenPadding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+          leading: Container(
+            width: 44,
+            height: 44,
+            decoration: const BoxDecoration(
+              color: _greenLight,
+              shape: BoxShape.circle,
+            ),
+            child: Icon(_mealIcon(mealType), color: _green, size: 20),
           ),
-          child: Icon(_mealIcon(mealType), color: _green, size: 20),
+          title: Text(mealLabel,
+              style: const TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w600,
+                  color: Colors.black87)),
+          subtitle: Text(
+            hasMenu ? '${items.length} รายการ' : 'ยังไม่มีรายการ',
+            style: TextStyle(
+                fontSize: 12,
+                color:
+                    hasMenu ? Colors.grey.shade600 : Colors.grey.shade400),
+          ),
+          trailing: hasMenu
+              ? null
+              : IconButton(
+                  icon: Icon(Icons.add_circle_outline,
+                      color: Colors.grey.shade400, size: 22),
+                  onPressed: () =>
+                      ref.read(navIndexProvider.notifier).state = 1,
+                ),
+          children: items.isEmpty
+              ? const []
+              : [
+                  for (final name in items)
+                    InkWell(
+                      onTap: () =>
+                          ref.read(navIndexProvider.notifier).state = 1,
+                      borderRadius: BorderRadius.circular(8),
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 8, vertical: 8),
+                        child: Row(children: [
+                          const Icon(Icons.fiber_manual_record,
+                              size: 8, color: _green),
+                          const SizedBox(width: 10),
+                          Expanded(
+                            child: Text(name,
+                                style: const TextStyle(
+                                    fontSize: 13, color: Colors.black87)),
+                          ),
+                          Icon(Icons.chevron_right_rounded,
+                              color: Colors.grey.shade400, size: 18),
+                        ]),
+                      ),
+                    ),
+                ],
         ),
-        title: Text(mealLabel,
-            style: const TextStyle(
-                fontSize: 14,
-                fontWeight: FontWeight.w600,
-                color: Colors.black87)),
-        subtitle: Text(
-          hasMenu ? menuText : 'ยังไม่มีรายการ',
-          style: TextStyle(
-              fontSize: 13,
-              color: hasMenu ? Colors.grey.shade600 : Colors.grey.shade400),
-          maxLines: 2,
-          overflow: TextOverflow.ellipsis,
-        ),
-        trailing: Icon(Icons.chevron_right_rounded,
-            color: Colors.grey.shade400, size: 20),
       ),
     );
   }

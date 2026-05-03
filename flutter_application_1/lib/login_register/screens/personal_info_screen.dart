@@ -21,6 +21,43 @@ class _PersonalInfoScreenState extends ConsumerState<PersonalInfoScreen> {
 
   DateTime? _selectedDate;
 
+  String? _heightError;
+  String? _weightError;
+  String? _dateError;
+
+  static const double _minHeightCm = 145;
+  static const double _maxHeightCm = 210;
+  static const double _minWeightKg = 30;
+  static const double _maxWeightKg = 200;
+
+  bool _isAtLeast18(DateTime birth) {
+    final now = DateTime.now();
+    var years = now.year - birth.year;
+    if (now.month < birth.month ||
+        (now.month == birth.month && now.day < birth.day)) {
+      years--;
+    }
+    return years >= 18;
+  }
+
+  String? _validateHeight(String s) {
+    final v = double.tryParse(s.trim());
+    if (v == null) return 'กรุณากรอกตัวเลข';
+    if (v < _minHeightCm || v > _maxHeightCm) {
+      return 'ส่วนสูงต้องอยู่ระหว่าง ${_minHeightCm.toInt()}-${_maxHeightCm.toInt()} ซม.';
+    }
+    return null;
+  }
+
+  String? _validateWeight(String s) {
+    final v = double.tryParse(s.trim());
+    if (v == null) return 'กรุณากรอกตัวเลข';
+    if (v < _minWeightKg || v > _maxWeightKg) {
+      return 'น้ำหนักต้องอยู่ระหว่าง ${_minWeightKg.toInt()}-${_maxWeightKg.toInt()} กก.';
+    }
+    return null;
+  }
+
   @override
   void dispose() {
     _heightController.dispose();
@@ -36,19 +73,32 @@ class _PersonalInfoScreenState extends ConsumerState<PersonalInfoScreen> {
       ),
     );
     if (picked != null && mounted) {
-      setState(() => _selectedDate = picked);
+      setState(() {
+        _selectedDate = picked;
+        _dateError = null;
+      });
     }
   }
 
   // ✅ ฟังก์ชันบันทึกข้อมูลลง Database
   void _saveAndNext() async {
-    // 1. ตรวจสอบข้อมูล
-    if (_selectedDate == null ||
-        _heightController.text.isEmpty ||
-        _weightController.text.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('กรุณากรอกข้อมูลให้ครบถ้วน'), backgroundColor: Colors.red),
-      );
+    // 1. ตรวจสอบข้อมูล (inline validation)
+    final heightErr = _heightController.text.trim().isEmpty
+        ? 'กรุณากรอกส่วนสูง'
+        : _validateHeight(_heightController.text);
+    final weightErr = _weightController.text.trim().isEmpty
+        ? 'กรุณากรอกน้ำหนัก'
+        : _validateWeight(_weightController.text);
+    final dateErr = _selectedDate == null
+        ? 'กรุณาเลือกวันเกิด'
+        : (!_isAtLeast18(_selectedDate!) ? 'อายุต้องไม่น้อยกว่า 18 ปี' : null);
+
+    setState(() {
+      _heightError = heightErr;
+      _weightError = weightErr;
+      _dateError = dateErr;
+    });
+    if (heightErr != null || weightErr != null || dateErr != null) {
       return;
     }
 
@@ -177,6 +227,12 @@ class _PersonalInfoScreenState extends ConsumerState<PersonalInfoScreen> {
                         controller: _heightController,
                         hintText: '0.00 cm.', // เปลี่ยน hint ให้สื่อความหมาย
                         isNumber: true,
+                        errorText: _heightError,
+                        onChanged: () {
+                          if (_heightError != null) {
+                            setState(() => _heightError = null);
+                          }
+                        },
                       ),
                       const SizedBox(height: 28),
                       _buildFormField(
@@ -184,6 +240,12 @@ class _PersonalInfoScreenState extends ConsumerState<PersonalInfoScreen> {
                         controller: _weightController,
                         hintText: '0.00 kg.', // เปลี่ยน hint ให้สื่อความหมาย
                         isNumber: true,
+                        errorText: _weightError,
+                        onChanged: () {
+                          if (_weightError != null) {
+                            setState(() => _weightError = null);
+                          }
+                        },
                       ),
                     ],
                   ),
@@ -235,45 +297,65 @@ class _PersonalInfoScreenState extends ConsumerState<PersonalInfoScreen> {
         : '${_selectedDate!.day}/${_selectedDate!.month}/${_selectedDate!.year}';
     final isPlaceholder = _selectedDate == null;
     return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         const SizedBox(
           width: 100,
-          child: Text(
-            label,
-            style: TextStyle(fontFamily: 'Inter', fontSize: 24, fontWeight: FontWeight.w500, color: Colors.black),
+          child: Padding(
+            padding: EdgeInsets.only(top: 6),
+            child: Text(
+              label,
+              style: TextStyle(fontFamily: 'Inter', fontSize: 24, fontWeight: FontWeight.w500, color: Colors.black),
+            ),
           ),
         ),
         const SizedBox(width: 12),
         Expanded(
-          child: GestureDetector(
-            onTap: () => _openBirthDatePicker(context),
-            child: Container(
-              height: 45,
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              decoration: BoxDecoration(
-                color: const Color(0xFFEEEDED),
-                borderRadius: BorderRadius.circular(100),
-              ),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: Text(
-                      displayText,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: TextStyle(
-                        fontFamily: 'Inter',
-                        fontSize: 14,
-                        fontWeight: FontWeight.w400,
-                        color: isPlaceholder ? const Color(0xB3000000) : Colors.black,
-                      ),
-                    ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              GestureDetector(
+                onTap: () => _openBirthDatePicker(context),
+                child: Container(
+                  height: 45,
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFEEEDED),
+                    borderRadius: BorderRadius.circular(100),
                   ),
-                  const SizedBox(width: 8),
-                  const Icon(Icons.calendar_today, size: 18, color: Color(0xFF4C6414)),
-                ],
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          displayText,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                            fontFamily: 'Inter',
+                            fontSize: 14,
+                            fontWeight: FontWeight.w400,
+                            color: isPlaceholder ? const Color(0xB3000000) : Colors.black,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      const Icon(Icons.calendar_today, size: 18, color: Color(0xFF4C6414)),
+                    ],
+                  ),
+                ),
               ),
-            ),
+              if (_dateError != null)
+                Padding(
+                  padding: const EdgeInsets.only(top: 6, left: 12),
+                  child: Text(
+                    _dateError!,
+                    style: const TextStyle(
+                        fontFamily: 'Inter',
+                        fontSize: 12,
+                        color: Colors.red),
+                  ),
+                ),
+            ],
           ),
         ),
       ],
@@ -285,49 +367,72 @@ class _PersonalInfoScreenState extends ConsumerState<PersonalInfoScreen> {
     required TextEditingController controller,
     required String hintText,
     bool isNumber = false,
+    String? errorText,
+    VoidCallback? onChanged,
   }) {
     return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         SizedBox(
           width: 100,
-          child: Text(
-            label,
-            style: const TextStyle(fontFamily: 'Inter', fontSize: 24, fontWeight: FontWeight.w500, color: Colors.black),
+          child: Padding(
+            padding: const EdgeInsets.only(top: 6),
+            child: Text(
+              label,
+              style: const TextStyle(fontFamily: 'Inter', fontSize: 24, fontWeight: FontWeight.w500, color: Colors.black),
+            ),
           ),
         ),
         const SizedBox(width: 12),
         Expanded(
-          child: Container(
-            height: 45,
-            decoration: BoxDecoration(
-              color: const Color(0xFFEEEDED),
-              borderRadius: BorderRadius.circular(100),
-            ),
-            child: TextField(
-              controller: controller,
-              keyboardType: isNumber
-                  ? const TextInputType.numberWithOptions(decimal: true)
-                  : TextInputType.text,
-              decoration: const InputDecoration(
-                hintText: '',
-                border: InputBorder.none,
-                contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-              ).copyWith(
-                hintText: hintText,
-                hintStyle: const TextStyle(
-                  fontFamily: 'Inter',
-                  fontSize: 14,
-                  fontWeight: FontWeight.w400,
-                  color: Color(0xB3000000),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Container(
+                height: 45,
+                decoration: BoxDecoration(
+                  color: const Color(0xFFEEEDED),
+                  borderRadius: BorderRadius.circular(100),
+                ),
+                child: TextField(
+                  controller: controller,
+                  keyboardType: isNumber
+                      ? const TextInputType.numberWithOptions(decimal: true)
+                      : TextInputType.text,
+                  onChanged: onChanged == null ? null : (_) => onChanged(),
+                  decoration: const InputDecoration(
+                    hintText: '',
+                    border: InputBorder.none,
+                    contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                  ).copyWith(
+                    hintText: hintText,
+                    hintStyle: const TextStyle(
+                      fontFamily: 'Inter',
+                      fontSize: 14,
+                      fontWeight: FontWeight.w400,
+                      color: Color(0xB3000000),
+                    ),
+                  ),
+                  style: const TextStyle(
+                    fontFamily: 'Inter',
+                    fontSize: 14,
+                    fontWeight: FontWeight.w400,
+                    color: Colors.black,
+                  ),
                 ),
               ),
-              style: const TextStyle(
-                fontFamily: 'Inter',
-                fontSize: 14,
-                fontWeight: FontWeight.w400,
-                color: Colors.black,
-              ),
-            ),
+              if (errorText != null)
+                Padding(
+                  padding: const EdgeInsets.only(top: 6, left: 12),
+                  child: Text(
+                    errorText,
+                    style: const TextStyle(
+                        fontFamily: 'Inter',
+                        fontSize: 12,
+                        color: Colors.red),
+                  ),
+                ),
+            ],
           ),
         ),
       ],

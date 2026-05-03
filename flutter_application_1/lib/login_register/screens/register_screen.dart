@@ -32,22 +32,67 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
   bool _isEmailTaken = false;
   String _lastCheckedEmail = '';
 
+  // --- Live password rule validation ---
+  bool _pwLenOk = false;
+  bool _pwUpperOk = false;
+  bool _pwSpecialOk = false;
+
   @override
   void initState() {
     super.initState();
     _emailController.addListener(_onEmailChanged);
+    _passwordController.addListener(_onPasswordChanged);
   }
 
   @override
   void dispose() {
     _emailDebounce?.cancel();
     _emailController.removeListener(_onEmailChanged);
+    _passwordController.removeListener(_onPasswordChanged);
     _firstNameController.dispose();
     _lastNameController.dispose();
     _emailController.dispose();
     _passwordController.dispose();
     _confirmPasswordController.dispose();
     super.dispose();
+  }
+
+  void _onPasswordChanged() {
+    final p = _passwordController.text;
+    final lenOk = p.length >= 8;
+    final upperOk = p.contains(RegExp(r'[A-Z]'));
+    final specialOk = p.contains(RegExp(r'[!@#\$%^&*(),.?":{}|<>]'));
+    if (lenOk != _pwLenOk ||
+        upperOk != _pwUpperOk ||
+        specialOk != _pwSpecialOk) {
+      setState(() {
+        _pwLenOk = lenOk;
+        _pwUpperOk = upperOk;
+        _pwSpecialOk = specialOk;
+      });
+    }
+  }
+
+  Widget _pwRuleRow(String text, bool ok) {
+    final color = ok ? const Color(0xFF2E7D32) : Colors.redAccent;
+    return Padding(
+      padding: const EdgeInsets.only(top: 2),
+      child: Row(children: [
+        Icon(ok ? Icons.check_circle : Icons.cancel,
+            size: 14, color: color),
+        const SizedBox(width: 6),
+        Expanded(
+          child: Text(
+            text,
+            style: TextStyle(
+                fontFamily: 'Inter',
+                fontSize: 12,
+                color: color,
+                height: 1.4),
+          ),
+        ),
+      ]),
+    );
   }
 
   void _onEmailChanged() {
@@ -341,49 +386,31 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                               _buildLabel('Password *'),
                               _buildTextField(_passwordController,
                                   isPassword: true),
-                              const Padding(
-                                padding:
-                                    EdgeInsets.only(left: 8, top: 6, right: 8),
+                              Padding(
+                                padding: const EdgeInsets.only(
+                                    left: 8, top: 6, right: 8),
                                 child: Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
-                                    Text(
+                                    const Text(
                                       'เงื่อนไขรหัสผ่าน:',
                                       style: TextStyle(
                                         fontFamily: 'Inter',
                                         fontSize: 13,
                                         fontWeight: FontWeight.w600,
-                                        color: Colors.redAccent,
+                                        color: Colors.black87,
                                       ),
                                     ),
-                                    SizedBox(height: 2),
-                                    Text(
-                                      '• ความยาวอย่างน้อย 8 ตัวอักษร',
-                                      style: TextStyle(
-                                        fontFamily: 'Inter',
-                                        fontSize: 12,
-                                        color: Colors.redAccent,
-                                        height: 1.4,
-                                      ),
-                                    ),
-                                    Text(
-                                      '• มีตัวพิมพ์ใหญ่ (A-Z) อย่างน้อย 1 ตัว',
-                                      style: TextStyle(
-                                        fontFamily: 'Inter',
-                                        fontSize: 12,
-                                        color: Colors.redAccent,
-                                        height: 1.4,
-                                      ),
-                                    ),
-                                    Text(
-                                      '• มีอักขระพิเศษ (เช่น !, @, #) อย่างน้อย 1 ตัว',
-                                      style: TextStyle(
-                                        fontFamily: 'Inter',
-                                        fontSize: 12,
-                                        color: Colors.redAccent,
-                                        height: 1.4,
-                                      ),
-                                    ),
+                                    const SizedBox(height: 2),
+                                    _pwRuleRow(
+                                        'ความยาวอย่างน้อย 8 ตัวอักษร',
+                                        _pwLenOk),
+                                    _pwRuleRow(
+                                        'มีตัวพิมพ์ใหญ่ (A-Z) อย่างน้อย 1 ตัว',
+                                        _pwUpperOk),
+                                    _pwRuleRow(
+                                        'มีอักขระพิเศษ (เช่น !, @, #) อย่างน้อย 1 ตัว',
+                                        _pwSpecialOk),
                                   ],
                                 ),
                               ),

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../providers/user_data_provider.dart';
 import '../../services/auth_service.dart';
+import '../widgets/bmi_category_table.dart';
 import 'target_weight_screen.dart';
 
 class GoalSelectionScreen extends ConsumerStatefulWidget {
@@ -382,7 +383,14 @@ class _GoalSelectionScreenState extends ConsumerState<GoalSelectionScreen> {
                 ),
               ),
 
-              const SizedBox(height: 30),
+              const SizedBox(height: 12),
+              // --- BMI Category Table ---
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 17),
+                child: BmiCategoryTable(bmi: bmi),
+              ),
+
+              const SizedBox(height: 22),
 
               // Goal Options
               Padding(

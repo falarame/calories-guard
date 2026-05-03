@@ -25,7 +25,8 @@ class _BirthDatePickerScreenState extends State<BirthDatePickerScreen> {
   int get _currentYearCE => DateTime.now().year;
   /// ปี พ.ศ. เริ่มจากปีปัจจุบันลงไป (ประมาณ 90 ปี)
   static int get _minYearBE => 2483; // 1940 CE
-  int get _maxYearBE => _currentYearCE + 543;
+  /// จำกัดปีสูงสุดให้อายุไม่ต่ำกว่า 18 ปี
+  int get _maxYearBE => (_currentYearCE - 18) + 543;
 
   int _selectedDay = 1;
   int _selectedMonth = 1;
@@ -51,6 +52,8 @@ class _BirthDatePickerScreenState extends State<BirthDatePickerScreen> {
     _selectedDay = init.day;
     _selectedMonth = init.month - 1; // 0-based for list
     _selectedYearBE = init.year + 543;
+    if (_selectedYearBE > _maxYearBE) _selectedYearBE = _maxYearBE;
+    if (_selectedYearBE < _minYearBE) _selectedYearBE = _minYearBE;
 
     _dayController = FixedExtentScrollController(initialItem: _selectedDay - 1);
     _monthController = FixedExtentScrollController(initialItem: _selectedMonth);

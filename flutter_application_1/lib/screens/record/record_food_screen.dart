@@ -1255,22 +1255,27 @@ class _AddFoodSheetState extends ConsumerState<_AddFoodSheet>
                         fontSize: 18, fontWeight: FontWeight.w700)),
               ),
               if (allergic)
-                Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                  decoration: BoxDecoration(
-                      color: const Color(0xFFFFF3E0),
-                      borderRadius: BorderRadius.circular(99)),
-                  child: const Row(mainAxisSize: MainAxisSize.min, children: [
-                    Icon(Icons.warning_amber_rounded,
-                        size: 13, color: Color(0xFFE67E22)),
-                    SizedBox(width: 4),
-                    Text('มีสารที่แพ้',
-                        style: TextStyle(
-                            fontSize: 11,
-                            color: Color(0xFFE67E22),
-                            fontWeight: FontWeight.w600)),
-                  ]),
+                Flexible(
+                  child: Container(
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    decoration: BoxDecoration(
+                        color: const Color(0xFFFFF3E0),
+                        borderRadius: BorderRadius.circular(99)),
+                    child: const Row(mainAxisSize: MainAxisSize.min, children: [
+                      Icon(Icons.warning_amber_rounded,
+                          size: 13, color: Color(0xFFE67E22)),
+                      SizedBox(width: 4),
+                      Flexible(
+                        child: Text('มีส่วนผสมหรือวัตถุดิบที่คุณแพ้',
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(
+                                fontSize: 10,
+                                color: Color(0xFFE67E22),
+                                fontWeight: FontWeight.w600)),
+                      ),
+                    ]),
+                  ),
                 ),
             ]),
             const SizedBox(height: 4),
@@ -1719,18 +1724,23 @@ class _AddFoodSheetState extends ConsumerState<_AddFoodSheet>
                                         fontWeight: FontWeight.w600)),
                               ),
                               if (allergic)
-                                Container(
-                                  margin: const EdgeInsets.only(left: 6),
-                                  padding: const EdgeInsets.symmetric(
-                                      horizontal: 6, vertical: 2),
-                                  decoration: BoxDecoration(
-                                      color: const Color(0xFFFFF3E0),
-                                      borderRadius: BorderRadius.circular(99)),
-                                  child: const Text('มีสารที่แพ้',
-                                      style: TextStyle(
-                                          fontSize: 10,
-                                          color: Color(0xFFE67E22),
-                                          fontWeight: FontWeight.w600)),
+                                Flexible(
+                                  child: Container(
+                                    margin: const EdgeInsets.only(left: 6),
+                                    padding: const EdgeInsets.symmetric(
+                                        horizontal: 6, vertical: 2),
+                                    decoration: BoxDecoration(
+                                        color: const Color(0xFFFFF3E0),
+                                        borderRadius:
+                                            BorderRadius.circular(99)),
+                                    child: const Text(
+                                        'มีส่วนผสมหรือวัตถุดิบที่คุณแพ้',
+                                        overflow: TextOverflow.ellipsis,
+                                        style: TextStyle(
+                                            fontSize: 9,
+                                            color: Color(0xFFE67E22),
+                                            fontWeight: FontWeight.w600)),
+                                  ),
                                 ),
                             ]),
                             subtitle: Text(
