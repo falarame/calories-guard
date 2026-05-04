@@ -98,6 +98,4 @@ export const api = {
     req<any>(`/admin/users/${id}/tama`, { method: 'PATCH', body: JSON.stringify(data) }),
   deleteAdminUser: (id: number) =>
     req<any>(`/admin/users/${id}`, { method: 'DELETE' }),
-  restoreAdminUser: (id: number) =>
-    req<any>(`/admin/users/${id}/restore`, { method: 'PATCH', body: JSON.stringify({}) }),
 }

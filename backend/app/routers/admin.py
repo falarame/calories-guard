@@ -138,20 +138,38 @@ def admin_update_tama(user_id: int, body: dict, current_user: dict = Depends(get
 
 @router.delete("/admin/users/{user_id}")
 def admin_delete_user(user_id: int, current_user: dict = Depends(get_current_admin)):
-    """Soft-delete user (ตั้ง deleted_at) — ไม่ลบข้อมูลจริง"""
+    """Hard-delete user และข้อมูลทั้งหมดที่เกี่ยวข้อง"""
     if user_id == current_user["user_id"]:
         raise HTTPException(status_code=400, detail="ไม่สามารถลบบัญชีตัวเองได้")
     conn = get_db_connection()
     try:
         cur = conn.cursor()
-        cur.execute(
-            "UPDATE users SET deleted_at = NOW() WHERE user_id = %s AND deleted_at IS NULL RETURNING user_id",
-            (user_id,),
-        )
+        # ตรวจว่า user มีอยู่จริง
+        cur.execute("SELECT user_id FROM cleangoal.users WHERE user_id = %s", (user_id,))
         if not cur.fetchone():
-            raise HTTPException(status_code=404, detail="ไม่พบผู้ใช้ หรือถูกลบไปแล้ว")
+            raise HTTPException(status_code=404, detail="ไม่พบผู้ใช้")
+        # ลบ child tables ก่อน (เรียงตาม FK dependency)
+        cur.execute("DELETE FROM cleangoal.detail_items WHERE meal_id IN (SELECT meal_id FROM cleangoal.meals WHERE user_id = %s)", (user_id,))
+        cur.execute("DELETE FROM cleangoal.meals WHERE user_id = %s", (user_id,))
+        cur.execute("DELETE FROM cleangoal.daily_summaries WHERE user_id = %s", (user_id,))
+        cur.execute("DELETE FROM cleangoal.weight_logs WHERE user_id = %s", (user_id,))
+        cur.execute("DELETE FROM cleangoal.water_logs WHERE user_id = %s", (user_id,))
+        cur.execute("DELETE FROM cleangoal.exercise_logs WHERE user_id = %s", (user_id,))
+        cur.execute("DELETE FROM cleangoal.notifications WHERE user_id = %s", (user_id,))
+        cur.execute("DELETE FROM cleangoal.user_allergy_preferences WHERE user_id = %s", (user_id,))
+        cur.execute("DELETE FROM cleangoal.user_favorites WHERE user_id = %s", (user_id,))
+        cur.execute("DELETE FROM cleangoal.user_meal_plans WHERE user_id = %s", (user_id,))
+        cur.execute("DELETE FROM cleangoal.recipe_reviews WHERE user_id = %s", (user_id,))
+        cur.execute("DELETE FROM cleangoal.recipe_favorites WHERE user_id = %s", (user_id,))
+        cur.execute("DELETE FROM cleangoal.user_gamification WHERE user_id = %s", (user_id,))
+        cur.execute("DELETE FROM cleangoal.temp_food WHERE user_id = %s", (user_id,))
+        cur.execute("DELETE FROM cleangoal.email_verification_codes WHERE user_id = %s", (user_id,))
+        cur.execute("DELETE FROM cleangoal.password_reset_codes WHERE user_id = %s", (user_id,))
+        cur.execute("DELETE FROM cleangoal.food_regional_name_submissions WHERE user_id = %s", (user_id,))
+        # ลบ user จริง
+        cur.execute("DELETE FROM cleangoal.users WHERE user_id = %s", (user_id,))
         conn.commit()
-        return {"message": "ลบบัญชีสำเร็จ (soft delete)"}
+        return {"message": "ลบบัญชีและข้อมูลทั้งหมดสำเร็จ"}
     except HTTPException:
         raise
     except Exception as e:
@@ -161,29 +179,6 @@ def admin_delete_user(user_id: int, current_user: dict = Depends(get_current_adm
         if conn:
             conn.close()
 
-
-@router.patch("/admin/users/{user_id}/restore")
-def admin_restore_user(user_id: int, current_user: dict = Depends(get_current_admin)):
-    """กู้คืนบัญชี user ที่ถูก soft-delete"""
-    conn = get_db_connection()
-    try:
-        cur = conn.cursor()
-        cur.execute(
-            "UPDATE users SET deleted_at = NULL WHERE user_id = %s AND deleted_at IS NOT NULL RETURNING user_id",
-            (user_id,),
-        )
-        if not cur.fetchone():
-            raise HTTPException(status_code=404, detail="ไม่พบผู้ใช้ที่ถูกลบ")
-        conn.commit()
-        return {"message": "กู้คืนบัญชีสำเร็จ"}
-    except HTTPException:
-        raise
-    except Exception as e:
-        conn.rollback()
-        raise HTTPException(status_code=500, detail=str(e))
-    finally:
-        if conn:
-            conn.close()
 
 
 @router.get("/admin/temp-foods/pending-count")

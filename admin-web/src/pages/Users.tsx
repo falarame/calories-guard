@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { Search, User, Loader2, Flame, RefreshCw, X, Pencil, Trash2, RotateCcw, Star, Award, Shield } from 'lucide-react'
+import { Search, User, Loader2, Flame, RefreshCw, X, Pencil, Trash2, Star, Award, Shield } from 'lucide-react'
 import { api } from '../api/client'
 import type { UserDetail } from '../types'
 
@@ -15,7 +15,14 @@ interface UserRow {
   deleted_at?: string | null
 }
 
-const TIER_LABELS = ['ไข่', 'ลูกไก่', 'ไก่น้อย', 'ไก่โต', 'ตามาอาวุโส']
+const TIER_LABELS = [
+  { name: 'ติ๊ด', emoji: '🌰', minPts: 0 },
+  { name: 'ต้อย', emoji: '🌱', minPts: 100 },
+  { name: 'แต้ว', emoji: '🪴', minPts: 300 },
+  { name: 'โต้ง', emoji: '🌿', minPts: 600 },
+  { name: 'พราว', emoji: '🌾', minPts: 1000 },
+  { name: 'วิ้งค์', emoji: '✨', minPts: 2000 },
+]
 
 function UserModal({
   userId, onClose, onUpdated,
@@ -31,7 +38,6 @@ function UserModal({
   // edit fields
   const [username, setUsername] = useState('')
   const [email, setEmail] = useState('')
-  const [roleId, setRoleId] = useState(2)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
   const [toast, setToast] = useState('')
@@ -51,7 +57,6 @@ function UserModal({
         setDetail(d)
         setUsername(d.username)
         setEmail(d.email)
-        setRoleId(d.role_id)
         setTamaPoints(d.tama_points)
         setTierLevel(d.tier_level)
       })
@@ -63,7 +68,7 @@ function UserModal({
     setError('')
     setSaving(true)
     try {
-      await api.updateAdminUser(userId, { username, email, role_id: roleId })
+      await api.updateAdminUser(userId, { username, email })
       showToast('✅ บันทึกข้อมูลสำเร็จ')
       onUpdated()
     } catch (e: unknown) {
@@ -88,22 +93,12 @@ function UserModal({
   }
 
   const handleDelete = async () => {
-    if (!confirm(`ต้องการ soft-delete บัญชี "${detail?.username}"?`)) return
+    if (!confirm(`⚠️ ลบบัญชี "${detail?.username}" ถาวร?\n\nข้อมูลทั้งหมดของ user นี้จะหายไปจาก Database ไม่สามารถกู้คืนได้`)) return
     try {
       await api.deleteAdminUser(userId)
-      showToast('🗑️ ลบบัญชีแล้ว (สามารถกู้คืนได้)')
+      showToast('🗑️ ลบบัญชีและข้อมูลทั้งหมดสำเร็จ')
       onUpdated()
       setTimeout(onClose, 1500)
-    } catch (e: unknown) {
-      setError(e instanceof Error ? e.message : 'เกิดข้อผิดพลาด')
-    }
-  }
-
-  const handleRestore = async () => {
-    try {
-      await api.restoreAdminUser(userId)
-      showToast('✅ กู้คืนบัญชีสำเร็จ')
-      onUpdated()
     } catch (e: unknown) {
       setError(e instanceof Error ? e.message : 'เกิดข้อผิดพลาด')
     }
@@ -187,7 +182,7 @@ function UserModal({
                     </div>
                     <div className="flex justify-between text-sm">
                       <span className="text-gray-500">ระดับ</span>
-                      <span className="font-medium text-gray-800">Lv.{detail.tier_level} {TIER_LABELS[detail.tier_level] ?? ''}</span>
+                      <span className="font-medium text-gray-800">{TIER_LABELS[detail.tier_level]?.emoji ?? ''} {TIER_LABELS[detail.tier_level]?.name ?? `Lv.${detail.tier_level}`}</span>
                     </div>
                     <div className="flex justify-between text-sm">
                       <span className="text-gray-500">Badge ที่ได้รับ</span>
@@ -206,21 +201,12 @@ function UserModal({
                   </div>
                   {/* Action buttons */}
                   <div className="flex gap-2 pt-2">
-                    {detail.deleted_at ? (
-                      <button
-                        onClick={handleRestore}
-                        className="flex-1 flex items-center justify-center gap-2 py-2 rounded-xl bg-green-50 text-green-700 text-sm font-medium hover:bg-green-100 transition"
-                      >
-                        <RotateCcw size={14} /> กู้คืนบัญชี
-                      </button>
-                    ) : (
-                      <button
-                        onClick={handleDelete}
-                        className="flex-1 flex items-center justify-center gap-2 py-2 rounded-xl bg-red-50 text-red-600 text-sm font-medium hover:bg-red-100 transition"
-                      >
-                        <Trash2 size={14} /> ลบบัญชี
-                      </button>
-                    )}
+                    <button
+                      onClick={handleDelete}
+                      className="flex-1 flex items-center justify-center gap-2 py-2 rounded-xl bg-red-50 text-red-600 text-sm font-medium hover:bg-red-100 transition"
+                    >
+                      <Trash2 size={14} /> ลบบัญชีถาวร
+                    </button>
                   </div>
                 </>
               )}
@@ -235,14 +221,6 @@ function UserModal({
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">อีเมล</label>
                     <input type="email" value={email} onChange={e => setEmail(e.target.value)} className={inputCls} />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Role</label>
-                    <select value={roleId} onChange={e => setRoleId(Number(e.target.value))}
-                      className={inputCls}>
-                      <option value={2}>👤 User</option>
-                      <option value={1}>👑 Admin</option>
-                    </select>
                   </div>
                   <button
                     onClick={handleSaveInfo}
@@ -264,10 +242,13 @@ function UserModal({
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">
-                      ระดับ Tama (0–{TIER_LABELS.length - 1}) — ปัจจุบัน: {TIER_LABELS[tierLevel] ?? tierLevel}
+                      ระดับ Tama — ปัจจุบัน: {TIER_LABELS[tierLevel]?.emoji} {TIER_LABELS[tierLevel]?.name ?? `Lv.${tierLevel}`}
                     </label>
-                    <input type="number" min={0} max={TIER_LABELS.length - 1} value={tierLevel}
-                      onChange={e => setTierLevel(Number(e.target.value))} className={inputCls} />
+                    <select value={tierLevel} onChange={e => setTierLevel(Number(e.target.value))} className={inputCls}>
+                      {TIER_LABELS.map((t, i) => (
+                        <option key={i} value={i}>{t.emoji} {t.name} ({t.minPts}+ แต้ม)</option>
+                      ))}
+                    </select>
                   </div>
                   <div className="p-3 bg-[#f5f9f0] rounded-xl border border-[#E8EFCF]">
                     <p className="text-xs text-gray-500 mb-2 font-medium">Badge ที่ได้รับ ({detail.claimed_badges?.length ?? 0})</p>

@@ -9,9 +9,11 @@ function NutritionInput({ label, val, set }: { label: string; val: string; set: 
     <div>
       <label className="block text-xs font-medium text-gray-600 mb-1">{label}</label>
       <input
-        type="number"
+        type="text"
+        inputMode="decimal"
         value={val}
         onChange={e => set(e.target.value)}
+        onFocus={e => e.target.select()}
         placeholder="0"
         className="w-full px-3 py-2 rounded-lg border border-gray-200 focus:outline-none focus:ring-2 focus:ring-[#628141]/30 focus:border-[#628141] text-sm"
       />

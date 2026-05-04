@@ -12,13 +12,16 @@ function FoodField({ label, k, type = 'text', placeholder = '', value, onChange 
   label: string; k: keyof FoodFormData; type?: string; placeholder?: string
   value: string; onChange: (k: keyof FoodFormData, v: string) => void
 }) {
+  const isNum = type === 'number'
   return (
     <div>
       <label className="block text-sm font-medium text-gray-700 mb-1">{label}</label>
       <input
-        type={type}
+        type={isNum ? 'text' : type}
+        inputMode={isNum ? 'decimal' : undefined}
         value={value}
         onChange={e => onChange(k, e.target.value)}
+        onFocus={isNum ? e => e.target.select() : undefined}
         placeholder={placeholder}
         className="w-full px-3 py-2 rounded-lg border border-gray-200 focus:outline-none focus:ring-2 focus:ring-[#628141]/30 focus:border-[#628141] text-sm transition"
       />
