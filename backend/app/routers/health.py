@@ -6,7 +6,7 @@ from slowapi import Limiter
 from slowapi.util import get_remote_address
 
 from database import get_db_connection
-from supabase_storage import upload_to_supabase
+from supabase_storage import upload_to_supabase, upload_avatar_to_supabase
 from app.core.config import ALLOWED_MIME_TYPES, MAX_UPLOAD_SIZE, API_VERSION
 
 router = APIRouter()
@@ -61,6 +61,7 @@ async def upload_image(
     request: Request,
     file: UploadFile = File(...),
     food_id: int = Form(None),
+    user_id: int = Form(None),
 ):
     """อัปโหลดรูปภาพไปยัง Supabase Storage และคืน public URL.
 
@@ -71,9 +72,13 @@ async def upload_image(
         file_bytes = await file.read()
         if len(file_bytes) > MAX_UPLOAD_SIZE:
             raise HTTPException(status_code=413, detail="File too large. Maximum size is 5 MB.")
-        mime = _detect_mime_from_bytes(file_bytes)
-        if mime is None:
+        if _detect_mime_from_bytes(file_bytes) is None:
             raise HTTPException(status_code=400, detail="File must be a valid image (JPEG, PNG, WebP, or GIF)")
+        # Avatar upload → avatars bucket ชื่อไฟล์ = {user_id}.{ext}
+        if user_id:
+            public_url = upload_avatar_to_supabase(file_bytes, user_id)
+            return {"url": public_url}
+        # Food image upload → food-images bucket
         filename = file.filename or "image.jpg"
         override = None
         if food_id:
