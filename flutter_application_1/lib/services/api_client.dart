@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'dart:async';
 import 'package:http/http.dart' as http;
+import 'package:http_parser/http_parser.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../constants/constants.dart';
 
@@ -159,10 +160,20 @@ class ApiClient {
     if (token != null) {
       request.headers['Authorization'] = 'Bearer $token';
     }
+    final ext = (fileName ?? '').split('.').last.toLowerCase();
+    final mime = const {
+          'jpg': 'image/jpeg',
+          'jpeg': 'image/jpeg',
+          'png': 'image/png',
+          'webp': 'image/webp',
+          'gif': 'image/gif',
+        }[ext] ??
+        'image/jpeg';
     request.files.add(http.MultipartFile.fromBytes(
       fieldName,
       bytes,
       filename: fileName,
+      contentType: MediaType.parse(mime),
     ));
     final streamed = await request.send().timeout(_defaultTimeout);
     _checkApiVersion(streamed);
