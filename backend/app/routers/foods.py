@@ -585,18 +585,51 @@ def patch_food(food_id: int, data: dict, current_user: dict = Depends(get_curren
 
 @router.delete("/foods/{food_id}")
 def delete_food(food_id: int, current_user: dict = Depends(get_current_admin)):
-    """Soft-delete เมนูอาหาร (ตั้ง deleted_at) เพื่อรักษา FK constraint กับ recipes"""
+    """Hard-delete เมนูอาหารและข้อมูลที่เกี่ยวข้องทั้งหมด"""
     conn = get_db_connection()
     try:
         cur = conn.cursor()
-        cur.execute(
-            "UPDATE foods SET deleted_at = NOW() WHERE food_id = %s AND deleted_at IS NULL RETURNING food_id",
-            (food_id,),
-        )
+        cur.execute("SELECT food_id FROM cleangoal.foods WHERE food_id = %s", (food_id,))
         if not cur.fetchone():
-            raise HTTPException(status_code=404, detail="ไม่พบเมนูนี้ หรือถูกลบไปแล้ว")
+            raise HTTPException(status_code=404, detail="ไม่พบเมนูนี้")
+        # ลบ child tables ตาม FK dependency
+        cur.execute("DELETE FROM cleangoal.food_allergy_flags WHERE food_id = %s", (food_id,))
+        cur.execute("DELETE FROM cleangoal.food_regional_names WHERE food_id = %s", (food_id,))
+        cur.execute("DELETE FROM cleangoal.food_regional_name_submissions WHERE food_id = %s", (food_id,))
+        cur.execute("DELETE FROM cleangoal.food_regional_popularity WHERE food_id = %s", (food_id,))
+        cur.execute("DELETE FROM cleangoal.user_favorites WHERE food_id = %s", (food_id,))
+        cur.execute("DELETE FROM cleangoal.beverages WHERE food_id = %s", (food_id,))
+        cur.execute("DELETE FROM cleangoal.snacks WHERE food_id = %s", (food_id,))
+        # ลบ recipe และ child ของ recipe
+        cur.execute("""
+            DELETE FROM cleangoal.recipe_ingredients WHERE recipe_id IN
+                (SELECT recipe_id FROM cleangoal.recipes WHERE food_id = %s)
+        """, (food_id,))
+        cur.execute("""
+            DELETE FROM cleangoal.recipe_steps WHERE recipe_id IN
+                (SELECT recipe_id FROM cleangoal.recipes WHERE food_id = %s)
+        """, (food_id,))
+        cur.execute("""
+            DELETE FROM cleangoal.recipe_tips WHERE recipe_id IN
+                (SELECT recipe_id FROM cleangoal.recipes WHERE food_id = %s)
+        """, (food_id,))
+        cur.execute("""
+            DELETE FROM cleangoal.recipe_tools WHERE recipe_id IN
+                (SELECT recipe_id FROM cleangoal.recipes WHERE food_id = %s)
+        """, (food_id,))
+        cur.execute("""
+            DELETE FROM cleangoal.recipe_reviews WHERE recipe_id IN
+                (SELECT recipe_id FROM cleangoal.recipes WHERE food_id = %s)
+        """, (food_id,))
+        cur.execute("""
+            DELETE FROM cleangoal.recipe_favorites WHERE recipe_id IN
+                (SELECT recipe_id FROM cleangoal.recipes WHERE food_id = %s)
+        """, (food_id,))
+        cur.execute("DELETE FROM cleangoal.recipes WHERE food_id = %s", (food_id,))
+        # ลบ food จริง
+        cur.execute("DELETE FROM cleangoal.foods WHERE food_id = %s", (food_id,))
         conn.commit()
-        return {"message": "ลบเมนูเรียบร้อย (soft delete)", "food_id": food_id}
+        return {"message": "ลบเมนูเรียบร้อย", "food_id": food_id}
     except HTTPException:
         raise
     except Exception as e:
