@@ -57,8 +57,10 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
       final data = jsonDecode(response.body) as Map<String, dynamic>;
       final url = data['url'] as String?;
       if (url == null) throw Exception('No URL');
-      await ApiClient().put('/users/$userId', body: {'avatar_url': url});
-      ref.read(userDataProvider.notifier).setAvatarUrl(url);
+      final cacheBusted = '$url?t=${DateTime.now().millisecondsSinceEpoch}';
+      await ApiClient()
+          .put('/users/$userId', body: {'avatar_url': cacheBusted});
+      ref.read(userDataProvider.notifier).setAvatarUrl(cacheBusted);
     } catch (e, st) {
       print('[upload] ERROR: $e\n$st');
       if (mounted) {

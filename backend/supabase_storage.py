@@ -69,10 +69,9 @@ def upload_avatar_to_supabase(file_bytes: bytes, user_id: int) -> str:
     ext, content_type = _mime_from_bytes(file_bytes)
     new_filename = f"{user_id}.{ext}"
 
-    # ลบ ext อื่นๆ ที่อาจมีอยู่ก่อน (เช่น 168.jpg เมื่ออัปใหม่เป็น 168.png)
+    # ลบทุก extension ก่อนเสมอ (ทั้ง ext เดิมและต่าง ext) เพื่อ force fresh upload
     for old_ext in _AVATAR_EXTS:
-        if old_ext != ext and old_ext != ("jpg" if ext == "jpeg" else ext):
-            _delete_supabase_object(AVATAR_BUCKET, f"{user_id}.{old_ext}")
+        _delete_supabase_object(AVATAR_BUCKET, f"{user_id}.{old_ext}")
 
     upload_url = f"{SUPABASE_URL}/storage/v1/object/{AVATAR_BUCKET}/{new_filename}"
     headers = {

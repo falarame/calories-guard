@@ -45,15 +45,14 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
       final publicUrl = data['url'] as String?;
       if (publicUrl == null) throw Exception('No URL in response');
 
-      // Step 2: PUT /users/{id} ส่ง avatar_url
-      final putRes = await ApiClient().put(
-        '/users/$userId',
-        body: {'avatar_url': publicUrl},
-      );
-      if (putRes.statusCode != 200) throw Exception(putRes.body);
-
       final cacheBusted =
           '$publicUrl?t=${DateTime.now().millisecondsSinceEpoch}';
+      // Step 2: PUT /users/{id} ส่ง avatar_url พร้อม cache buster เพื่อ force reload หลัง restart
+      final putRes = await ApiClient().put(
+        '/users/$userId',
+        body: {'avatar_url': cacheBusted},
+      );
+      if (putRes.statusCode != 200) throw Exception(putRes.body);
       ref.read(userDataProvider.notifier).setAvatarUrl(cacheBusted);
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
