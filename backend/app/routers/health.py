@@ -6,7 +6,7 @@ from slowapi import Limiter
 from slowapi.util import get_remote_address
 
 from database import get_db_connection
-from supabase_storage import upload_to_supabase, upload_avatar_to_supabase
+from supabase_storage import upload_to_supabase, upload_avatar_to_supabase, food_range_folder
 from app.core.config import ALLOWED_MIME_TYPES, MAX_UPLOAD_SIZE, API_VERSION
 
 router = APIRouter()
@@ -81,12 +81,14 @@ async def upload_image(
         # Food image upload → food-images bucket
         filename = file.filename or "image.jpg"
         override = None
+        subfolder = None
         if food_id:
             ext = filename.rsplit(".", 1)[-1].lower() if "." in filename else "jpg"
             if ext not in ("jpg", "jpeg", "png", "webp", "gif"):
                 ext = "jpg"
             override = f"{food_id}_{filename.rsplit('.', 1)[0]}.{ext}"
-        public_url = upload_to_supabase(file_bytes, filename, filename_override=override)
+            subfolder = food_range_folder(food_id)
+        public_url = upload_to_supabase(file_bytes, filename, filename_override=override, subfolder=subfolder)
         return {"url": public_url}
     except HTTPException:
         raise

@@ -86,11 +86,24 @@ def upload_avatar_to_supabase(file_bytes: bytes, user_id: int) -> str:
     return f"{SUPABASE_URL}/storage/v1/object/public/{AVATAR_BUCKET}/{new_filename}"
 
 
-def upload_to_supabase(file_bytes: bytes, original_filename: str, filename_override: str = None) -> str:
+def food_range_folder(food_id: int, range_size: int = 100) -> str:
+    """คืนชื่อโฟลเดอร์ตาม food_id เช่น 1298 → '1201-1300'"""
+    start = (food_id - 1) // range_size * range_size + 1
+    end = start + range_size - 1
+    return f"{start}-{end}"
+
+
+def upload_to_supabase(
+    file_bytes: bytes,
+    original_filename: str,
+    filename_override: str = None,
+    subfolder: str = None,
+) -> str:
     """
     อัปโหลดไฟล์รูปไปยัง Supabase Storage bucket 'food-images'
     คืน public URL ของรูปที่อัปโหลด
     filename_override: ถ้าระบุ จะใช้ชื่อนี้ตรงๆ แทน UUID
+    subfolder: ถ้าระบุ จะเก็บในโฟลเดอร์นั้น เช่น '1201-1300'
     raises ValueError ถ้า config ไม่ครบหรือ upload ล้มเหลว
     """
     if not SUPABASE_URL or not SUPABASE_KEY:
@@ -108,7 +121,8 @@ def upload_to_supabase(file_bytes: bytes, original_filename: str, filename_overr
         new_filename = f"food_{uuid4().hex}.{ext}"
     content_type = MIME_MAP.get(ext, "image/jpeg")
 
-    upload_url = f"{SUPABASE_URL}/storage/v1/object/{STORAGE_BUCKET}/{new_filename}"
+    path = f"{subfolder}/{new_filename}" if subfolder else new_filename
+    upload_url = f"{SUPABASE_URL}/storage/v1/object/{STORAGE_BUCKET}/{path}"
 
     headers = {
         "Authorization": f"Bearer {SUPABASE_KEY}",
@@ -122,5 +136,5 @@ def upload_to_supabase(file_bytes: bytes, original_filename: str, filename_overr
         raise ValueError(f"Supabase Storage upload ล้มเหลว: {response.status_code} — {response.text}")
 
     # Public URL (bucket ถูกตั้งเป็น public แล้ว)
-    public_url = f"{SUPABASE_URL}/storage/v1/object/public/{STORAGE_BUCKET}/{new_filename}"
+    public_url = f"{SUPABASE_URL}/storage/v1/object/public/{STORAGE_BUCKET}/{path}"
     return public_url
