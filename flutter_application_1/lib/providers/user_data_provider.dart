@@ -107,10 +107,13 @@ class UserData {
   }
 
   // --- BMR (Mifflin-St Jeor): Male = (10w)+(6.25h)-(5a)+5 | Female = (10w)+(6.25h)-(5a)-161 ---
+  // Asian correction ×0.94 — Huang KC et al., Obesity Research 2004
+  static const _asianBmrFactor = 0.94;
   double get bmr {
     if (weight <= 0 || height <= 0) return 1500;
     final base = (10 * weight) + (6.25 * height) - (5 * age);
-    return gender == 'male' ? base + 5 : base - 161;
+    final raw = gender == 'male' ? base + 5 : base - 161;
+    return raw * _asianBmrFactor;
   }
 
   // --- TDEE: BMR * ActivityFactor (1.2, 1.375, 1.55, 1.725, 1.9) ---
@@ -144,7 +147,9 @@ class UserData {
     double kgPerWeek = 0;
     if (goal == GoalOption.loseWeight) {
       kgPerWeek = -0.5;
-    } else if (goal == GoalOption.buildMuscle) { kgPerWeek = 0.5; }
+    } else if (goal == GoalOption.buildMuscle) {
+      kgPerWeek = 0.5;
+    }
     final numWeeks = _effectiveWeeks;
     if (numWeeks > 0 && targetWeight > 0 && weight > 0) {
       kgPerWeek = (targetWeight - weight) / numWeeks;

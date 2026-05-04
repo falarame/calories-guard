@@ -4,7 +4,8 @@ import { api, normalizeImageUrl } from '../api/client'
 import type { Food, FoodFormData } from '../types'
 
 const EMPTY_FORM: FoodFormData = {
-  food_name: '', calories: '', protein: '', carbs: '', fat: '', image_url: '',
+  food_name: '', calories: '', protein: '', carbs: '', fat: '',
+  sodium: '', sugar: '', cholesterol: '', fiber_g: '', image_url: '',
 }
 
 function FoodField({ label, k, type = 'text', placeholder = '', value, onChange }: {
@@ -34,8 +35,18 @@ function FoodModal({
 }) {
   const [form, setForm] = useState<FoodFormData>(
     food
-      ? { food_name: food.food_name, calories: String(food.calories), protein: String(food.protein),
-          carbs: String(food.carbs), fat: String(food.fat), image_url: food.image_url ?? '' }
+      ? {
+          food_name: food.food_name,
+          calories: String(food.calories),
+          protein: String(food.protein),
+          carbs: String(food.carbs),
+          fat: String(food.fat),
+          sodium: food.sodium != null ? String(food.sodium) : '',
+          sugar: food.sugar != null ? String(food.sugar) : '',
+          cholesterol: food.cholesterol != null ? String(food.cholesterol) : '',
+          fiber_g: food.fiber_g != null ? String(food.fiber_g) : '',
+          image_url: food.image_url ?? '',
+        }
       : EMPTY_FORM
   )
   const [loading, setLoading] = useState(false)
@@ -77,6 +88,10 @@ function FoodModal({
         protein: parseFloat(form.protein) || 0,
         carbs: parseFloat(form.carbs) || 0,
         fat: parseFloat(form.fat) || 0,
+        sodium: form.sodium !== '' ? parseFloat(form.sodium) : null,
+        sugar: form.sugar !== '' ? parseFloat(form.sugar) : null,
+        cholesterol: form.cholesterol !== '' ? parseFloat(form.cholesterol) : null,
+        fiber_g: form.fiber_g !== '' ? parseFloat(form.fiber_g) : null,
         image_url: form.image_url.trim() || null,
       }
       if (food) {
@@ -112,6 +127,15 @@ function FoodModal({
             <FoodField label="โปรตีน (g)" type="number" placeholder="22" {...fieldProps('protein')} />
             <FoodField label="คาร์โบไฮเดรต (g)" type="number" placeholder="38" {...fieldProps('carbs')} />
             <FoodField label="ไขมัน (g)" type="number" placeholder="12" {...fieldProps('fat')} />
+          </div>
+          <div>
+            <p className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-2">โภชนาการเพิ่มเติม</p>
+            <div className="grid grid-cols-2 gap-3">
+              <FoodField label="โซเดียม (mg)" type="number" placeholder="—" {...fieldProps('sodium')} />
+              <FoodField label="น้ำตาล (g)" type="number" placeholder="—" {...fieldProps('sugar')} />
+              <FoodField label="โคเลสเตอรอล (mg)" type="number" placeholder="—" {...fieldProps('cholesterol')} />
+              <FoodField label="ไฟเบอร์ (g)" type="number" placeholder="—" {...fieldProps('fiber_g')} />
+            </div>
           </div>
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">รูปภาพ</label>

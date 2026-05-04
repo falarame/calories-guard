@@ -32,7 +32,8 @@ class _PersonalInfoScreenState extends ConsumerState<PersonalInfoScreen> {
     final DateTime? picked = await Navigator.push<DateTime>(
       context,
       MaterialPageRoute(
-        builder: (context) => BirthDatePickerScreen(initialDate: _selectedDate ?? DateTime(2000, 1, 1)),
+        builder: (context) => BirthDatePickerScreen(
+            initialDate: _selectedDate ?? DateTime(2000, 1, 1)),
       ),
     );
     if (picked != null && mounted) {
@@ -47,7 +48,9 @@ class _PersonalInfoScreenState extends ConsumerState<PersonalInfoScreen> {
         _heightController.text.isEmpty ||
         _weightController.text.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('กรุณากรอกข้อมูลให้ครบถ้วน'), backgroundColor: Colors.red),
+        const SnackBar(
+            content: Text('กรุณากรอกข้อมูลให้ครบถ้วน'),
+            backgroundColor: Colors.red),
       );
       return;
     }
@@ -57,8 +60,51 @@ class _PersonalInfoScreenState extends ConsumerState<PersonalInfoScreen> {
     // 2. แปลงค่า
     double heightVal = double.tryParse(_heightController.text) ?? 0.0;
     double weightVal = double.tryParse(_weightController.text) ?? 0.0;
+
+    // Validate height: 100–250 cm (WHO/CDC growth standards)
+    if (heightVal < 100 || heightVal > 250) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('ส่วนสูงต้องอยู่ระหว่าง 100–250 ซม.'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      setState(() => _isLoading = false);
+      return;
+    }
+
+    // Validate weight: 20–300 kg (CDC growth chart lower / practical upper)
+    if (weightVal < 20 || weightVal > 300) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('น้ำหนักต้องอยู่ระหว่าง 20–300 กก.'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      setState(() => _isLoading = false);
+      return;
+    }
+
+    // Validate age: 13–100 ปี (AAP / COPPA 2016 — ป้องกัน disordered eating)
+    final now = DateTime.now();
+    int computedAge = now.year - _selectedDate!.year;
+    if (now.month < _selectedDate!.month ||
+        (now.month == _selectedDate!.month && now.day < _selectedDate!.day)) {
+      computedAge--;
+    }
+    if (computedAge < 13 || computedAge > 100) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('อายุต้องอยู่ระหว่าง 13–100 ปี'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      setState(() => _isLoading = false);
+      return;
+    }
     // แปลงวันที่เป็น String format YYYY-MM-DD เพื่อส่งให้ Python
-    String birthDateStr = "${_selectedDate!.year}-${_selectedDate!.month.toString().padLeft(2, '0')}-${_selectedDate!.day.toString().padLeft(2, '0')}";
+    String birthDateStr =
+        "${_selectedDate!.year}-${_selectedDate!.month.toString().padLeft(2, '0')}-${_selectedDate!.day.toString().padLeft(2, '0')}";
 
     // 3. ดึง ID จาก Provider
     final userId = ref.read(userDataProvider).userId;
@@ -74,17 +120,17 @@ class _PersonalInfoScreenState extends ConsumerState<PersonalInfoScreen> {
 
     if (success) {
       // ✅ สำเร็จ: อัปเดต Provider แล้วไปหน้าถัดไป
-      
+
       // หมายเหตุ: เราไม่ต้องส่ง name ไปอัปเดต เพราะ name ถูกเก็บตอน Register แล้ว
       // แต่เราดึง name เก่าจาก Provider มาใส่กลับเข้าไปได้เพื่อให้ข้อมูลครบถ้วน
       final currentName = ref.read(userDataProvider).name;
 
       ref.read(userDataProvider.notifier).setPersonalInfo(
-        name: currentName, 
-        birthDate: _selectedDate!,
-        height: heightVal,
-        weight: weightVal,
-      );
+            name: currentName,
+            birthDate: _selectedDate!,
+            height: heightVal,
+            weight: weightVal,
+          );
 
       if (mounted) {
         Navigator.push(
@@ -138,7 +184,11 @@ class _PersonalInfoScreenState extends ConsumerState<PersonalInfoScreen> {
                 const SizedBox(height: 14),
                 const Text(
                   'กรอกข้อมูลส่วนตัว',
-                  style: TextStyle(fontFamily: 'Inter', fontSize: 32, fontWeight: FontWeight.w400, color: Colors.black),
+                  style: TextStyle(
+                      fontFamily: 'Inter',
+                      fontSize: 32,
+                      fontWeight: FontWeight.w400,
+                      color: Colors.black),
                   textAlign: TextAlign.center,
                 ),
 
@@ -147,7 +197,11 @@ class _PersonalInfoScreenState extends ConsumerState<PersonalInfoScreen> {
                   padding: EdgeInsets.symmetric(horizontal: 50),
                   child: Text(
                     'เพื่อนำไปคำนวณแคลอรี่ที่เหมาะสมกับตัวบุคคล',
-                    style: TextStyle(fontFamily: 'Inter', fontSize: 16, fontWeight: FontWeight.w400, color: Colors.black),
+                    style: TextStyle(
+                        fontFamily: 'Inter',
+                        fontSize: 16,
+                        fontWeight: FontWeight.w400,
+                        color: Colors.black),
                     textAlign: TextAlign.center,
                   ),
                 ),
@@ -159,7 +213,8 @@ class _PersonalInfoScreenState extends ConsumerState<PersonalInfoScreen> {
                     width: 277,
                     height: 150,
                     fit: BoxFit.contain,
-                    errorBuilder: (context, error, stackTrace) => const SizedBox(height: 150),
+                    errorBuilder: (context, error, stackTrace) =>
+                        const SizedBox(height: 150),
                   ),
                 ),
 
@@ -209,12 +264,16 @@ class _PersonalInfoScreenState extends ConsumerState<PersonalInfoScreen> {
                       ],
                     ),
                     child: Center(
-                      child: _isLoading 
-                        ? const CircularProgressIndicator(color: Colors.white)
-                        : const Text(
-                            'ถัดไป',
-                            style: TextStyle(fontFamily: 'Inter', fontSize: 20, fontWeight: FontWeight.w600, color: Colors.white),
-                          ),
+                      child: _isLoading
+                          ? const CircularProgressIndicator(color: Colors.white)
+                          : const Text(
+                              'ถัดไป',
+                              style: TextStyle(
+                                  fontFamily: 'Inter',
+                                  fontSize: 20,
+                                  fontWeight: FontWeight.w600,
+                                  color: Colors.white),
+                            ),
                     ),
                   ),
                 ),
@@ -240,7 +299,11 @@ class _PersonalInfoScreenState extends ConsumerState<PersonalInfoScreen> {
           width: 100,
           child: Text(
             label,
-            style: TextStyle(fontFamily: 'Inter', fontSize: 24, fontWeight: FontWeight.w500, color: Colors.black),
+            style: TextStyle(
+                fontFamily: 'Inter',
+                fontSize: 24,
+                fontWeight: FontWeight.w500,
+                color: Colors.black),
           ),
         ),
         const SizedBox(width: 12),
@@ -265,12 +328,15 @@ class _PersonalInfoScreenState extends ConsumerState<PersonalInfoScreen> {
                         fontFamily: 'Inter',
                         fontSize: 14,
                         fontWeight: FontWeight.w400,
-                        color: isPlaceholder ? const Color(0xB3000000) : Colors.black,
+                        color: isPlaceholder
+                            ? const Color(0xB3000000)
+                            : Colors.black,
                       ),
                     ),
                   ),
                   const SizedBox(width: 8),
-                  const Icon(Icons.calendar_today, size: 18, color: Color(0xFF4C6414)),
+                  const Icon(Icons.calendar_today,
+                      size: 18, color: Color(0xFF4C6414)),
                 ],
               ),
             ),
@@ -292,7 +358,11 @@ class _PersonalInfoScreenState extends ConsumerState<PersonalInfoScreen> {
           width: 100,
           child: Text(
             label,
-            style: const TextStyle(fontFamily: 'Inter', fontSize: 24, fontWeight: FontWeight.w500, color: Colors.black),
+            style: const TextStyle(
+                fontFamily: 'Inter',
+                fontSize: 24,
+                fontWeight: FontWeight.w500,
+                color: Colors.black),
           ),
         ),
         const SizedBox(width: 12),
@@ -311,7 +381,8 @@ class _PersonalInfoScreenState extends ConsumerState<PersonalInfoScreen> {
               decoration: const InputDecoration(
                 hintText: '',
                 border: InputBorder.none,
-                contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                contentPadding:
+                    EdgeInsets.symmetric(horizontal: 16, vertical: 12),
               ).copyWith(
                 hintText: hintText,
                 hintStyle: const TextStyle(

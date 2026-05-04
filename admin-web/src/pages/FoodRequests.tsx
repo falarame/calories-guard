@@ -25,6 +25,7 @@ function ApproveModal({
   item: TempFood
   onClose: () => void
   onApprove: (data: {
+    food_name?: string
     calories?: number; protein?: number; carbs?: number; fat?: number
     imageFile?: File
     food_type?: string; food_category?: string
@@ -32,6 +33,7 @@ function ApproveModal({
     serving_quantity?: number; serving_unit?: string
   }) => Promise<void>
 }) {
+  const [foodName, setFoodName]   = useState(item.food_name)
   const [calories, setCalories] = useState(String(item.calories ?? ''))
   const [protein, setProtein]   = useState(String(item.protein  ?? ''))
   const [carbs, setCarbs]       = useState(String(item.carbs    ?? ''))
@@ -68,6 +70,7 @@ function ApproveModal({
     setLoading(true)
     try {
       await onApprove({
+        food_name: foodName.trim() || undefined,
         calories: parseFloat(calories) || undefined,
         protein:  parseFloat(protein)  || undefined,
         carbs:    parseFloat(carbs)    || undefined,
@@ -93,7 +96,6 @@ function ApproveModal({
         <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
           <div>
             <h3 className="font-semibold text-gray-800">อนุมัติเมนู</h3>
-            <p className="text-sm text-gray-500 mt-0.5">"{item.food_name}"</p>
           </div>
           <button onClick={onClose} className="p-1.5 rounded-lg hover:bg-gray-100 transition">
             <X size={18} className="text-gray-500" />
@@ -123,6 +125,17 @@ function ApproveModal({
         )}
 
         <form onSubmit={handleSubmit} className="px-6 py-5 space-y-4">
+
+          {/* ชื่อเมนู */}
+          <div>
+            <label className="block text-xs font-medium text-gray-600 mb-1">ชื่อเมนู (แก้ไขได้)</label>
+            <input
+              type="text"
+              value={foodName}
+              onChange={e => setFoodName(e.target.value)}
+              className="w-full px-3 py-2 rounded-lg border border-[#628141] focus:outline-none focus:ring-2 focus:ring-[#628141]/30 text-sm font-medium"
+            />
+          </div>
 
           {/* โภชนาการหลัก */}
           <div>
@@ -271,6 +284,7 @@ export default function FoodRequests() {
   }
 
   const handleApproveTemp = async (data: {
+    food_name?: string
     calories?: number; protein?: number; carbs?: number; fat?: number
     imageFile?: File
     food_type?: string; food_category?: string

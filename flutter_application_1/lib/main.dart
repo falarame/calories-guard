@@ -11,7 +11,6 @@ import 'login_register/screens/gender_selection_screen.dart';
 import 'login_register/screens/reset_password_screen.dart';
 import 'login_register/screens/welcome_screen.dart';
 import 'providers/user_data_provider.dart';
-import 'screens/admin/admin_dashboard_screen.dart';
 import 'services/auth_service.dart';
 import 'services/notification_helper.dart';
 import 'services/api_client.dart';
@@ -212,9 +211,7 @@ class _AuthBootstrapState extends ConsumerState<AuthBootstrap> {
     ref.read(userDataProvider.notifier).setUserId(data['user_id'] as int);
     ref.read(userDataProvider.notifier).setLoginInfo(user.email!, '');
 
-    final roleId = data['role_id'] as int? ?? 2;
-    final shouldContinueOnboarding =
-        roleId != 1 && data['onboarding_required'] == true;
+    final shouldContinueOnboarding = data['onboarding_required'] == true;
     if (shouldContinueOnboarding) {
       ref.read(userDataProvider.notifier).setPersonalInfo(
             name: (data['username'] as String?) ??
@@ -230,9 +227,7 @@ class _AuthBootstrapState extends ConsumerState<AuthBootstrap> {
       MaterialPageRoute(
         builder: (_) => shouldContinueOnboarding
             ? const GenderSelectionScreen()
-            : roleId == 1
-                ? const AdminDashboardScreen()
-                : const MainScreen(),
+            : const MainScreen(),
       ),
       (route) => false,
     );

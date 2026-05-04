@@ -44,6 +44,148 @@ def admin_list_users(search: str = "", current_user: dict = Depends(get_current_
             conn.close()
 
 
+@router.get("/admin/users/{user_id}")
+def admin_get_user(user_id: int, current_user: dict = Depends(get_current_admin)):
+    """ดึงข้อมูล user + gamification สำหรับ admin"""
+    conn = get_db_connection()
+    try:
+        cur = conn.cursor(cursor_factory=RealDictCursor)
+        cur.execute(
+            """
+            SELECT u.user_id, u.username, u.email, u.role_id, u.created_at,
+                   u.last_login_date, u.current_streak, u.total_login_days,
+                   u.deleted_at,
+                   COALESCE(g.tama_points, 0)  AS tama_points,
+                   COALESCE(g.tier_level, 0)   AS tier_level,
+                   COALESCE(g.claimed_badges, '{}') AS claimed_badges
+            FROM users u
+            LEFT JOIN cleangoal.user_gamification g ON g.user_id = u.user_id
+            WHERE u.user_id = %s
+            """,
+            (user_id,),
+        )
+        row = cur.fetchone()
+        if not row:
+            raise HTTPException(status_code=404, detail="ไม่พบผู้ใช้")
+        return row
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+    finally:
+        if conn:
+            conn.close()
+
+
+@router.patch("/admin/users/{user_id}")
+def admin_update_user(user_id: int, body: dict, current_user: dict = Depends(get_current_admin)):
+    """แก้ไข username / email / role_id ของ user"""
+    allowed = {"username", "email", "role_id"}
+    updates = {k: v for k, v in body.items() if k in allowed}
+    if not updates:
+        raise HTTPException(status_code=400, detail="ไม่มีฟิลด์ที่แก้ไขได้")
+    conn = get_db_connection()
+    try:
+        cur = conn.cursor()
+        set_clause = ", ".join(f"{k} = %s" for k in updates)
+        vals = list(updates.values()) + [user_id]
+        cur.execute(f"UPDATE users SET {set_clause} WHERE user_id = %s", vals)
+        if cur.rowcount == 0:
+            raise HTTPException(status_code=404, detail="ไม่พบผู้ใช้")
+        conn.commit()
+        return {"message": "อัปเดตข้อมูลสำเร็จ"}
+    except HTTPException:
+        raise
+    except Exception as e:
+        conn.rollback()
+        raise HTTPException(status_code=500, detail=str(e))
+    finally:
+        if conn:
+            conn.close()
+
+
+@router.patch("/admin/users/{user_id}/tama")
+def admin_update_tama(user_id: int, body: dict, current_user: dict = Depends(get_current_admin)):
+    """แก้ไข tama_points / tier_level / claimed_badges ของ user"""
+    tama_points = body.get("tama_points")
+    tier_level  = body.get("tier_level")
+    badges      = body.get("claimed_badges")
+    conn = get_db_connection()
+    try:
+        cur = conn.cursor()
+        cur.execute(
+            """
+            INSERT INTO cleangoal.user_gamification
+                (user_id, tama_points, tier_level, claimed_badges, updated_at)
+            VALUES (%s, %s, %s, %s, NOW())
+            ON CONFLICT (user_id) DO UPDATE SET
+                tama_points    = COALESCE(EXCLUDED.tama_points, cleangoal.user_gamification.tama_points),
+                tier_level     = COALESCE(EXCLUDED.tier_level,  cleangoal.user_gamification.tier_level),
+                claimed_badges = COALESCE(EXCLUDED.claimed_badges, cleangoal.user_gamification.claimed_badges),
+                updated_at     = NOW()
+            """,
+            (user_id, tama_points, tier_level, badges),
+        )
+        conn.commit()
+        return {"message": "อัปเดต gamification สำเร็จ"}
+    except Exception as e:
+        conn.rollback()
+        raise HTTPException(status_code=500, detail=str(e))
+    finally:
+        if conn:
+            conn.close()
+
+
+@router.delete("/admin/users/{user_id}")
+def admin_delete_user(user_id: int, current_user: dict = Depends(get_current_admin)):
+    """Soft-delete user (ตั้ง deleted_at) — ไม่ลบข้อมูลจริง"""
+    if user_id == current_user["user_id"]:
+        raise HTTPException(status_code=400, detail="ไม่สามารถลบบัญชีตัวเองได้")
+    conn = get_db_connection()
+    try:
+        cur = conn.cursor()
+        cur.execute(
+            "UPDATE users SET deleted_at = NOW() WHERE user_id = %s AND deleted_at IS NULL RETURNING user_id",
+            (user_id,),
+        )
+        if not cur.fetchone():
+            raise HTTPException(status_code=404, detail="ไม่พบผู้ใช้ หรือถูกลบไปแล้ว")
+        conn.commit()
+        return {"message": "ลบบัญชีสำเร็จ (soft delete)"}
+    except HTTPException:
+        raise
+    except Exception as e:
+        conn.rollback()
+        raise HTTPException(status_code=500, detail=str(e))
+    finally:
+        if conn:
+            conn.close()
+
+
+@router.patch("/admin/users/{user_id}/restore")
+def admin_restore_user(user_id: int, current_user: dict = Depends(get_current_admin)):
+    """กู้คืนบัญชี user ที่ถูก soft-delete"""
+    conn = get_db_connection()
+    try:
+        cur = conn.cursor()
+        cur.execute(
+            "UPDATE users SET deleted_at = NULL WHERE user_id = %s AND deleted_at IS NOT NULL RETURNING user_id",
+            (user_id,),
+        )
+        if not cur.fetchone():
+            raise HTTPException(status_code=404, detail="ไม่พบผู้ใช้ที่ถูกลบ")
+        conn.commit()
+        return {"message": "กู้คืนบัญชีสำเร็จ"}
+    except HTTPException:
+        raise
+    except Exception as e:
+        conn.rollback()
+        raise HTTPException(status_code=500, detail=str(e))
+    finally:
+        if conn:
+            conn.close()
+
+
 @router.get("/admin/temp-foods/pending-count")
 def admin_pending_count(current_user: dict = Depends(get_current_admin)):
     """จำนวน temp_food ที่รอ admin อนุมัติ — ใช้แสดง badge บน nav"""

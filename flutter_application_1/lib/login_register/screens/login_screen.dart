@@ -10,7 +10,6 @@ import 'forgot_password_screen.dart';
 import 'gender_selection_screen.dart';
 import 'register_screen.dart';
 import '../../widget/bottom_bar.dart';
-import '/screens/admin/admin_dashboard_screen.dart';
 
 class LoginScreen extends ConsumerStatefulWidget {
   const LoginScreen({super.key});
@@ -89,17 +88,13 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
   // ── Navigation helper ─────────────────────────────────────────
   void _navigateAfterAuthData(Map<String, dynamic> data) {
     if (!mounted) return;
-    final roleId = data['role_id'] as int? ?? 2;
-    final shouldContinueOnboarding =
-        roleId != 1 && data['onboarding_required'] == true;
+    final shouldContinueOnboarding = data['onboarding_required'] == true;
     Navigator.pushAndRemoveUntil(
       context,
       PageRouteBuilder(
         pageBuilder: (_, __, ___) => shouldContinueOnboarding
             ? const GenderSelectionScreen()
-            : roleId == 1
-                ? const AdminDashboardScreen()
-                : const MainScreen(),
+            : const MainScreen(),
         transitionsBuilder: (_, anim, __, child) =>
             FadeTransition(opacity: anim, child: child),
         transitionDuration: const Duration(milliseconds: 400),

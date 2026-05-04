@@ -90,5 +90,14 @@ export const api = {
 
   // ── Users ─────────────────────────────────────────
   getAdminUsers: (search = '') => req<any[]>(`/admin/users${search ? `?search=${encodeURIComponent(search)}` : ''}`),
+  getAdminUser: (id: number) => req<any>(`/admin/users/${id}`),
   getUser: (id: number) => req<any>(`/users/${id}`),
+  updateAdminUser: (id: number, data: object) =>
+    req<any>(`/admin/users/${id}`, { method: 'PATCH', body: JSON.stringify(data) }),
+  updateAdminUserTama: (id: number, data: object) =>
+    req<any>(`/admin/users/${id}/tama`, { method: 'PATCH', body: JSON.stringify(data) }),
+  deleteAdminUser: (id: number) =>
+    req<any>(`/admin/users/${id}`, { method: 'DELETE' }),
+  restoreAdminUser: (id: number) =>
+    req<any>(`/admin/users/${id}/restore`, { method: 'PATCH', body: JSON.stringify({}) }),
 }

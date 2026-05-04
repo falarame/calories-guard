@@ -91,6 +91,52 @@ class _TargetWeightScreenState extends ConsumerState<TargetWeightScreen> {
       return;
     }
 
+    // Weight loss safety check — Stiegler & Cunliffe, Sports Med 2006
+    // > 1.0 kg/week = เสี่ยงสูญเสียกล้ามเนื้อและ gallstone
+    if (widget.selectedGoal == GoalOption.loseWeight &&
+        _selectedDurationDays > 0) {
+      final currentWeight = ref.read(userDataProvider).weight;
+      final weightDiff = (currentWeight - _selectedWeight).abs();
+      final kgPerWeek = weightDiff / (_selectedDurationDays / 7);
+      if (kgPerWeek > 1.0) {
+        final confirmed = await showDialog<bool>(
+          context: context,
+          builder: (_) => AlertDialog(
+            shape:
+                RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+            title: const Row(children: [
+              Text('⚠️ ', style: TextStyle(fontSize: 20)),
+              Text('อัตราลดน้ำหนักสูงเกินไป',
+                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+            ]),
+            content: Text(
+              'อัตราที่เลือก: ${kgPerWeek.toStringAsFixed(1)} กก./สัปดาห์\n\n'
+              'งานวิจัยแนะนำไม่เกิน 1.0 กก./สัปดาห์ เพื่อป้องกัน:\n'
+              '• การสูญเสียกล้ามเนื้อ\n'
+              '• ความเสี่ยงนิ่วในถุงน้ำดี\n\n'
+              'ต้องการดำเนินการต่อหรือไม่?\n'
+              '(Stiegler & Cunliffe, Sports Medicine 2006)',
+              style: const TextStyle(fontSize: 13, height: 1.5),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context, false),
+                child: const Text('กลับไปแก้ไข',
+                    style: TextStyle(color: Colors.grey)),
+              ),
+              ElevatedButton(
+                onPressed: () => Navigator.pop(context, true),
+                style: ElevatedButton.styleFrom(backgroundColor: Colors.orange),
+                child: const Text('ยืนยัน ยอมรับความเสี่ยง',
+                    style: TextStyle(color: Colors.white, fontSize: 12)),
+              ),
+            ],
+          ),
+        );
+        if (confirmed != true) return;
+      }
+    }
+
     final now = DateTime.now();
     final targetDate = DateTime(now.year, now.month, now.day)
         .add(Duration(days: _selectedDurationDays));

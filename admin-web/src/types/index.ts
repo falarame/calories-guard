@@ -13,6 +13,10 @@ export interface Food {
   protein: number
   carbs: number
   fat: number
+  sodium?: number | null
+  sugar?: number | null
+  cholesterol?: number | null
+  fiber_g?: number | null
   image_url?: string | null
   allergy_flag_ids?: number[]
 }
@@ -23,6 +27,10 @@ export interface FoodFormData {
   protein: string
   carbs: string
   fat: string
+  sodium: string
+  sugar: string
+  cholesterol: string
+  fiber_g: string
   image_url: string
 }
 
@@ -39,6 +47,21 @@ export interface TempFood {
   is_verify: boolean
   verified_by: number | null
   verified_at: string | null
+}
+
+export interface UserDetail {
+  user_id: number
+  username: string
+  email: string
+  role_id: number
+  created_at: string
+  last_login_date?: string
+  current_streak?: number
+  total_login_days?: number
+  deleted_at?: string | null
+  tama_points: number
+  tier_level: number
+  claimed_badges: string[]
 }
 
 export type ThaiRegion = 'central' | 'northern' | 'northeastern' | 'southern'

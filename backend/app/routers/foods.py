@@ -585,15 +585,18 @@ def patch_food(food_id: int, data: dict, current_user: dict = Depends(get_curren
 
 @router.delete("/foods/{food_id}")
 def delete_food(food_id: int, current_user: dict = Depends(get_current_admin)):
-    """ลบเมนูอาหารออกจากระบบ (admin only)"""
+    """Soft-delete เมนูอาหาร (ตั้ง deleted_at) เพื่อรักษา FK constraint กับ recipes"""
     conn = get_db_connection()
     try:
         cur = conn.cursor()
-        cur.execute("DELETE FROM foods WHERE food_id = %s RETURNING food_id", (food_id,))
+        cur.execute(
+            "UPDATE foods SET deleted_at = NOW() WHERE food_id = %s AND deleted_at IS NULL RETURNING food_id",
+            (food_id,),
+        )
         if not cur.fetchone():
-            raise HTTPException(status_code=404, detail="ไม่พบเมนูนี้")
+            raise HTTPException(status_code=404, detail="ไม่พบเมนูนี้ หรือถูกลบไปแล้ว")
         conn.commit()
-        return {"message": "ลบเมนูเรียบร้อย", "food_id": food_id}
+        return {"message": "ลบเมนูเรียบร้อย (soft delete)", "food_id": food_id}
     except HTTPException:
         raise
     except Exception as e:
