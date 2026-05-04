@@ -42,11 +42,13 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
       final filename = xfile.name.isNotEmpty ? xfile.name : 'avatar.jpg';
       print(
           '[upload] filename=$filename bytes=${bytes.length} header=${bytes.take(4).toList()}');
+      final userId = ref.read(userDataProvider).userId;
       final streamed = await ApiClient().uploadBytes(
         '/upload-image/',
         fieldName: 'file',
         bytes: bytes,
         fileName: filename,
+        extraFields: {'user_id': userId.toString()},
       );
       final response = await http.Response.fromStream(streamed);
       print('[upload] status=${response.statusCode} body=${response.body}');
@@ -55,7 +57,6 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
       final data = jsonDecode(response.body) as Map<String, dynamic>;
       final url = data['url'] as String?;
       if (url == null) throw Exception('No URL');
-      final userId = ref.read(userDataProvider).userId;
       await ApiClient().put('/users/$userId', body: {'avatar_url': url});
       ref.read(userDataProvider.notifier).setAvatarUrl(url);
     } catch (e, st) {

@@ -36,6 +36,7 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
         fieldName: 'file',
         bytes: bytes,
         fileName: filename,
+        extraFields: {'user_id': userId.toString()},
       );
       final body = await streamed.stream.bytesToString();
       if (streamed.statusCode != 200) throw Exception(body);

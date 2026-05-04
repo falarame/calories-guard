@@ -153,14 +153,16 @@ class ApiClient {
     required String fieldName,
     required List<int> bytes,
     String? fileName,
+    Map<String, String>? extraFields,
   }) async {
     final uri = Uri.parse('$_baseUrl$path');
     final request = http.MultipartRequest('POST', uri);
     final token = _accessToken;
-    print(
-        '[upload] token=${token != null ? "present(${token.length}chars)" : "NULL"}');
     if (token != null) {
       request.headers['Authorization'] = 'Bearer $token';
+    }
+    if (extraFields != null) {
+      request.fields.addAll(extraFields);
     }
     request.files.add(http.MultipartFile.fromBytes(
       fieldName,
