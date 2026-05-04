@@ -9,6 +9,7 @@ class DurationSliderScreen extends StatefulWidget {
   final VoidCallback onSubmit;
   final ValueChanged<int> onDurationSelected;
   final int recommendedDurationDays;
+  final int minDurationDays;
 
   const DurationSliderScreen({
     super.key,
@@ -18,6 +19,7 @@ class DurationSliderScreen extends StatefulWidget {
     required this.onSubmit,
     required this.onDurationSelected,
     this.recommendedDurationDays = 90,
+    this.minDurationDays = 28,
   });
 
   @override
@@ -31,7 +33,9 @@ class _DurationSliderScreenState extends State<DurationSliderScreen> {
   @override
   void initState() {
     super.initState();
-    _selectedDurationDays = widget.recommendedDurationDays;
+    _selectedDurationDays = widget.recommendedDurationDays < widget.minDurationDays
+        ? widget.minDurationDays
+        : widget.recommendedDurationDays;
   }
 
   String get _goalTitle {
@@ -247,7 +251,7 @@ class _DurationSliderScreenState extends State<DurationSliderScreen> {
                     // Ruler Slider - showing weeks
                     RulerSlider(
                       value: _selectedDurationDays.toDouble(),
-                      minValue: 7,
+                      minValue: widget.minDurationDays.toDouble(),
                       maxValue: 365,
                       step: 1,
                       unit: 'วัน',
@@ -262,7 +266,57 @@ class _DurationSliderScreenState extends State<DurationSliderScreen> {
                       },
                     ),
 
-                    const SizedBox(height: 80),
+                    const SizedBox(height: 16),
+
+                    // คำแนะนำตามงานวิจัย
+                    Builder(builder: (_) {
+                      String msg;
+                      switch (widget.selectedGoal) {
+                        case GoalOption.loseWeight:
+                          msg =
+                              'งานวิจัยแนะนำให้ลดน้ำหนัก 0.5-1 กก./สัปดาห์ '
+                              'เพื่อความปลอดภัยและยั่งยืน '
+                              '(ที่มา: CDC, WHO)';
+                          break;
+                        case GoalOption.buildMuscle:
+                          msg =
+                              'งานวิจัยแนะนำให้เพิ่มกล้ามเนื้อ '
+                              '0.25-0.5 กก./สัปดาห์ เพื่อให้ร่างกายสร้าง'
+                              'กล้ามเนื้ออย่างมีคุณภาพ';
+                          break;
+                        case GoalOption.maintainWeight:
+                          msg =
+                              'การรักษาน้ำหนักสม่ำเสมอช่วยให้สุขภาพดีในระยะยาว';
+                          break;
+                      }
+                      return Container(
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: _goalColor.withValues(alpha: 0.08),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Icon(Icons.lightbulb_outline,
+                                size: 18, color: _goalColor),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: Text(
+                                msg,
+                                style: const TextStyle(
+                                    fontSize: 12,
+                                    height: 1.4,
+                                    fontFamily: 'Inter',
+                                    color: Colors.black87),
+                              ),
+                            ),
+                          ],
+                        ),
+                      );
+                    }),
+
+                    const SizedBox(height: 60),
                   ],
                 ),
               ),

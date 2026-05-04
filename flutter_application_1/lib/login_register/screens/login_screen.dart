@@ -9,6 +9,7 @@ import '../../services/auth_service.dart';
 import 'forgot_password_screen.dart';
 import 'gender_selection_screen.dart';
 import 'register_screen.dart';
+import 'verify_email_screen.dart';
 import '../../widget/bottom_bar.dart';
 
 class LoginScreen extends ConsumerStatefulWidget {
@@ -154,6 +155,15 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
       await Future.delayed(const Duration(milliseconds: 100));
       _navigateAfterAuthData(data);
     } else {
+      if (result['needsEmailVerification'] == true && mounted) {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (_) => VerifyEmailScreen(email: _emailCtrl.text.trim()),
+          ),
+        );
+        return;
+      }
       _showError(result['message'] ?? 'อีเมลหรือรหัสผ่านไม่ถูกต้อง');
     }
   }

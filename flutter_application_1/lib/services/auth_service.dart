@@ -162,6 +162,19 @@ class AuthService {
         };
       }
     } on AuthException catch (e) {
+      final lower = e.message.toLowerCase();
+      if (lower.contains('email not confirmed') ||
+          lower.contains('not confirmed')) {
+        try {
+          await _supabase.auth.resend(type: OtpType.signup, email: email);
+        } catch (_) {}
+        return {
+          'success': false,
+          'needsEmailVerification': true,
+          'message':
+              'อีเมลนี้ยังไม่ได้ยืนยัน กรุณากรอกรหัสจากอีเมล Supabase ล่าสุด',
+        };
+      }
       return {'success': false, 'message': e.message};
     } catch (e) {
       return {'success': false, 'message': 'Connection error: $e'};
@@ -245,9 +258,15 @@ class AuthService {
         return {'success': false, 'message': 'รหัสไม่ถูกต้องหรือหมดอายุ'};
       }
       supabaseVerified = true;
-    } on AuthException {
-      // Some interrupted registrations only have the backend OTP. Fall through
-      // and let the backend validate its latest email_verification_codes row.
+    } on AuthException catch (e) {
+      final lower = e.message.toLowerCase();
+      final expired = lower.contains('expired') || lower.contains('invalid');
+      return {
+        'success': false,
+        'message': expired
+            ? 'รหัสไม่ถูกต้องหรือหมดอายุ กรุณากดส่งรหัสใหม่'
+            : 'กรุณาใช้รหัสยืนยันจากอีเมล Supabase ล่าสุด',
+      };
     }
 
     try {
@@ -277,14 +296,9 @@ class AuthService {
       try {
         await _supabase.auth.resend(type: OtpType.signup, email: email);
       } catch (_) {
-        // Continue to backend resend for interrupted registrations.
+        rethrow;
       }
-      try {
-        await _api.post('/resend-verification-email', body: {'email': email});
-      } catch (_) {
-        // If Supabase resend succeeded, this is still good enough.
-      }
-      return {'success': true, 'message': 'Verification email sent'};
+      return {'success': true, 'message': 'ส่งรหัสยืนยันใหม่แล้ว'};
     } on AuthException catch (e) {
       return {'success': false, 'message': e.message};
     } catch (e) {

@@ -57,9 +57,8 @@ class _AppLocalizationsDelegate
   const _AppLocalizationsDelegate();
 
   @override
-  bool isSupported(Locale locale) =>
-      AppLocalizations.supportedLocales
-          .any((l) => l.languageCode == locale.languageCode);
+  bool isSupported(Locale locale) => AppLocalizations.supportedLocales
+      .any((l) => l.languageCode == locale.languageCode);
 
   @override
   Future<AppLocalizations> load(Locale locale) async =>
@@ -77,7 +76,7 @@ class _AppLocalizationsDelegate
 const Map<String, Map<String, String>> _catalogue = {
   'th': {
     // app-wide
-    'app.name': 'CalorieGuard',
+    'app.name': 'Calories Guard',
     'common.cancel': 'ยกเลิก',
     'common.confirm': 'ยืนยัน',
     'common.loading': 'กำลังโหลด…',
@@ -129,7 +128,7 @@ const Map<String, Map<String, String>> _catalogue = {
   },
   'en': {
     // app-wide
-    'app.name': 'CalorieGuard',
+    'app.name': 'Calories Guard',
     'common.cancel': 'Cancel',
     'common.confirm': 'Confirm',
     'common.loading': 'Loading…',

@@ -210,10 +210,10 @@ class _MainScreenState extends ConsumerState<MainScreen> {
             mainAxisAlignment: MainAxisAlignment.center,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text('Calorie',
+              Text('Calories',
                   style: TextStyle(
                       fontFamily: 'Itim',
-                      fontSize: 16,
+                      fontSize: 15,
                       color: Color(0xFFE8EFCF),
                       height: 1)),
               Text('Guard',

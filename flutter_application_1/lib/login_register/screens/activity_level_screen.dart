@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../providers/user_data_provider.dart';
 import '../../services/auth_service.dart'; // ✅ 1. Import AuthService
+import '../widgets/bmi_category_table.dart';
 import 'goal_selection_screen.dart';
 
 class ActivityLevelScreen extends ConsumerStatefulWidget {
@@ -386,7 +387,14 @@ class _ActivityLevelScreenState extends ConsumerState<ActivityLevelScreen> {
               padding: const EdgeInsets.symmetric(horizontal: 20),
               child: _buildBMICard(),
             ),
-            const SizedBox(height: 24),
+            const SizedBox(height: 12),
+            // --- BMI Category Table ---
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 20),
+              child:
+                  BmiCategoryTable(bmi: ref.watch(userDataProvider).bmi),
+            ),
+            const SizedBox(height: 18),
 
             // --- List of Cards ---
             Expanded(

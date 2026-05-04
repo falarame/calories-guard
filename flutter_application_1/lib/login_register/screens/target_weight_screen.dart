@@ -73,15 +73,34 @@ class _TargetWeightScreenState extends ConsumerState<TargetWeightScreen> {
     return currentWeight * 1.05;
   }
 
+  /// ระยะเวลาขั้นต่ำที่ผู้ใช้เลือกได้ตามเกณฑ์งานวิจัย (CDC/WHO)
+  /// - ลดน้ำหนัก: ปลอดภัยสูงสุด 1 กก./สัปดาห์
+  /// - เพิ่มกล้ามเนื้อ: 0.5 กก./สัปดาห์
+  /// - รักษาน้ำหนัก: ขั้นต่ำ 7 วัน
+  int _minDurationDays(double currentWeight, double targetWeight) {
+    final delta = (currentWeight - targetWeight).abs();
+    if (widget.selectedGoal == GoalOption.maintainWeight || delta <= 0) {
+      return 7;
+    }
+    final maxRatePerWeek =
+        widget.selectedGoal == GoalOption.loseWeight ? 1.0 : 0.5;
+    final minWeeks = (delta / maxRatePerWeek).ceil();
+    final minDays = minWeeks * 7;
+    return minDays < 28 ? 28 : minDays; // ขั้นต่ำ 4 สัปดาห์เสมอ
+  }
+
   int _calculateRecommendedDuration(double currentWeight, double targetWeight) {
     final weightDifference = (currentWeight - targetWeight).abs();
+    int rec;
     if (widget.selectedGoal == GoalOption.loseWeight) {
-      return (weightDifference * 30).ceil(); // ~1 kg per month
+      rec = (weightDifference * 30).ceil(); // ~0.23 kg/week
+    } else if (widget.selectedGoal == GoalOption.buildMuscle) {
+      rec = (weightDifference * 60).ceil(); // ~0.12 kg/week
+    } else {
+      rec = 90;
     }
-    if (widget.selectedGoal == GoalOption.buildMuscle) {
-      return (weightDifference * 60).ceil(); // ~0.5 kg per month
-    }
-    return 90; // Default for maintain weight
+    final minD = _minDurationDays(currentWeight, targetWeight);
+    return rec < minD ? minD : rec;
   }
 
   void _submit() async {
@@ -218,6 +237,8 @@ class _TargetWeightScreenState extends ConsumerState<TargetWeightScreen> {
       return DurationSliderScreen(
         selectedGoal: widget.selectedGoal,
         currentDate: DateTime.now(),
+        minDurationDays:
+            _minDurationDays(currentWeight, _selectedWeight),
         recommendedDurationDays:
             _calculateRecommendedDuration(currentWeight, _selectedWeight),
         onBack: () {
