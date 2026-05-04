@@ -40,6 +40,8 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     try {
       final bytes = await xfile.readAsBytes();
       final filename = xfile.name.isNotEmpty ? xfile.name : 'avatar.jpg';
+      print(
+          '[upload] filename=$filename bytes=${bytes.length} header=${bytes.take(4).toList()}');
       final streamed = await ApiClient().uploadBytes(
         '/upload-image/',
         fieldName: 'file',
@@ -47,17 +49,20 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
         fileName: filename,
       );
       final response = await http.Response.fromStream(streamed);
-      if (response.statusCode != 200) throw Exception('Upload failed');
+      print('[upload] status=${response.statusCode} body=${response.body}');
+      if (response.statusCode != 200)
+        throw Exception('${response.statusCode}: ${response.body}');
       final data = jsonDecode(response.body) as Map<String, dynamic>;
       final url = data['url'] as String?;
       if (url == null) throw Exception('No URL');
       final userId = ref.read(userDataProvider).userId;
       await ApiClient().put('/users/$userId', body: {'avatar_url': url});
       ref.read(userDataProvider.notifier).setAvatarUrl(url);
-    } catch (_) {
+    } catch (e, st) {
+      print('[upload] ERROR: $e\n$st');
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('อัปโหลดรูปไม่สำเร็จ')),
+          SnackBar(content: Text('อัปโหลดไม่สำเร็จ: $e')),
         );
       }
     } finally {

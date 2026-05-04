@@ -27,6 +27,8 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
       final userId = ref.read(userDataProvider).userId;
       final bytes = await picked.readAsBytes();
       final filename = picked.name.isNotEmpty ? picked.name : 'avatar.jpg';
+      print(
+          '[upload] filename=$filename bytes=${bytes.length} header=${bytes.take(4).toList()}');
 
       // Step 1: upload bytes to /upload-image/ → ได้ public URL
       final streamed = await ApiClient().uploadBytes(

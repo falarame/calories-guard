@@ -157,6 +157,8 @@ class ApiClient {
     final uri = Uri.parse('$_baseUrl$path');
     final request = http.MultipartRequest('POST', uri);
     final token = _accessToken;
+    print(
+        '[upload] token=${token != null ? "present(${token.length}chars)" : "NULL"}');
     if (token != null) {
       request.headers['Authorization'] = 'Bearer $token';
     }
