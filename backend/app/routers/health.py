@@ -42,6 +42,19 @@ def debug_auth(request: Request):
     }
 
 
+def _detect_mime_from_bytes(data: bytes) -> str | None:
+    """ตรวจสอบประเภทไฟล์จาก magic bytes — ไม่พึ่ง Content-Type header ของ client"""
+    if data[:2] == b'\xff\xd8':
+        return 'image/jpeg'
+    if data[:4] == b'\x89PNG':
+        return 'image/png'
+    if data[:4] in (b'GIF8', b'GIF9'):
+        return 'image/gif'
+    if data[:4] == b'RIFF' and data[8:12] == b'WEBP':
+        return 'image/webp'
+    return None
+
+
 @router.post("/upload-image/")
 @limiter.limit("10/minute")
 async def upload_image(
@@ -54,12 +67,13 @@ async def upload_image(
     ถ้าส่ง ``food_id`` มาด้วย จะตั้งชื่อไฟล์เป็น ``{food_id}_{originalname}.ext``
     เพื่อให้ sync_food_images.py ค้นหาเจอได้อัตโนมัติ.
     """
-    if file.content_type not in ALLOWED_MIME_TYPES:
-        raise HTTPException(status_code=400, detail=f"File type not allowed. Accepted: {', '.join(ALLOWED_MIME_TYPES)}")
     try:
         file_bytes = await file.read()
         if len(file_bytes) > MAX_UPLOAD_SIZE:
             raise HTTPException(status_code=413, detail="File too large. Maximum size is 5 MB.")
+        mime = _detect_mime_from_bytes(file_bytes)
+        if mime is None:
+            raise HTTPException(status_code=400, detail="File must be a valid image (JPEG, PNG, WebP, or GIF)")
         filename = file.filename or "image.jpg"
         override = None
         if food_id:
@@ -81,12 +95,12 @@ async def upload_image(
 @limiter.limit("10/minute")
 async def upload_image_alt(request: Request, file: UploadFile = File(...)):
     """อัปโหลดรูปภาพไปยัง Supabase Storage (endpoint สำรอง)"""
-    if file.content_type not in ALLOWED_MIME_TYPES:
-        raise HTTPException(status_code=400, detail=f"File type not allowed. Accepted: {', '.join(ALLOWED_MIME_TYPES)}")
     try:
         file_bytes = await file.read()
         if len(file_bytes) > MAX_UPLOAD_SIZE:
             raise HTTPException(status_code=413, detail="File too large. Maximum size is 5 MB.")
+        if _detect_mime_from_bytes(file_bytes) is None:
+            raise HTTPException(status_code=400, detail="File must be a valid image (JPEG, PNG, WebP, or GIF)")
         public_url = upload_to_supabase(file_bytes, file.filename)
         return {"image_url": public_url, "url": public_url, "message": "อัปโหลดรูปภาพสำเร็จ"}
     except HTTPException:
