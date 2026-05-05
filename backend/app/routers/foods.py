@@ -61,6 +61,7 @@ def read_foods(user_id: int | None = None):
                   AND frn.is_primary
                   AND frn.deleted_at IS NULL
             LEFT JOIN food_allergy_flags faf ON faf.food_id = f.food_id
+            WHERE f.deleted_at IS NULL
             GROUP BY f.food_id, u.name, frn.name_th
             ORDER BY f.food_id ASC
         """, (region,))
@@ -79,7 +80,7 @@ def read_foods(user_id: int | None = None):
 
 
 @router.post("/foods")
-def create_food(food: FoodCreate):
+def create_food(food: FoodCreate, current_user: dict = Depends(get_current_admin)):
     conn = get_db_connection()
     try:
         cur = conn.cursor(cursor_factory=RealDictCursor)
@@ -148,6 +149,7 @@ def get_recommended_food(user_id: int | None = None):
                   AND frn.region = %s::thai_region
                   AND frn.is_primary
                   AND frn.deleted_at IS NULL
+            WHERE f.deleted_at IS NULL
             ORDER BY f.food_id ASC
             LIMIT 20
             """,
@@ -401,7 +403,7 @@ def get_recipe(food_id: int, user_id: int | None = None):
                   AND frn.region = %s::thai_region
                   AND frn.is_primary
                   AND frn.deleted_at IS NULL
-            WHERE r.food_id = %s AND r.deleted_at IS NULL
+            WHERE r.food_id = %s AND r.deleted_at IS NULL AND f.deleted_at IS NULL
             """,
             (region, food_id),
         )
@@ -460,7 +462,7 @@ def get_recipe(food_id: int, user_id: int | None = None):
         # No recipe yet — fetch food metadata and ask the LLM.
         cur.execute(
             "SELECT food_id, food_name, calories, protein, carbs, fat, image_url "
-            "FROM foods WHERE food_id = %s",
+            "FROM foods WHERE food_id = %s AND deleted_at IS NULL",
             (food_id,),
         )
         food = cur.fetchone()
@@ -542,7 +544,7 @@ def get_recipe(food_id: int, user_id: int | None = None):
 
 
 @router.put("/foods/{food_id}")
-def update_food(food_id: int, food: FoodCreate):
+def update_food(food_id: int, food: FoodCreate, current_user: dict = Depends(get_current_admin)):
     conn = get_db_connection()
     try:
         cur = conn.cursor(cursor_factory=RealDictCursor)
@@ -550,8 +552,10 @@ def update_food(food_id: int, food: FoodCreate):
             UPDATE foods
             SET food_name = %s, calories = %s, protein = %s,
                 carbs = %s, fat = %s, image_url = %s
-            WHERE food_id = %s
+            WHERE food_id = %s AND deleted_at IS NULL
         """, (food.food_name, food.calories, food.protein, food.carbs, food.fat, food.image_url, food_id))
+        if cur.rowcount == 0:
+            raise HTTPException(status_code=404, detail="ไม่พบเมนูนี้")
         conn.commit()
         return {"message": "Food updated successfully"}
     except Exception as e:
@@ -574,7 +578,7 @@ def patch_food(food_id: int, data: dict, current_user: dict = Depends(get_curren
         cur = conn.cursor()
         set_clause = ", ".join(f"{k} = %s" for k in fields)
         cur.execute(
-            f"UPDATE foods SET {set_clause} WHERE food_id = %s RETURNING food_id",
+            f"UPDATE foods SET {set_clause} WHERE food_id = %s AND deleted_at IS NULL RETURNING food_id",
             [*fields.values(), food_id],
         )
         if not cur.fetchone():
@@ -593,49 +597,23 @@ def patch_food(food_id: int, data: dict, current_user: dict = Depends(get_curren
 
 @router.delete("/foods/{food_id}")
 def delete_food(food_id: int, current_user: dict = Depends(get_current_admin)):
-    """Hard-delete เมนูอาหารและข้อมูลที่เกี่ยวข้องทั้งหมด"""
+    """Soft-delete a food from the active catalogue (admin only)."""
     conn = get_db_connection()
     try:
         cur = conn.cursor()
-        cur.execute("SELECT food_id FROM cleangoal.foods WHERE food_id = %s", (food_id,))
+        cur.execute(
+            """
+            UPDATE foods
+               SET deleted_at = COALESCE(deleted_at, NOW()),
+                   updated_at = NOW()
+             WHERE food_id = %s
+               AND deleted_at IS NULL
+             RETURNING food_id
+            """,
+            (food_id,),
+        )
         if not cur.fetchone():
             raise HTTPException(status_code=404, detail="ไม่พบเมนูนี้")
-        # ลบ child tables ตาม FK dependency
-        cur.execute("DELETE FROM cleangoal.food_allergy_flags WHERE food_id = %s", (food_id,))
-        cur.execute("DELETE FROM cleangoal.food_regional_names WHERE food_id = %s", (food_id,))
-        cur.execute("DELETE FROM cleangoal.food_regional_name_submissions WHERE food_id = %s", (food_id,))
-        cur.execute("DELETE FROM cleangoal.food_regional_popularity WHERE food_id = %s", (food_id,))
-        cur.execute("DELETE FROM cleangoal.user_favorites WHERE food_id = %s", (food_id,))
-        cur.execute("DELETE FROM cleangoal.beverages WHERE food_id = %s", (food_id,))
-        cur.execute("DELETE FROM cleangoal.snacks WHERE food_id = %s", (food_id,))
-        # ลบ recipe และ child ของ recipe
-        cur.execute("""
-            DELETE FROM cleangoal.recipe_ingredients WHERE recipe_id IN
-                (SELECT recipe_id FROM cleangoal.recipes WHERE food_id = %s)
-        """, (food_id,))
-        cur.execute("""
-            DELETE FROM cleangoal.recipe_steps WHERE recipe_id IN
-                (SELECT recipe_id FROM cleangoal.recipes WHERE food_id = %s)
-        """, (food_id,))
-        cur.execute("""
-            DELETE FROM cleangoal.recipe_tips WHERE recipe_id IN
-                (SELECT recipe_id FROM cleangoal.recipes WHERE food_id = %s)
-        """, (food_id,))
-        cur.execute("""
-            DELETE FROM cleangoal.recipe_tools WHERE recipe_id IN
-                (SELECT recipe_id FROM cleangoal.recipes WHERE food_id = %s)
-        """, (food_id,))
-        cur.execute("""
-            DELETE FROM cleangoal.recipe_reviews WHERE recipe_id IN
-                (SELECT recipe_id FROM cleangoal.recipes WHERE food_id = %s)
-        """, (food_id,))
-        cur.execute("""
-            DELETE FROM cleangoal.recipe_favorites WHERE recipe_id IN
-                (SELECT recipe_id FROM cleangoal.recipes WHERE food_id = %s)
-        """, (food_id,))
-        cur.execute("DELETE FROM cleangoal.recipes WHERE food_id = %s", (food_id,))
-        # ลบ food จริง
-        cur.execute("DELETE FROM cleangoal.foods WHERE food_id = %s", (food_id,))
         conn.commit()
         return {"message": "ลบเมนูเรียบร้อย", "food_id": food_id}
     except HTTPException:
