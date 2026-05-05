@@ -3,6 +3,15 @@ import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'api_client.dart';
 
+Map<String, dynamic>? _parseJson(String body) {
+  if (body.isEmpty) return null;
+  try {
+    return jsonDecode(body) as Map<String, dynamic>?;
+  } catch (_) {
+    return null;
+  }
+}
+
 /// AuthService wraps Supabase Auth and syncs user data with our backend.
 ///
 /// Auth flow:
@@ -95,26 +104,28 @@ class AuthService {
       });
 
       if (response.statusCode == 200) {
-        final data = jsonDecode(response.body) as Map<String, dynamic>;
+        final data = _parseJson(response.body);
+        if (data == null) {
+          return {'success': false, 'message': 'ไม่สามารถเชื่อมต่อกับเซิร์ฟเวอร์ได้ กรุณาลองใหม่อีกครั้ง'};
+        }
         final backendToken = data['access_token'] as String?;
         if (backendToken != null) {
           ApiClient.setManualToken(backendToken);
         }
         return {'success': true, 'data': data};
       } else {
-        final errorData = jsonDecode(response.body);
         if (response.statusCode == 409) {
           await _supabase.auth.signOut();
+          return {'success': false, 'message': 'อีเมลนี้ถูกใช้งานแล้ว กรุณาเข้าสู่ระบบหรือใช้ลืมรหัสผ่าน'};
         }
+        final errorData = _parseJson(response.body);
         return {
           'success': false,
-          'message': response.statusCode == 409
-              ? 'อีเมลนี้ถูกใช้งานแล้ว กรุณาเข้าสู่ระบบหรือใช้ลืมรหัสผ่าน'
-              : errorData['detail'] ?? 'Backend sync failed',
+          'message': errorData?['detail'] as String? ?? 'Backend sync failed (${response.statusCode})',
         };
       }
     } catch (e) {
-      return {'success': false, 'message': 'Connection error: $e'};
+      return {'success': false, 'message': 'ไม่สามารถเชื่อมต่อกับเซิร์ฟเวอร์ได้ กรุณาตรวจสอบการเชื่อมต่ออินเทอร์เน็ต'};
     }
   }
 
@@ -147,7 +158,10 @@ class AuthService {
       );
 
       if (response.statusCode == 200) {
-        final data = jsonDecode(response.body) as Map<String, dynamic>;
+        final data = _parseJson(response.body);
+        if (data == null) {
+          return {'success': false, 'message': 'ไม่สามารถเชื่อมต่อกับเซิร์ฟเวอร์ได้ กรุณาลองใหม่อีกครั้ง'};
+        }
         // Use backend-issued JWT for all subsequent API calls
         final backendToken = data['access_token'] as String?;
         if (backendToken != null) {
@@ -155,10 +169,10 @@ class AuthService {
         }
         return {'success': true, 'data': data};
       } else {
-        final errorData = jsonDecode(response.body);
+        final errorData = _parseJson(response.body);
         return {
           'success': false,
-          'message': errorData['detail'] ?? 'Login failed',
+          'message': errorData?['detail'] as String? ?? 'เข้าสู่ระบบล้มเหลว (${response.statusCode})',
         };
       }
     } on AuthException catch (e) {
@@ -177,7 +191,7 @@ class AuthService {
       }
       return {'success': false, 'message': e.message};
     } catch (e) {
-      return {'success': false, 'message': 'Connection error: $e'};
+      return {'success': false, 'message': 'ไม่สามารถเชื่อมต่อกับเซิร์ฟเวอร์ได้ กรุณาตรวจสอบการเชื่อมต่ออินเทอร์เน็ต'};
     }
   }
 
@@ -201,16 +215,17 @@ class AuthService {
       });
 
       if (response.statusCode == 200) {
-        return {'success': true, 'data': jsonDecode(response.body)};
+        final data = _parseJson(response.body);
+        return {'success': true, 'data': data ?? {}};
       } else {
-        final errorData = jsonDecode(response.body);
+        final errorData = _parseJson(response.body);
         return {
           'success': false,
-          'message': errorData['detail'] ?? 'Social login failed',
+          'message': errorData?['detail'] as String? ?? 'Social login failed (${response.statusCode})',
         };
       }
     } catch (e) {
-      return {'success': false, 'message': 'Connection error: $e'};
+      return {'success': false, 'message': 'ไม่สามารถเชื่อมต่อกับเซิร์ฟเวอร์ได้ กรุณาตรวจสอบการเชื่อมต่ออินเทอร์เน็ต'};
     }
   }
 
@@ -276,18 +291,21 @@ class AuthService {
         'supabase_verified': supabaseVerified,
       });
       if (response.statusCode == 200) {
-        final data = jsonDecode(response.body) as Map<String, dynamic>;
+        final data = _parseJson(response.body);
+        if (data == null) {
+          return {'success': false, 'message': 'ไม่สามารถเชื่อมต่อกับเซิร์ฟเวอร์ได้ กรุณาลองใหม่อีกครั้ง'};
+        }
         final backendToken = data['access_token'] as String?;
         if (backendToken != null) ApiClient.setManualToken(backendToken);
         return {'success': true, 'data': data};
       }
-      final errorData = jsonDecode(response.body);
+      final errorData = _parseJson(response.body);
       return {
         'success': false,
-        'message': errorData['detail'] ?? 'รหัสไม่ถูกต้องหรือหมดอายุ',
+        'message': errorData?['detail'] as String? ?? 'รหัสไม่ถูกต้องหรือหมดอายุ',
       };
     } catch (e) {
-      return {'success': false, 'message': 'Connection error: $e'};
+      return {'success': false, 'message': 'ไม่สามารถเชื่อมต่อกับเซิร์ฟเวอร์ได้ กรุณาตรวจสอบการเชื่อมต่ออินเทอร์เน็ต'};
     }
   }
 

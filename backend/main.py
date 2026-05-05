@@ -56,6 +56,8 @@ app.add_middleware(
     allow_origin_regex=(
         r"^https://([a-z0-9-]+\.)?caloriesguard\.com$|"
         r"^https://([a-z0-9-]+\.)?calories-guard\.com$|"
+        r"^https://calories-guard\.pages\.dev$|"
+        r"^https://[a-z0-9-]+-calories-guard\.pages\.dev$|"
         r"^https://[a-z0-9-]+\.framesirisak\.workers\.dev$|"
         r"^http://localhost(:\d+)?$|"
         r"^http://127\.0\.0\.1(:\d+)?$"
