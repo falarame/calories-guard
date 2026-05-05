@@ -129,9 +129,10 @@ class _ProgressScreenState extends ConsumerState<ProgressScreen> {
           _calendarData = data
               .map((e) => {
                     'date': DateTime.parse(e['date']),
-
-                    'calories':
-                        e['calories'] ?? 0, // กันเหนียวถ้าไม่มี field นี้
+                    'calories': e['calories'] ?? 0,
+                    'protein': e['protein'] ?? 0,
+                    'carbs': e['carbs'] ?? 0,
+                    'fat': e['fat'] ?? 0,
                   })
               .toList();
         });
@@ -171,55 +172,6 @@ class _ProgressScreenState extends ConsumerState<ProgressScreen> {
     } catch (e, st) {
       ErrorReporter.report('progress.fetch_goal', e, st);
     }
-  }
-
-  // แสดงรายละเอียดเมื่อกดวันที่ในปฏิทิน
-
-  Future<void> _showDayDetails(DateTime date) async {
-    final userId = ref.read(userDataProvider).userId;
-
-    final dateStr = DateFormat('yyyy-MM-dd').format(date);
-
-    showDialog(
-        context: context,
-        builder: (c) => const Center(child: CircularProgressIndicator()));
-
-    try {
-      final response = await ApiClient().get(
-        '/daily_logs/$userId',
-        queryParams: {'date_query': dateStr},
-      );
-
-      if (mounted) Navigator.pop(context);
-
-      if (response.statusCode == 200) {
-        final data = json.decode(response.body);
-
-        if (mounted) _buildDayDetailSheet(date, data);
-      }
-    } catch (e) {
-      if (mounted) Navigator.pop(context);
-    }
-  }
-
-  // รองรับทั้ง data['meals'] (จาก API ใหม่) และ data['breakfast_menu'] (แบบเก่า)
-
-  String? _mealLabel(Map<String, dynamic> data, String type) {
-    final meals = data['meals'];
-
-    if (meals is Map &&
-        meals[type] != null &&
-        meals[type].toString().trim().isNotEmpty) {
-      return meals[type].toString();
-    }
-
-    final key = '${type}_menu';
-
-    final v = data[key];
-
-    if (v != null && v.toString().trim().isNotEmpty) return v.toString();
-
-    return null;
   }
 
   // ─── Bottom sheet เมื่อกดแท่งรายวันในกราฟภาพรวม ───
@@ -572,64 +524,6 @@ class _ProgressScreenState extends ConsumerState<ProgressScreen> {
                 color: color,
                 fontFamily: 'Inter')),
       );
-
-  void _buildDayDetailSheet(DateTime date, Map<String, dynamic> data) {
-    showModalBottomSheet(
-      context: context,
-      backgroundColor: Colors.white,
-      shape: const RoundedRectangleBorder(
-          borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
-      builder: (context) {
-        return Container(
-          padding: const EdgeInsets.all(20),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text('บันทึกวันที่ ${_formatDateTh(date)}',
-                  style: const TextStyle(
-                      fontSize: 20,
-                      fontWeight: FontWeight.bold,
-                      fontFamily: 'Inter')),
-              const SizedBox(height: 15),
-              _buildDetailRow('แคลอรี่รวม', '${data['calories']} kcal'),
-              const Divider(),
-              _buildDetailRow('โปรตีน', '${data['protein']} g'),
-              _buildDetailRow('คาร์บ', '${data['carbs']} g'),
-              _buildDetailRow('ไขมัน', '${data['fat']} g'),
-              const SizedBox(height: 15),
-              const Text("เมนูที่ทาน:",
-                  style: TextStyle(fontWeight: FontWeight.bold)),
-              if (_mealLabel(data, 'breakfast') != null)
-                Text("เช้า: ${_mealLabel(data, 'breakfast')}"),
-              if (_mealLabel(data, 'lunch') != null)
-                Text("เที่ยง: ${_mealLabel(data, 'lunch')}"),
-              if (_mealLabel(data, 'dinner') != null)
-                Text("เย็น: ${_mealLabel(data, 'dinner')}"),
-              if (_mealLabel(data, 'snack') != null)
-                Text("ว่าง: ${_mealLabel(data, 'snack')}"),
-              const SizedBox(height: 20),
-            ],
-          ),
-        );
-      },
-    );
-  }
-
-  Widget _buildDetailRow(String label, String value) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 4),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Text(label, style: const TextStyle(fontFamily: 'Inter')),
-          Text(value,
-              style: const TextStyle(
-                  fontFamily: 'Inter', fontWeight: FontWeight.w600)),
-        ],
-      ),
-    );
-  }
 
   // --- Helper Functions for BMI & Streak ---
 
@@ -2026,7 +1920,16 @@ class _ProgressScreenState extends ConsumerState<ProgressScreen> {
       }
 
       dayCells.add(GestureDetector(
-        onTap: isLogged ? () => _showDayDetails(date) : null,
+        onTap: isLogged
+            ? () => _showDayNutritionSheet({
+                  'date': date,
+                  'calories': cal,
+                  'protein': (logData['protein'] as num?)?.toDouble() ?? 0.0,
+                  'carbs': (logData['carbs'] as num?)?.toDouble() ?? 0.0,
+                  'fat': (logData['fat'] as num?)?.toDouble() ?? 0.0,
+                  'hasData': true,
+                })
+            : null,
         child: Center(
           child: Container(
             width: 30,
@@ -2351,6 +2254,7 @@ class _WeeklyBarChart extends StatelessWidget {
         barTouchData: BarTouchData(
           enabled: true,
           touchCallback: (event, response) {
+            if (event is! FlTapUpEvent) return;
             if (response == null ||
                 response.spot == null ||
                 onBarTapped == null) {
