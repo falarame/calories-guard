@@ -415,8 +415,16 @@ def get_recipe(food_id: int, user_id: int | None = None):
             )
             rel_steps = cur.fetchall() or None
             cur.execute(
-                "SELECT ingredient_name, quantity, unit, is_optional, note "
-                "FROM recipe_ingredients WHERE recipe_id = %s ORDER BY sort_order",
+                """
+                SELECT
+                    ingredient_name, quantity, unit, is_optional, note,
+                    food_ing_id, ingredient_id, calculated_grams,
+                    calculated_calories, calculated_protein,
+                    calculated_carbs, calculated_fat
+                FROM cleangoal.v_recipe_ingredients_nutrition
+                WHERE recipe_id = %s
+                ORDER BY sort_order
+                """,
                 (recipe_id,),
             )
             rel_ingredients = cur.fetchall() or None
