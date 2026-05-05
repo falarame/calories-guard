@@ -746,6 +746,8 @@ class _AppHomeScreenState extends ConsumerState<AppHomeScreen> {
   Widget _macroCard(String label, int current, int target, Color color,
       IconData icon, String assetPath, String macroType,
       {bool isEstimated = false}) {
+    final isOver = target > 0 && current > target;
+    final displayColor = isOver ? const Color(0xFFD32F2F) : color;
     final pct = target > 0 ? (current / target).clamp(0.0, 1.0) : 0.0;
     return GestureDetector(
       onTap: () => Navigator.push(
@@ -756,8 +758,13 @@ class _AppHomeScreenState extends ConsumerState<AppHomeScreen> {
       child: Container(
         padding: const EdgeInsets.all(14),
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: isOver ? const Color(0xFFFFF0F0) : Colors.white,
           borderRadius: BorderRadius.circular(20),
+          border: isOver
+              ? Border.all(
+                  color: const Color(0xFFD32F2F).withValues(alpha: 0.4),
+                  width: 1.5)
+              : null,
           boxShadow: [
             BoxShadow(
                 color: Colors.black.withValues(alpha: 0.05),
@@ -772,14 +779,15 @@ class _AppHomeScreenState extends ConsumerState<AppHomeScreen> {
               width: 36,
               height: 36,
               decoration: BoxDecoration(
-                color: color.withValues(alpha: 0.1),
+                color: displayColor.withValues(alpha: 0.12),
                 shape: BoxShape.circle,
               ),
               child: Padding(
                 padding: const EdgeInsets.all(8.0),
                 child: Image.asset(assetPath,
+                    color: isOver ? const Color(0xFFD32F2F) : null,
                     errorBuilder: (_, __, ___) =>
-                        Icon(icon, color: color, size: 18)),
+                        Icon(icon, color: displayColor, size: 18)),
               ),
             ),
             const SizedBox(height: 10),
@@ -790,10 +798,10 @@ class _AppHomeScreenState extends ConsumerState<AppHomeScreen> {
                     fontWeight: FontWeight.w500)),
             const SizedBox(height: 2),
             Text('$current g',
-                style: const TextStyle(
+                style: TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.bold,
-                    color: Colors.black87)),
+                    color: isOver ? const Color(0xFFD32F2F) : Colors.black87)),
             Text('/ $target g${isEstimated ? ' ประมาณ' : ''}',
                 style: TextStyle(
                     fontSize: 12,
@@ -806,7 +814,7 @@ class _AppHomeScreenState extends ConsumerState<AppHomeScreen> {
                 value: pct,
                 minHeight: 5,
                 backgroundColor: Colors.grey.shade300,
-                valueColor: AlwaysStoppedAnimation(color),
+                valueColor: AlwaysStoppedAnimation(displayColor),
               ),
             ),
           ],
