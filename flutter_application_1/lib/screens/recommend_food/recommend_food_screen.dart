@@ -594,7 +594,7 @@ class _RecommendedFoodScreenState extends ConsumerState<RecommendedFoodScreen> {
         'icon': Icons.egg_outlined,
         'consumed': userData.consumedProtein,
         'target': userData.targetProtein,
-        'color': const Color(0xFF628141)
+        'color': const Color(0xFFE53935)
       },
       {
         'key': 'carbs',
@@ -602,7 +602,7 @@ class _RecommendedFoodScreenState extends ConsumerState<RecommendedFoodScreen> {
         'icon': Icons.grain_rounded,
         'consumed': userData.consumedCarbs,
         'target': userData.targetCarbs,
-        'color': const Color(0xFFD76A3C)
+        'color': const Color(0xFF1E88E5)
       },
       {
         'key': 'fat',
@@ -610,7 +610,7 @@ class _RecommendedFoodScreenState extends ConsumerState<RecommendedFoodScreen> {
         'icon': Icons.water_drop_outlined,
         'consumed': userData.consumedFat,
         'target': userData.targetFat,
-        'color': const Color(0xFF3498DB)
+        'color': const Color(0xFFF59E0B)
       },
     ];
     return Padding(
@@ -717,9 +717,9 @@ class _RecommendedFoodScreenState extends ConsumerState<RecommendedFoodScreen> {
     final macro = _selectedMacroFilter!;
     final labelMap = {'protein': 'โปรตีน', 'carbs': 'คาร์บ', 'fat': 'ไขมัน'};
     final colorMap = {
-      'protein': const Color(0xFF628141),
-      'carbs': const Color(0xFFD76A3C),
-      'fat': const Color(0xFF3498DB)
+      'protein': const Color(0xFFE53935),
+      'carbs': const Color(0xFF1E88E5),
+      'fat': const Color(0xFFF59E0B)
     };
     final label = labelMap[macro]!;
     final color = colorMap[macro]!;
@@ -779,14 +779,55 @@ class _RecommendedFoodScreenState extends ConsumerState<RecommendedFoodScreen> {
       // ── food list ──
       if (remaining <= 0)
         Padding(
-          padding: const EdgeInsets.symmetric(vertical: 24),
-          child: Column(children: [
-            Icon(Icons.check_circle_outline_rounded, size: 42, color: color),
-            const SizedBox(height: 8),
-            Text('ครบเป้าหมาย$labelแล้ววันนี้ 🎉',
-                style: TextStyle(
-                    fontSize: 14, color: color, fontWeight: FontWeight.w600)),
-          ]),
+          padding: const EdgeInsets.symmetric(vertical: 28, horizontal: 20),
+          child: Center(
+            child: consumed > target
+                ? Column(mainAxisSize: MainAxisSize.min, children: [
+                    Icon(Icons.warning_amber_rounded,
+                        size: 44, color: Colors.red.shade400),
+                    const SizedBox(height: 8),
+                    Text('เกิน$labelเป้าหมายแล้ว! ⚠️',
+                        style: TextStyle(
+                            fontSize: 14,
+                            color: Colors.red.shade400,
+                            fontWeight: FontWeight.bold)),
+                    const SizedBox(height: 4),
+                    Text('$consumed/$target g',
+                        style: TextStyle(
+                            fontSize: 12, color: Colors.grey.shade500)),
+                    const SizedBox(height: 12),
+                    ElevatedButton.icon(
+                      onPressed: () {
+                        ref.read(navIndexProvider.notifier).state = 1;
+                        Navigator.of(context).popUntil((r) => r.isFirst);
+                      },
+                      icon: const Icon(Icons.edit_note_rounded, size: 16),
+                      label: const Text('ไปหน้าบันทึก'),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.red.shade400,
+                        foregroundColor: Colors.white,
+                        shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12)),
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 20, vertical: 10),
+                      ),
+                    ),
+                  ])
+                : Column(mainAxisSize: MainAxisSize.min, children: [
+                    Icon(Icons.check_circle_outline_rounded,
+                        size: 44, color: color),
+                    const SizedBox(height: 8),
+                    Text('ตามเป้าหมาย$labelแล้ววันนี้ 🎉',
+                        style: TextStyle(
+                            fontSize: 14,
+                            color: color,
+                            fontWeight: FontWeight.w600)),
+                    const SizedBox(height: 4),
+                    Text('$consumed/$target g',
+                        style: TextStyle(
+                            fontSize: 12, color: Colors.grey.shade500)),
+                  ]),
+          ),
         )
       else if (filtered.isEmpty)
         Padding(
