@@ -225,14 +225,14 @@ class _ProgressScreenState extends ConsumerState<ProgressScreen> {
   // ─── Bottom sheet เมื่อกดแท่งรายวันในกราฟภาพรวม ───
   Future<void> _showDayNutritionSheet(Map<String, dynamic> dayData) async {
     final userId = ref.read(userDataProvider).userId;
-    final date   = dayData['date'] as DateTime;
+    final date = dayData['date'] as DateTime;
     final dateStr = DateFormat('yyyy-MM-dd').format(date);
 
     // ข้อมูล macro จาก weekData (มีอยู่แล้ว)
-    final double cal     = (dayData['calories'] as num?)?.toDouble() ?? 0;
-    final double protein = (dayData['protein']  as num?)?.toDouble() ?? 0;
-    final double carbs   = (dayData['carbs']    as num?)?.toDouble() ?? 0;
-    final double fat     = (dayData['fat']      as num?)?.toDouble() ?? 0;
+    final double cal = (dayData['calories'] as num?)?.toDouble() ?? 0;
+    final double protein = (dayData['protein'] as num?)?.toDouble() ?? 0;
+    final double carbs = (dayData['carbs'] as num?)?.toDouble() ?? 0;
+    final double fat = (dayData['fat'] as num?)?.toDouble() ?? 0;
 
     // ดึงรายการอาหารแต่ละมื้อ
     List<Map<String, dynamic>> mealItems = [];
@@ -258,9 +258,9 @@ class _ProgressScreenState extends ConsumerState<ProgressScreen> {
 
     const mealLabels = {
       'breakfast': '🌅 เช้า',
-      'lunch':     '☀️ เที่ยง',
-      'dinner':    '🌙 เย็น',
-      'snack':     '🍎 ว่าง',
+      'lunch': '☀️ เที่ยง',
+      'dinner': '🌙 เย็น',
+      'snack': '🍎 ว่าง',
     };
     const green = Color(0xFF628141);
 
@@ -282,7 +282,8 @@ class _ProgressScreenState extends ConsumerState<ProgressScreen> {
               // Handle bar
               const SizedBox(height: 10),
               Container(
-                width: 40, height: 4,
+                width: 40,
+                height: 4,
                 decoration: BoxDecoration(
                   color: Colors.grey.shade300,
                   borderRadius: BorderRadius.circular(2),
@@ -296,7 +297,8 @@ class _ProgressScreenState extends ConsumerState<ProgressScreen> {
                 child: Row(
                   children: [
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 10, vertical: 4),
                       decoration: BoxDecoration(
                         color: const Color(0xFFE8EFCF),
                         borderRadius: BorderRadius.circular(20),
@@ -304,8 +306,10 @@ class _ProgressScreenState extends ConsumerState<ProgressScreen> {
                       child: Text(
                         dayData['dayName'] as String,
                         style: const TextStyle(
-                          fontSize: 12, fontWeight: FontWeight.w600,
-                          color: green, fontFamily: 'Inter',
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
+                          color: green,
+                          fontFamily: 'Inter',
                         ),
                       ),
                     ),
@@ -313,7 +317,8 @@ class _ProgressScreenState extends ConsumerState<ProgressScreen> {
                     Text(
                       _formatDateTh(date),
                       style: const TextStyle(
-                        fontSize: 16, fontWeight: FontWeight.bold,
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
                         fontFamily: 'Inter',
                       ),
                     ),
@@ -326,7 +331,8 @@ class _ProgressScreenState extends ConsumerState<ProgressScreen> {
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 20),
                 child: Container(
-                  padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 16),
+                  padding:
+                      const EdgeInsets.symmetric(vertical: 14, horizontal: 16),
                   decoration: BoxDecoration(
                     color: const Color(0xFFF5F9EE),
                     borderRadius: BorderRadius.circular(16),
@@ -335,13 +341,17 @@ class _ProgressScreenState extends ConsumerState<ProgressScreen> {
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.spaceAround,
                     children: [
-                      _macroSummaryItem('${cal.toInt()}', 'kcal', const Color(0xFF628141)),
+                      _macroSummaryItem(
+                          '${cal.toInt()}', 'kcal', const Color(0xFF628141)),
                       _dividerV(),
-                      _macroSummaryItem('${protein.toInt()}g', 'โปรตีน', const Color(0xFF4A7A20)),
+                      _macroSummaryItem('${protein.toInt()}g', 'โปรตีน',
+                          const Color(0xFF4A7A20)),
                       _dividerV(),
-                      _macroSummaryItem('${carbs.toInt()}g', 'คาร์บ', const Color(0xFFE8A020)),
+                      _macroSummaryItem('${carbs.toInt()}g', 'คาร์บ',
+                          const Color(0xFFE8A020)),
                       _dividerV(),
-                      _macroSummaryItem('${fat.toInt()}g', 'ไขมัน', const Color(0xFFD05030)),
+                      _macroSummaryItem(
+                          '${fat.toInt()}g', 'ไขมัน', const Color(0xFFD05030)),
                     ],
                   ),
                 ),
@@ -357,9 +367,13 @@ class _ProgressScreenState extends ConsumerState<ProgressScreen> {
                         child: Column(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
-                            Icon(Icons.no_meals_rounded, size: 48, color: Colors.grey.shade300),
+                            Icon(Icons.no_meals_rounded,
+                                size: 48, color: Colors.grey.shade300),
                             const SizedBox(height: 8),
-                            Text('ไม่มีข้อมูลอาหาร', style: TextStyle(color: Colors.grey.shade400, fontFamily: 'Inter')),
+                            Text('ไม่มีข้อมูลอาหาร',
+                                style: TextStyle(
+                                    color: Colors.grey.shade400,
+                                    fontFamily: 'Inter')),
                           ],
                         ),
                       )
@@ -368,30 +382,43 @@ class _ProgressScreenState extends ConsumerState<ProgressScreen> {
                         padding: const EdgeInsets.fromLTRB(20, 12, 20, 24),
                         children: mealItems.map((mealGroup) {
                           final mealType = mealGroup['meal_type'] as String;
-                          final items    = mealGroup['items'] as List;
+                          final items = mealGroup['items'] as List;
                           return Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               // Meal type header
                               Padding(
-                                padding: const EdgeInsets.only(top: 12, bottom: 8),
+                                padding:
+                                    const EdgeInsets.only(top: 12, bottom: 8),
                                 child: Text(
                                   mealLabels[mealType] ?? mealType,
                                   style: const TextStyle(
-                                    fontSize: 14, fontWeight: FontWeight.w700,
-                                    color: green, fontFamily: 'Inter',
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.w700,
+                                    color: green,
+                                    fontFamily: 'Inter',
                                   ),
                                 ),
                               ),
                               // Food items
                               ...items.map((item) {
                                 final foodName = item['food_name'] ?? '-';
-                                final totalCal = (item['total_cal'] as num?)?.toDouble() ?? 0;
-                                final p = (item['total_protein'] as num?)?.toDouble() ?? 0;
-                                final c = (item['total_carbs']   as num?)?.toDouble() ?? 0;
-                                final f = (item['total_fat']     as num?)?.toDouble() ?? 0;
-                                final imgUrl  = (item['image_url'] as String?) ?? '';
-                                final amount  = (item['amount']   as num?)?.toDouble() ?? 1;
+                                final totalCal =
+                                    (item['total_cal'] as num?)?.toDouble() ??
+                                        0;
+                                final p = (item['total_protein'] as num?)
+                                        ?.toDouble() ??
+                                    0;
+                                final c =
+                                    (item['total_carbs'] as num?)?.toDouble() ??
+                                        0;
+                                final f =
+                                    (item['total_fat'] as num?)?.toDouble() ??
+                                        0;
+                                final imgUrl =
+                                    (item['image_url'] as String?) ?? '';
+                                final amount =
+                                    (item['amount'] as num?)?.toDouble() ?? 1;
 
                                 return Container(
                                   margin: const EdgeInsets.only(bottom: 10),
@@ -399,9 +426,14 @@ class _ProgressScreenState extends ConsumerState<ProgressScreen> {
                                   decoration: BoxDecoration(
                                     color: Colors.white,
                                     borderRadius: BorderRadius.circular(14),
-                                    border: Border.all(color: const Color(0xFFE8EFCF)),
+                                    border: Border.all(
+                                        color: const Color(0xFFE8EFCF)),
                                     boxShadow: [
-                                      BoxShadow(color: Colors.black.withValues(alpha: 0.04), blurRadius: 6, offset: const Offset(0,2))
+                                      BoxShadow(
+                                          color: Colors.black
+                                              .withValues(alpha: 0.04),
+                                          blurRadius: 6,
+                                          offset: const Offset(0, 2))
                                     ],
                                   ),
                                   child: Row(
@@ -412,9 +444,11 @@ class _ProgressScreenState extends ConsumerState<ProgressScreen> {
                                         child: imgUrl.isNotEmpty
                                             ? Image.network(
                                                 imgUrl,
-                                                width: 56, height: 56,
+                                                width: 56,
+                                                height: 56,
                                                 fit: BoxFit.cover,
-                                                errorBuilder: (_, __, ___) => _foodIconPlaceholder(),
+                                                errorBuilder: (_, __, ___) =>
+                                                    _foodIconPlaceholder(),
                                               )
                                             : _foodIconPlaceholder(),
                                       ),
@@ -422,27 +456,40 @@ class _ProgressScreenState extends ConsumerState<ProgressScreen> {
                                       // ชื่อ + macros
                                       Expanded(
                                         child: Column(
-                                          crossAxisAlignment: CrossAxisAlignment.start,
+                                          crossAxisAlignment:
+                                              CrossAxisAlignment.start,
                                           children: [
                                             Text(
                                               foodName,
-                                              style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600, fontFamily: 'Inter'),
+                                              style: const TextStyle(
+                                                  fontSize: 13,
+                                                  fontWeight: FontWeight.w600,
+                                                  fontFamily: 'Inter'),
                                               maxLines: 1,
                                               overflow: TextOverflow.ellipsis,
                                             ),
                                             const SizedBox(height: 4),
                                             Text(
                                               'x${amount % 1 == 0 ? amount.toInt() : amount} หน่วย',
-                                              style: TextStyle(fontSize: 11, color: Colors.grey.shade500, fontFamily: 'Inter'),
+                                              style: TextStyle(
+                                                  fontSize: 11,
+                                                  color: Colors.grey.shade500,
+                                                  fontFamily: 'Inter'),
                                             ),
                                             const SizedBox(height: 6),
                                             Row(
                                               children: [
-                                                _miniMacroChip('P ${p.toInt()}g', const Color(0xFF4A7A20)),
+                                                _miniMacroChip(
+                                                    'P ${p.toInt()}g',
+                                                    const Color(0xFF4A7A20)),
                                                 const SizedBox(width: 4),
-                                                _miniMacroChip('C ${c.toInt()}g', const Color(0xFFD4920A)),
+                                                _miniMacroChip(
+                                                    'C ${c.toInt()}g',
+                                                    const Color(0xFFD4920A)),
                                                 const SizedBox(width: 4),
-                                                _miniMacroChip('F ${f.toInt()}g', const Color(0xFFD05030)),
+                                                _miniMacroChip(
+                                                    'F ${f.toInt()}g',
+                                                    const Color(0xFFD05030)),
                                               ],
                                             ),
                                           ],
@@ -450,13 +497,22 @@ class _ProgressScreenState extends ConsumerState<ProgressScreen> {
                                       ),
                                       // แคลอรี่
                                       Column(
-                                        crossAxisAlignment: CrossAxisAlignment.end,
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.end,
                                         children: [
                                           Text(
                                             '${totalCal.toInt()}',
-                                            style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w800, color: green, fontFamily: 'Inter'),
+                                            style: const TextStyle(
+                                                fontSize: 16,
+                                                fontWeight: FontWeight.w800,
+                                                color: green,
+                                                fontFamily: 'Inter'),
                                           ),
-                                          const Text('kcal', style: TextStyle(fontSize: 10, color: Colors.grey, fontFamily: 'Inter')),
+                                          const Text('kcal',
+                                              style: TextStyle(
+                                                  fontSize: 10,
+                                                  color: Colors.grey,
+                                                  fontFamily: 'Inter')),
                                         ],
                                       ),
                                     ],
@@ -478,26 +534,44 @@ class _ProgressScreenState extends ConsumerState<ProgressScreen> {
   Widget _macroSummaryItem(String value, String label, Color color) {
     return Column(
       children: [
-        Text(value, style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800, color: color, fontFamily: 'Inter')),
+        Text(value,
+            style: TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.w800,
+                color: color,
+                fontFamily: 'Inter')),
         const SizedBox(height: 2),
-        Text(label, style: const TextStyle(fontSize: 11, color: Colors.grey, fontFamily: 'Inter')),
+        Text(label,
+            style: const TextStyle(
+                fontSize: 11, color: Colors.grey, fontFamily: 'Inter')),
       ],
     );
   }
 
-  Widget _dividerV() => Container(width: 1, height: 32, color: const Color(0xFFDDEECC));
+  Widget _dividerV() =>
+      Container(width: 1, height: 32, color: const Color(0xFFDDEECC));
 
   Widget _foodIconPlaceholder() => Container(
-    width: 56, height: 56,
-    decoration: BoxDecoration(color: Colors.grey.shade100, borderRadius: BorderRadius.circular(10)),
-    child: Icon(Icons.restaurant, color: Colors.grey.shade400, size: 26),
-  );
+        width: 56,
+        height: 56,
+        decoration: BoxDecoration(
+            color: Colors.grey.shade100,
+            borderRadius: BorderRadius.circular(10)),
+        child: Icon(Icons.restaurant, color: Colors.grey.shade400, size: 26),
+      );
 
   Widget _miniMacroChip(String text, Color color) => Container(
-    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-    decoration: BoxDecoration(color: color.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(6)),
-    child: Text(text, style: TextStyle(fontSize: 10, fontWeight: FontWeight.w600, color: color, fontFamily: 'Inter')),
-  );
+        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+        decoration: BoxDecoration(
+            color: color.withValues(alpha: 0.1),
+            borderRadius: BorderRadius.circular(6)),
+        child: Text(text,
+            style: TextStyle(
+                fontSize: 10,
+                fontWeight: FontWeight.w600,
+                color: color,
+                fontFamily: 'Inter')),
+      );
 
   void _buildDayDetailSheet(DateTime date, Map<String, dynamic> data) {
     showModalBottomSheet(
@@ -1165,7 +1239,8 @@ class _ProgressScreenState extends ConsumerState<ProgressScreen> {
                         color: const Color(0xFFE8EFCF),
                         borderRadius: BorderRadius.circular(20),
                         border: Border.all(
-                            color: const Color(0xFF628141).withValues(alpha: 0.3)),
+                            color:
+                                const Color(0xFF628141).withValues(alpha: 0.3)),
                       ),
                       child: Row(
                         mainAxisSize: MainAxisSize.min,
@@ -1198,7 +1273,9 @@ class _ProgressScreenState extends ConsumerState<ProgressScreen> {
                   child: SizedBox(
                     height: 228,
                     child: _isLoading
-                        ? const Center(child: CircularProgressIndicator(color: Color(0xFF628141)))
+                        ? const Center(
+                            child: CircularProgressIndicator(
+                                color: Color(0xFF628141)))
                         : _WeeklyBarChart(
                             weekBarData: weekData,
                             targetCal: targetCal,
@@ -1207,7 +1284,9 @@ class _ProgressScreenState extends ConsumerState<ProgressScreen> {
                               if (index == null) return;
                               setState(() {
                                 _selectedChartDayIndex =
-                                    _selectedChartDayIndex == index ? null : index;
+                                    _selectedChartDayIndex == index
+                                        ? null
+                                        : index;
                               });
                               if (weekData[index]['hasData'] == true) {
                                 _showDayNutritionSheet(weekData[index]);
@@ -1222,8 +1301,11 @@ class _ProgressScreenState extends ConsumerState<ProgressScreen> {
                   runSpacing: 6,
                   children: [
                     _chartLegendChipLight(
-                        const Color(0xFF628141), 'แคลลอรีตรงตามเป้าหมาย'),
-                    _chartLegendChipLight(const Color(0xFFD76A3C), 'แคลลอรีเกินเป้าหมาย'),
+                        const Color(0xFF628141), 'ตรงตามเป้าหมาย'),
+                    _chartLegendChipLight(
+                        const Color(0xFFF59E0B), 'ต่ำกว่าเป้าหมาย'),
+                    _chartLegendChipLight(
+                        const Color(0xFFD76A3C), 'เกินเป้าหมาย'),
                     _chartLegendChipLight(
                         const Color(0xFF9E9E9E), 'ไม่ได้ใช้งาน'),
                   ],
@@ -1254,8 +1336,9 @@ class _ProgressScreenState extends ConsumerState<ProgressScreen> {
     final totalCal = _getWeekTotalCal(weekMonday);
     final weeklyTarget = (targetCal * 7).toInt();
     final remaining = weeklyTarget - totalCal; // บวก=เหลือ, ลบ=เกิน
-    final weekPctRaw =
-        weeklyTarget > 0 ? totalCal / weeklyTarget : 0.0; // ไม่ clamp — แสดงเกินได้
+    final weekPctRaw = weeklyTarget > 0
+        ? totalCal / weeklyTarget
+        : 0.0; // ไม่ clamp — แสดงเกินได้
     final weekPctBar = weekPctRaw.clamp(0.0, 1.0);
 
     // คำนวณ "วันที่เหลือในสัปดาห์" เฉพาะเมื่อดูสัปดาห์ปัจจุบัน
@@ -1291,8 +1374,7 @@ class _ProgressScreenState extends ConsumerState<ProgressScreen> {
     } else if (remaining < 0) {
       statusColor = redOver;
       statusIcon = Icons.error_outline;
-      statusText =
-          'เกินเป้าแล้ว ${_formatNumber(remaining.abs())} kcal';
+      statusText = 'เกินเป้าแล้ว ${_formatNumber(remaining.abs())} kcal';
     } else if (weekPctRaw >= 0.85) {
       statusColor = amberWarn;
       statusIcon = Icons.warning_amber_rounded;
@@ -1346,8 +1428,7 @@ class _ProgressScreenState extends ConsumerState<ProgressScreen> {
               ),
             ),
             Container(
-              padding:
-                  const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
               decoration: BoxDecoration(
                 color: statusColor.withValues(alpha: 0.12),
                 borderRadius: BorderRadius.circular(20),
@@ -1446,8 +1527,7 @@ class _ProgressScreenState extends ConsumerState<ProgressScreen> {
                     unit: 'kcal',
                     color: remaining >= 0 ? greenOk : redOver),
               ),
-              Container(
-                  width: 1, height: 32, color: Colors.grey.shade200),
+              Container(width: 1, height: 32, color: Colors.grey.shade200),
               Expanded(
                 child: _statChip(
                     label: isCurrentWeek
@@ -1457,8 +1537,7 @@ class _ProgressScreenState extends ConsumerState<ProgressScreen> {
                     unit: 'kcal/วัน',
                     color: Colors.black87),
               ),
-              Container(
-                  width: 1, height: 32, color: Colors.grey.shade200),
+              Container(width: 1, height: 32, color: Colors.grey.shade200),
               Expanded(
                 child: _statChip(
                     label: isCurrentWeek && daysRemaining > 0
@@ -1512,9 +1591,7 @@ class _ProgressScreenState extends ConsumerState<ProgressScreen> {
               TextSpan(
                 text: ' $unit',
                 style: TextStyle(
-                    fontSize: 9,
-                    color: Colors.grey[600],
-                    fontFamily: 'Inter'),
+                    fontSize: 9, color: Colors.grey[600], fontFamily: 'Inter'),
               ),
             ],
           ),
@@ -1527,13 +1604,13 @@ class _ProgressScreenState extends ConsumerState<ProgressScreen> {
   Widget _buildGoalProgressCard() {
     if (_goalProgress.isEmpty) return const SizedBox.shrink();
 
-    final pct    = (_goalProgress['progress_pct'] as num?)?.toDouble() ?? 0.0;
-    final curr   = (_goalProgress['current_weight'] as num?)?.toDouble() ?? 0.0;
+    final pct = (_goalProgress['progress_pct'] as num?)?.toDouble() ?? 0.0;
+    final curr = (_goalProgress['current_weight'] as num?)?.toDouble() ?? 0.0;
     final target = (_goalProgress['target_weight'] as num?)?.toDouble() ?? 0.0;
-    final start  = (_goalProgress['start_weight'] as num?)?.toDouble() ?? curr;
-    final remKg  = (_goalProgress['remaining_kg'] as num?)?.toDouble() ?? 0.0;
+    final start = (_goalProgress['start_weight'] as num?)?.toDouble() ?? curr;
+    final remKg = (_goalProgress['remaining_kg'] as num?)?.toDouble() ?? 0.0;
     final goalType = _goalProgress['goal_type'] as String? ?? '';
-    final estDays  = _goalProgress['estimated_days'] as int?;
+    final estDays = _goalProgress['estimated_days'] as int?;
     final targetDate = _goalProgress['goal_target_date'] as String?;
 
     // ชื่อเป้าหมาย
@@ -1543,18 +1620,18 @@ class _ProgressScreenState extends ConsumerState<ProgressScreen> {
     switch (goalType) {
       case 'lose_weight':
         goalLabel = 'ลดน้ำหนัก';
-        goalIcon  = Icons.trending_down_rounded;
+        goalIcon = Icons.trending_down_rounded;
         goalColor = const Color(0xFFE85D04);
         break;
       case 'gain_weight':
       case 'gain_muscle':
         goalLabel = 'เพิ่มน้ำหนัก / กล้ามเนื้อ';
-        goalIcon  = Icons.trending_up_rounded;
+        goalIcon = Icons.trending_up_rounded;
         goalColor = const Color(0xFF628141);
         break;
       default:
         goalLabel = 'รักษาน้ำหนัก';
-        goalIcon  = Icons.balance_rounded;
+        goalIcon = Icons.balance_rounded;
         goalColor = const Color(0xFF3D5A27);
     }
 
@@ -1585,7 +1662,8 @@ class _ProgressScreenState extends ConsumerState<ProgressScreen> {
         // Header
         Row(children: [
           Container(
-            width: 38, height: 38,
+            width: 38,
+            height: 38,
             decoration: BoxDecoration(
                 color: goalColor.withValues(alpha: 0.12),
                 borderRadius: BorderRadius.circular(12)),
@@ -1593,20 +1671,21 @@ class _ProgressScreenState extends ConsumerState<ProgressScreen> {
           ),
           const SizedBox(width: 10),
           Expanded(
-            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            child:
+                Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
               const Text('เป้าหมายของฉัน',
-                  style: TextStyle(
-                      fontSize: 15, fontWeight: FontWeight.bold)),
+                  style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold)),
               Text(goalLabel,
-                  style: TextStyle(fontSize: 12, color: goalColor,
+                  style: TextStyle(
+                      fontSize: 12,
+                      color: goalColor,
                       fontWeight: FontWeight.w600)),
             ]),
           ),
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
             decoration: BoxDecoration(
-                color: goalColor,
-                borderRadius: BorderRadius.circular(20)),
+                color: goalColor, borderRadius: BorderRadius.circular(20)),
             child: Text('${pct.toStringAsFixed(1)}%',
                 style: const TextStyle(
                     color: Colors.white,
@@ -1634,8 +1713,8 @@ class _ProgressScreenState extends ConsumerState<ProgressScreen> {
           children: [
             _goalWeightChip('เริ่มต้น', '${start.toStringAsFixed(1)} กก.',
                 Colors.grey.shade600),
-            _goalWeightChip('ปัจจุบัน', '${curr.toStringAsFixed(1)} กก.',
-                goalColor),
+            _goalWeightChip(
+                'ปัจจุบัน', '${curr.toStringAsFixed(1)} กก.', goalColor),
             _goalWeightChip('เป้าหมาย', '${target.toStringAsFixed(1)} กก.',
                 const Color(0xFF3D5A27)),
           ],
@@ -1646,15 +1725,17 @@ class _ProgressScreenState extends ConsumerState<ProgressScreen> {
 
         // Info grid
         Row(children: [
-          Expanded(child: _infoChip(Icons.flag_rounded,
-              'กำหนดเส้นตาย', deadlineText, const Color(0xFF465396))),
+          Expanded(
+              child: _infoChip(Icons.flag_rounded, 'กำหนดเส้นตาย', deadlineText,
+                  const Color(0xFF465396))),
           const SizedBox(width: 8),
-          Expanded(child: _infoChip(Icons.timer_outlined,
-              'คาดการณ์', estimateText, const Color(0xFF628141))),
+          Expanded(
+              child: _infoChip(Icons.timer_outlined, 'คาดการณ์', estimateText,
+                  const Color(0xFF628141))),
           const SizedBox(width: 8),
-          Expanded(child: _infoChip(Icons.monitor_weight_outlined,
-              'เหลืออีก', '${remKg.toStringAsFixed(1)} กก.',
-              const Color(0xFFE85D04))),
+          Expanded(
+              child: _infoChip(Icons.monitor_weight_outlined, 'เหลืออีก',
+                  '${remKg.toStringAsFixed(1)} กก.', const Color(0xFFE85D04))),
         ]),
       ]),
     );
@@ -1665,8 +1746,7 @@ class _ProgressScreenState extends ConsumerState<ProgressScreen> {
         Text(value,
             style: TextStyle(
                 fontSize: 14, fontWeight: FontWeight.bold, color: color)),
-        Text(label,
-            style: const TextStyle(fontSize: 10, color: Colors.grey)),
+        Text(label, style: const TextStyle(fontSize: 10, color: Colors.grey)),
       ]);
 
   Widget _infoChip(IconData icon, String label, String value, Color color) =>
@@ -1684,9 +1764,7 @@ class _ProgressScreenState extends ConsumerState<ProgressScreen> {
           const SizedBox(height: 2),
           Text(value,
               style: TextStyle(
-                  fontSize: 11,
-                  fontWeight: FontWeight.bold,
-                  color: color),
+                  fontSize: 11, fontWeight: FontWeight.bold, color: color),
               textAlign: TextAlign.center,
               maxLines: 2,
               overflow: TextOverflow.ellipsis),
@@ -1710,8 +1788,8 @@ class _ProgressScreenState extends ConsumerState<ProgressScreen> {
                 const SizedBox(height: 8),
                 Text('ยังไม่มีข้อมูลน้ำหนัก\nบันทึกน้ำหนักในโปรไฟล์เพื่อดูกราฟ',
                     textAlign: TextAlign.center,
-                    style: TextStyle(
-                        fontSize: 13, color: Colors.grey.shade500)),
+                    style:
+                        TextStyle(fontSize: 13, color: Colors.grey.shade500)),
               ]),
             ),
             const SizedBox(height: 16),
@@ -1738,20 +1816,19 @@ class _ProgressScreenState extends ConsumerState<ProgressScreen> {
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
         Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
           const Text('กราฟน้ำหนัก',
-              style: TextStyle(
-                  fontSize: 15, fontWeight: FontWeight.bold)),
+              style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold)),
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
             decoration: BoxDecoration(
                 color: const Color(0xFFE8EFCF),
                 borderRadius: BorderRadius.circular(20)),
             child: Row(children: [
-              const Icon(Icons.show_chart,
-                  size: 14, color: Color(0xFF628141)),
+              const Icon(Icons.show_chart, size: 14, color: Color(0xFF628141)),
               const SizedBox(width: 4),
               Text('${_weightLogs.length} จุด',
                   style: const TextStyle(
-                      fontSize: 11, color: Color(0xFF3D5A27),
+                      fontSize: 11,
+                      color: Color(0xFF3D5A27),
                       fontWeight: FontWeight.w600)),
             ]),
           ),
@@ -1766,8 +1843,8 @@ class _ProgressScreenState extends ConsumerState<ProgressScreen> {
               gridData: FlGridData(
                 show: true,
                 drawVerticalLine: false,
-                getDrawingHorizontalLine: (_) => FlLine(
-                    color: Colors.grey.shade200, strokeWidth: 1),
+                getDrawingHorizontalLine: (_) =>
+                    FlLine(color: Colors.grey.shade200, strokeWidth: 1),
               ),
               borderData: FlBorderData(show: false),
               titlesData: FlTitlesData(
@@ -1775,10 +1852,9 @@ class _ProgressScreenState extends ConsumerState<ProgressScreen> {
                   sideTitles: SideTitles(
                     showTitles: true,
                     reservedSize: 36,
-                    getTitlesWidget: (v, _) => Text(
-                        '${v.toInt()}',
-                        style: const TextStyle(
-                            fontSize: 10, color: Colors.grey)),
+                    getTitlesWidget: (v, _) => Text('${v.toInt()}',
+                        style:
+                            const TextStyle(fontSize: 10, color: Colors.grey)),
                   ),
                 ),
                 bottomTitles: AxisTitles(
@@ -1787,21 +1863,24 @@ class _ProgressScreenState extends ConsumerState<ProgressScreen> {
                     interval: step.toDouble(),
                     getTitlesWidget: (v, _) {
                       final idx = v.toInt();
-                      if (idx < 0 || idx >= _weightLogs.length) return const SizedBox();
+                      if (idx < 0 || idx >= _weightLogs.length)
+                        return const SizedBox();
                       final raw = _weightLogs[idx]['date'] as String;
                       try {
                         final dt = DateTime.parse(raw);
                         return Text('${dt.day}/${dt.month}',
                             style: const TextStyle(
                                 fontSize: 9, color: Colors.grey));
-                      } catch (_) { return const SizedBox(); }
+                      } catch (_) {
+                        return const SizedBox();
+                      }
                     },
                   ),
                 ),
-                rightTitles: const AxisTitles(
-                    sideTitles: SideTitles(showTitles: false)),
-                topTitles: const AxisTitles(
-                    sideTitles: SideTitles(showTitles: false)),
+                rightTitles:
+                    const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                topTitles:
+                    const AxisTitles(sideTitles: SideTitles(showTitles: false)),
               ),
               lineBarsData: [
                 // Actual weight line
@@ -1812,12 +1891,11 @@ class _ProgressScreenState extends ConsumerState<ProgressScreen> {
                   barWidth: 2.5,
                   dotData: FlDotData(
                     show: true,
-                    getDotPainter: (s, _, __, ___) =>
-                        FlDotCirclePainter(
-                            radius: 3,
-                            color: Colors.white,
-                            strokeWidth: 2,
-                            strokeColor: const Color(0xFF628141)),
+                    getDotPainter: (s, _, __, ___) => FlDotCirclePainter(
+                        radius: 3,
+                        color: Colors.white,
+                        strokeWidth: 2,
+                        strokeColor: const Color(0xFF628141)),
                   ),
                   belowBarData: BarAreaData(
                     show: true,
@@ -1936,9 +2014,12 @@ class _ProgressScreenState extends ConsumerState<ProgressScreen> {
 
       if (isLogged) {
         if (cal > targetCal) {
-          circleColor = Colors.red; // แดง เกินเป้าหมาย
+          circleColor = const Color(0xFFD76A3C); // แดง เกินเป้าหมาย (>100%)
+        } else if (cal >= targetCal * 0.9) {
+          circleColor = const Color(0xFF628141); // เขียว ในเป้าหมาย (90-100%)
         } else {
-          circleColor = const Color(0xFF628141); // เขียว ในเป้าหมาย
+          circleColor =
+              const Color(0xFFF59E0B); // เหลือง ต่ำกว่าเป้าหมาย (<90%)
         }
       } else {
         circleColor = Colors.grey.shade400; // เทา ไม่ได้กรอก/ไม่ได้ใช้งาน
@@ -1993,8 +2074,9 @@ class _ProgressScreenState extends ConsumerState<ProgressScreen> {
       spacing: 12,
       runSpacing: 6,
       children: [
-        _legendItem(const Color(0xFF628141), 'แคลลอรีตรงตามเป้าหมาย'),
-        _legendItem(Colors.red, 'แคลลอรีเกินเป้าหมาย'),
+        _legendItem(const Color(0xFF628141), 'ตรงตามเป้าหมาย'),
+        _legendItem(const Color(0xFFF59E0B), 'ต่ำกว่าเป้าหมาย'),
+        _legendItem(const Color(0xFFD76A3C), 'เกินเป้าหมาย'),
         _legendItem(Colors.grey.shade400, 'ไม่ได้ใช้งาน'),
       ],
     );
@@ -2189,7 +2271,6 @@ class _ProgressScreenState extends ConsumerState<ProgressScreen> {
         onTap: () {
           setState(() {
             _selectedTabIndex = index;
-
           });
 
           if (index == 1) _fetchWeeklyData(weekStart: _getChartWeekMonday());
@@ -2229,9 +2310,8 @@ class _WeeklyBarChart extends StatelessWidget {
   });
 
   static const Color _green = Color(0xFF628141);
-
+  static const Color _amber = Color(0xFFF59E0B);
   static const Color _red = Color(0xFFD76A3C);
-
   static const Color _gray = Color(0xFF9E9E9E);
 
   @override
@@ -2406,9 +2486,11 @@ class _WeeklyBarChart extends StatelessWidget {
 
           if (hasData) {
             if (calories > targetCal) {
-              color = _red; // เกินเป้าหมาย
+              color = _red; // เกินเป้าหมาย (>100%)
+            } else if (calories >= targetCal * 0.9) {
+              color = _green; // ในเป้าหมาย (90-100%)
             } else {
-              color = _green; // ในเป้าหมาย
+              color = _amber; // ต่ำกว่าเป้าหมาย (<90%)
             }
           }
 
@@ -2443,4 +2525,3 @@ class _WeeklyBarChart extends StatelessWidget {
     return days[weekday - 1];
   }
 }
-
