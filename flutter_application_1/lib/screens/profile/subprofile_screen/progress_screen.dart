@@ -256,7 +256,16 @@ class _ProgressScreenState extends ConsumerState<ProgressScreen> {
                         borderRadius: BorderRadius.circular(20),
                       ),
                       child: Text(
-                        dayData['dayName'] as String,
+                        (dayData['dayName'] as String?) ??
+                            [
+                              'จ',
+                              'อ',
+                              'พ',
+                              'พฤ',
+                              'ศ',
+                              'ส',
+                              'อา'
+                            ][date.weekday - 1],
                         style: const TextStyle(
                           fontSize: 12,
                           fontWeight: FontWeight.w600,
