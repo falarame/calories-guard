@@ -118,6 +118,32 @@ class _MacroDetailScreenState extends ConsumerState<MacroDetailScreen> {
     return 'g';
   }
 
+  Color _getMacroColor() {
+    switch (widget.macroType) {
+      case 'protein':
+        return const Color(0xFFE53935);
+      case 'carbs':
+        return const Color(0xFF1E88E5);
+      case 'fat':
+        return const Color(0xFFFB8C00);
+      default:
+        return const Color(0xFF628141);
+    }
+  }
+
+  Color _getMacroLightColor() {
+    switch (widget.macroType) {
+      case 'protein':
+        return const Color(0xFFFFEBEE);
+      case 'carbs':
+        return const Color(0xFFE3F2FD);
+      case 'fat':
+        return const Color(0xFFFFF3E0);
+      default:
+        return const Color(0xFFE8EFCF);
+    }
+  }
+
   double _getConsumedMacro() {
     final userData = ref.watch(userDataProvider);
     switch (widget.macroType) {
@@ -164,20 +190,16 @@ class _MacroDetailScreenState extends ConsumerState<MacroDetailScreen> {
 
     double consumedMacro = _getConsumedMacro();
     int remaining = (targetMacro - consumedMacro.toInt()).clamp(0, 1 << 30);
-    bool isOver = consumedMacro >= targetMacro;
-
-    String statusMessage;
-    if (isOver) {
-      statusMessage =
-          '${_getMacroLabel()}วันนี้กินเกินแล้ว ไม่ควรกินอาหารที่มี${_getMacroLabel()}แล้ว';
-    } else {
-      statusMessage = 'ขาด${_getMacroLabel()}อีก $remaining g ควรทานอะไร';
-    }
+    final bool isOver = consumedMacro > targetMacro;
+    final bool isMet = consumedMacro >= targetMacro && !isOver;
+    final bool isDone = isOver || isMet;
+    final Color macroColor = _getMacroColor();
+    final Color macroLightColor = _getMacroLightColor();
 
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: AppBar(
-        backgroundColor: const Color(0xFF628141),
+        backgroundColor: macroColor,
         title: Text(
           'รายละเอียด${_getMacroLabel()}',
           style: const TextStyle(
@@ -186,6 +208,7 @@ class _MacroDetailScreenState extends ConsumerState<MacroDetailScreen> {
               fontWeight: FontWeight.w600,
               color: Colors.white),
         ),
+        iconTheme: const IconThemeData(color: Colors.white),
         elevation: 0,
       ),
       body: _isLoading
@@ -197,62 +220,37 @@ class _MacroDetailScreenState extends ConsumerState<MacroDetailScreen> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      // --- สถานะโภชนาการ: ควรทานอะไร / กินเกินแล้ว ---
-                      Container(
-                        width: double.infinity,
-                        color: isOver
-                            ? const Color(0xFFD76A3C).withValues(alpha: 0.2)
-                            : const Color(0xFFE8EFCF),
-                        padding: const EdgeInsets.symmetric(
-                            vertical: 20, horizontal: 20),
-                        child: Text(
-                          statusMessage,
-                          style: TextStyle(
-                            fontFamily: 'Inter',
-                            fontSize: 18,
-                            fontWeight: FontWeight.w600,
-                            color: isOver
-                                ? const Color(0xFFB74D4D)
-                                : const Color(0xFF4C6414),
-                          ),
-                          textAlign: TextAlign.center,
-                        ),
-                      ),
-                      // --- Remaining Macro Display (เมื่อยังไม่เกิน) ---
-                      if (!isOver)
+                      // --- กรณียังไม่ครบเป้า: แสดงสถานะ + ทานได้อีก ---
+                      if (!isDone)
                         Container(
                           width: double.infinity,
-                          color: const Color(0xFFE8EFCF),
+                          color: macroLightColor,
                           padding: const EdgeInsets.symmetric(
                               vertical: 24, horizontal: 20),
                           child: Column(
                             children: [
                               Text(
                                 _getMacroLabel(),
-                                style: const TextStyle(
+                                style: TextStyle(
                                   fontFamily: 'Inter',
                                   fontSize: 24,
                                   fontWeight: FontWeight.bold,
-                                  color: Color(0xFF628141),
+                                  color: macroColor,
                                 ),
                               ),
                               const SizedBox(height: 16),
-
-                              // Consumed vs Target
                               Row(
                                 mainAxisAlignment:
                                     MainAxisAlignment.spaceEvenly,
                                 children: [
                                   Column(
                                     children: [
-                                      const Text(
-                                        'ทานแล้ว',
-                                        style: TextStyle(
-                                            fontFamily: 'Inter',
-                                            fontSize: 14,
-                                            fontWeight: FontWeight.w500,
-                                            color: Colors.black54),
-                                      ),
+                                      const Text('ทานแล้ว',
+                                          style: TextStyle(
+                                              fontFamily: 'Inter',
+                                              fontSize: 14,
+                                              fontWeight: FontWeight.w500,
+                                              color: Colors.black54)),
                                       const SizedBox(height: 6),
                                       Text(
                                         '${consumedMacro.toInt()} ${_getMacroUnit()}',
@@ -260,72 +258,62 @@ class _MacroDetailScreenState extends ConsumerState<MacroDetailScreen> {
                                             fontFamily: 'Inter',
                                             fontSize: 28,
                                             fontWeight: FontWeight.bold,
-                                            color: Colors.black),
+                                            color: Colors.black87),
                                       ),
                                     ],
                                   ),
                                   Container(
-                                    width: 2,
-                                    height: 60,
-                                    color: Colors.black12,
-                                  ),
+                                      width: 2,
+                                      height: 60,
+                                      color: Colors.black12),
                                   Column(
                                     children: [
-                                      const Text(
-                                        'เป้าหมาย',
-                                        style: TextStyle(
-                                            fontFamily: 'Inter',
-                                            fontSize: 14,
-                                            fontWeight: FontWeight.w500,
-                                            color: Colors.black54),
-                                      ),
+                                      const Text('เป้าหมาย',
+                                          style: TextStyle(
+                                              fontFamily: 'Inter',
+                                              fontSize: 14,
+                                              fontWeight: FontWeight.w500,
+                                              color: Colors.black54)),
                                       const SizedBox(height: 6),
                                       Text(
                                         '$targetMacro ${_getMacroUnit()}',
-                                        style: const TextStyle(
+                                        style: TextStyle(
                                             fontFamily: 'Inter',
                                             fontSize: 28,
                                             fontWeight: FontWeight.bold,
-                                            color: Color(0xFF628141)),
+                                            color: macroColor),
                                       ),
                                     ],
                                   ),
                                 ],
                               ),
-
                               const SizedBox(height: 24),
-
-                              // Remaining Info
                               Container(
                                 width: double.infinity,
                                 decoration: BoxDecoration(
                                   color: Colors.white,
                                   borderRadius: BorderRadius.circular(12),
-                                  border: Border.all(
-                                      color: const Color(0xFF4C6414), width: 2),
+                                  border:
+                                      Border.all(color: macroColor, width: 2),
                                 ),
                                 padding: const EdgeInsets.symmetric(
                                     vertical: 16, horizontal: 20),
                                 child: Column(
                                   children: [
-                                    const Text(
-                                      'สามารถทานได้อีก',
-                                      style: TextStyle(
-                                        fontFamily: 'Inter',
-                                        fontSize: 14,
-                                        fontWeight: FontWeight.w500,
-                                        color: Colors.black54,
-                                      ),
-                                    ),
+                                    const Text('สามารถทานได้อีก',
+                                        style: TextStyle(
+                                            fontFamily: 'Inter',
+                                            fontSize: 14,
+                                            fontWeight: FontWeight.w500,
+                                            color: Colors.black54)),
                                     const SizedBox(height: 8),
                                     Text(
                                       '$remaining ${_getMacroUnit()}',
-                                      style: const TextStyle(
-                                        fontFamily: 'Inter',
-                                        fontSize: 36,
-                                        fontWeight: FontWeight.bold,
-                                        color: Color(0xFF628141),
-                                      ),
+                                      style: TextStyle(
+                                          fontFamily: 'Inter',
+                                          fontSize: 36,
+                                          fontWeight: FontWeight.bold,
+                                          color: macroColor),
                                     ),
                                   ],
                                 ),
@@ -334,14 +322,113 @@ class _MacroDetailScreenState extends ConsumerState<MacroDetailScreen> {
                           ),
                         ),
 
-                      if (!isOver) ...[
+                      // --- กรณีครบเป้าพอดี ---
+                      if (isMet)
+                        Container(
+                          width: double.infinity,
+                          color: const Color(0xFFE8F5E9),
+                          padding: const EdgeInsets.symmetric(
+                              vertical: 40, horizontal: 24),
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            crossAxisAlignment: CrossAxisAlignment.center,
+                            children: [
+                              const Icon(Icons.check_circle_rounded,
+                                  size: 72, color: Color(0xFF43A047)),
+                              const SizedBox(height: 16),
+                              const Text(
+                                'ครบเป้าหมายแล้ววันนี้! 🎉',
+                                textAlign: TextAlign.center,
+                                style: TextStyle(
+                                    fontFamily: 'Inter',
+                                    fontSize: 22,
+                                    fontWeight: FontWeight.bold,
+                                    color: Color(0xFF2E7D32)),
+                              ),
+                              const SizedBox(height: 10),
+                              Text(
+                                '${_getMacroLabel()} ${consumedMacro.toInt()} / $targetMacro ${_getMacroUnit()}',
+                                textAlign: TextAlign.center,
+                                style: TextStyle(
+                                    fontFamily: 'Inter',
+                                    fontSize: 16,
+                                    color: Colors.grey.shade600),
+                              ),
+                            ],
+                          ),
+                        ),
+
+                      // --- กรณีเกินเป้า ---
+                      if (isOver)
+                        Container(
+                          width: double.infinity,
+                          color: const Color(0xFFFFEBEE),
+                          padding: const EdgeInsets.symmetric(
+                              vertical: 40, horizontal: 24),
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            crossAxisAlignment: CrossAxisAlignment.center,
+                            children: [
+                              const Icon(Icons.warning_amber_rounded,
+                                  size: 72, color: Color(0xFFE53935)),
+                              const SizedBox(height: 16),
+                              const Text(
+                                'เกินเป้าหมายแล้ว!',
+                                textAlign: TextAlign.center,
+                                style: TextStyle(
+                                    fontFamily: 'Inter',
+                                    fontSize: 22,
+                                    fontWeight: FontWeight.bold,
+                                    color: Color(0xFFB71C1C)),
+                              ),
+                              const SizedBox(height: 10),
+                              Text(
+                                'ทาน ${consumedMacro.toInt()} ${_getMacroUnit()} / เป้า $targetMacro ${_getMacroUnit()}',
+                                textAlign: TextAlign.center,
+                                style: TextStyle(
+                                    fontFamily: 'Inter',
+                                    fontSize: 16,
+                                    color: Colors.grey.shade700),
+                              ),
+                              const SizedBox(height: 28),
+                              SizedBox(
+                                width: double.infinity,
+                                child: ElevatedButton.icon(
+                                  onPressed: () {
+                                    Navigator.of(context)
+                                        .popUntil((route) => route.isFirst);
+                                    ref.read(navIndexProvider.notifier).state =
+                                        1;
+                                  },
+                                  icon: const Icon(Icons.edit_note_rounded),
+                                  label: const Text('ไปหน้าบันทึกอาหาร',
+                                      style: TextStyle(
+                                          fontFamily: 'Inter',
+                                          fontSize: 15,
+                                          fontWeight: FontWeight.w600)),
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: const Color(0xFFE53935),
+                                    foregroundColor: Colors.white,
+                                    padding: const EdgeInsets.symmetric(
+                                        vertical: 14),
+                                    shape: RoundedRectangleBorder(
+                                        borderRadius:
+                                            BorderRadius.circular(12)),
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+
+                      if (!isDone) ...[
                         const SizedBox(height: 20),
 
                         // --- Section Header ---
                         Container(
                           width: double.infinity,
                           padding: const EdgeInsets.symmetric(vertical: 10),
-                          color: const Color(0xFF628141),
+                          color: macroColor,
                           alignment: Alignment.center,
                           child: Text(
                             'แนะนำอาหาร${_getMacroLabel()}สูง',
@@ -381,7 +468,8 @@ class _MacroDetailScreenState extends ConsumerState<MacroDetailScreen> {
                                   style: TextStyle(
                                       fontFamily: 'Inter',
                                       fontSize: 14,
-                                      color: Colors.grey.withValues(alpha: 0.7)),
+                                      color:
+                                          Colors.grey.withValues(alpha: 0.7)),
                                   textAlign: TextAlign.center,
                                 ),
                               ],
@@ -489,7 +577,7 @@ class _MacroDetailScreenState extends ConsumerState<MacroDetailScreen> {
                   padding:
                       const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                   decoration: BoxDecoration(
-                    color: const Color(0xFFAFD198),
+                    color: _getMacroColor().withValues(alpha: 0.2),
                     borderRadius: BorderRadius.circular(6),
                   ),
                   child: Text(
