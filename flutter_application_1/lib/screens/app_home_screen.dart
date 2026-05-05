@@ -714,12 +714,12 @@ class _AppHomeScreenState extends ConsumerState<AppHomeScreen> {
         const SizedBox(width: 10),
         Expanded(
             child: _macroCard('คาร์บ', userData.consumedCarbs,
-                userData.targetCarbs, _greenDark, '🍎', 'carbs',
+                userData.targetCarbs, _greenDark, '\u{1F35A}', 'carbs',
                 isEstimated: !userData.hasBackendTargetMacros)),
         const SizedBox(width: 10),
         Expanded(
             child: _macroCard('ไขมัน', userData.consumedFat, userData.targetFat,
-                const Color(0xFF4A7A20), '�', 'fat',
+                const Color(0xFF4A7A20), '🍟', 'fat',
                 isEstimated: !userData.hasBackendTargetMacros)),
       ]),
     );
