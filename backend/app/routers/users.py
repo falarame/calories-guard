@@ -423,7 +423,8 @@ def recalc_tdee(user_id: int, current_user: dict = Depends(get_current_user)):
         cur = conn.cursor(cursor_factory=RealDictCursor)
         cur.execute("""
             SELECT gender, birth_date, height_cm, current_weight_kg,
-                   target_weight_kg, activity_level, goal_target_date
+                   target_weight_kg, activity_level, goal_type,
+                   goal_start_date, goal_target_date
             FROM users WHERE user_id = %s
         """, (user_id,))
         u = cur.fetchone()
@@ -447,22 +448,19 @@ def recalc_tdee(user_id: int, current_user: dict = Depends(get_current_user)):
         }
         multiplier = activity_multipliers.get(u["activity_level"] or "sedentary", 1.2)
         tdee = bmr * multiplier
-        deficit = 0
-        if u["target_weight_kg"] and u["goal_target_date"]:
-            days_left = (u["goal_target_date"] - today).days
-            if days_left > 0:
-                kg_to_lose = w - float(u["target_weight_kg"])
-                if kg_to_lose > 0:
-                    deficit_per_day = (kg_to_lose * 7700) / days_left
-                    deficit = min(deficit_per_day, 750)
-        min_cal = 1500 if u["gender"] == "male" else 1200
-        new_target = max(min_cal, round(tdee - deficit))
+        new_target = _compute_target_calories(dict(u))
+        macro_user = {**dict(u), "target_calories": new_target}
+        target_protein, target_carbs, target_fat = _compute_target_macros(macro_user)
         cur.execute("""
             UPDATE users
-            SET target_calories = %s, last_tdee_recalc_date = %s
+            SET target_calories = %s,
+                target_protein = %s,
+                target_carbs = %s,
+                target_fat = %s,
+                last_tdee_recalc_date = %s
             WHERE user_id = %s
             RETURNING target_calories
-        """, (new_target, today, user_id))
+        """, (new_target, target_protein, target_carbs, target_fat, today, user_id))
         conn.commit()
         saved = cur.fetchone()
         return {
@@ -470,7 +468,9 @@ def recalc_tdee(user_id: int, current_user: dict = Depends(get_current_user)):
             "age": age,
             "bmr": round(bmr),
             "tdee": round(tdee),
-            "deficit": round(deficit),
+            "target_protein": target_protein,
+            "target_carbs": target_carbs,
+            "target_fat": target_fat,
             "new_target_calories": saved["target_calories"],
             "recalc_date": today.isoformat(),
         }

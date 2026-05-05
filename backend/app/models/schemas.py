@@ -150,6 +150,7 @@ class RecipeReview(BaseModel):
 
 class WaterLogUpdate(BaseModel):
     amount_ml: int
+    date_record: date | None = None
 
 
 class AllergyUpdate(BaseModel):

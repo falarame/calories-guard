@@ -140,8 +140,25 @@ class UserData {
 
   // --- Daily Target: TDEE + (kg_per_week * (7700/7)) = TDEE + (kg_per_week * 1100) ---
   // ใช้จาก DB (storedTargetCalories) ถ้ามี ไม่ใช่คำนวณจากสูตร
+  bool get hasBackendTargetCalories =>
+      storedTargetCalories != null && storedTargetCalories! > 0;
+
+  bool get hasBackendTargetMacros =>
+      storedTargetProtein != null &&
+      storedTargetProtein! > 0 &&
+      storedTargetCarbs != null &&
+      storedTargetCarbs! > 0 &&
+      storedTargetFat != null &&
+      storedTargetFat! > 0;
+
+  bool get isUsingEstimatedTargets =>
+      !hasBackendTargetCalories || !hasBackendTargetMacros;
+
+  String get targetSourceLabel =>
+      isUsingEstimatedTargets ? 'ประมาณจากข้อมูลในเครื่อง' : 'คำนวณจากระบบ';
+
   double get targetCalories {
-    if (storedTargetCalories != null && storedTargetCalories! > 0) {
+    if (hasBackendTargetCalories) {
       return storedTargetCalories!.toDouble();
     }
     double kgPerWeek = 0;

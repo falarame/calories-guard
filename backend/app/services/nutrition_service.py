@@ -68,7 +68,13 @@ def _compute_target_calories(user: dict) -> int:
     gender = (user.get('gender') or 'male').lower()
     bmr = (10 * w) + (6.25 * h) - (5 * age) + (5 if gender == 'male' else -161)
     act = (user.get('activity_level') or 'sedentary').lower()
-    factors = {'sedentary': 1.2, 'lightly_active': 1.375, 'moderately_active': 1.55, 'very_active': 1.725}
+    factors = {
+        'sedentary': 1.2,
+        'lightly_active': 1.375,
+        'moderately_active': 1.55,
+        'very_active': 1.725,
+        'extra_active': 1.9,
+    }
     tdee = bmr * factors.get(act, 1.2)
     target_kg = float(user.get('target_weight_kg') or w)
     goal_start = user.get('goal_start_date')

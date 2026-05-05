@@ -103,10 +103,36 @@ def get_goal_progress(user_id: int, current_user: dict = Depends(get_current_use
             row = cur.fetchone()
             start_weight = float(row["weight_kg"]) if row else current
 
-        needed = abs(target - start_weight)
-        done = abs(current - start_weight)
-        progress_pct = round(min(100.0, (done / needed) * 100), 1) if needed > 0 else 100.0
-        remaining_kg = round(abs(target - current), 2)
+        goal_type = (user.get("goal_type") or "").lower()
+        total = 0.0
+        done = 0.0
+        moving_toward_goal = True
+
+        if goal_type == "lose_weight":
+            total = start_weight - target
+            done = start_weight - current
+            moving_toward_goal = current <= start_weight
+        elif goal_type == "gain_muscle":
+            total = target - start_weight
+            done = current - start_weight
+            moving_toward_goal = current >= start_weight
+        elif goal_type == "maintain_weight":
+            diff = abs(current - target)
+            progress_pct = round(max(0.0, min(100.0, (1.0 - (diff / max(target, 1.0))) * 100)), 1)
+            remaining_kg = round(diff, 2)
+            moving_toward_goal = diff <= abs(start_weight - target)
+            total = 0.0
+            done = 0.0
+        else:
+            total = abs(target - start_weight)
+            done = abs(current - start_weight)
+
+        if goal_type != "maintain_weight":
+            if total <= 0:
+                progress_pct = 100.0 if abs(current - target) <= 0.1 else 0.0
+            else:
+                progress_pct = round(max(0.0, min(100.0, (done / total) * 100)), 1)
+            remaining_kg = round(abs(target - current), 2)
 
         estimated_days = None
         cur.execute("""
@@ -118,9 +144,16 @@ def get_goal_progress(user_id: int, current_user: dict = Depends(get_current_use
             newest = recent[0]
             oldest = recent[-1]
             day_gap = (newest["recorded_date"] - oldest["recorded_date"]).days
-            kg_diff = abs(float(newest["weight_kg"]) - float(oldest["weight_kg"]))
-            if day_gap > 0 and kg_diff > 0 and remaining_kg > 0:
-                rate = kg_diff / day_gap
+            newest_w = float(newest["weight_kg"])
+            oldest_w = float(oldest["weight_kg"])
+            if goal_type == "lose_weight":
+                directional_change = oldest_w - newest_w
+            elif goal_type == "gain_muscle":
+                directional_change = newest_w - oldest_w
+            else:
+                directional_change = abs(newest_w - oldest_w)
+            if day_gap > 0 and directional_change > 0 and remaining_kg > 0 and moving_toward_goal:
+                rate = directional_change / day_gap
                 estimated_days = int(remaining_kg / rate)
 
         today = date.today()
@@ -137,6 +170,7 @@ def get_goal_progress(user_id: int, current_user: dict = Depends(get_current_use
             "current_weight": current, "target_weight": target,
             "start_weight": start_weight, "progress_pct": progress_pct,
             "remaining_kg": remaining_kg, "goal_type": user.get("goal_type"),
+            "moving_toward_goal": moving_toward_goal,
             "goal_start_date": str(user["goal_start_date"]) if user.get("goal_start_date") else None,
             "goal_target_date": str(user["goal_target_date"]) if user.get("goal_target_date") else None,
             "estimated_days": estimated_days, "weekly_intake": weekly_intake,

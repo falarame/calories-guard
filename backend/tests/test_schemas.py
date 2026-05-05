@@ -1,6 +1,7 @@
 """Pydantic schema validation tests — no DB or HTTP needed."""
 import os
 import sys
+from datetime import date
 
 import pytest
 from pydantic import ValidationError
@@ -67,3 +68,6 @@ def test_weight_log_requires_float():
 def test_water_log_update():
     w = WaterLogUpdate(amount_ml=500)
     assert w.amount_ml == 500
+    assert w.date_record is None
+    w_with_date = WaterLogUpdate(amount_ml=500, date_record="2026-05-01")
+    assert w_with_date.date_record == date(2026, 5, 1)

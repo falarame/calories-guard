@@ -601,8 +601,14 @@ class _AppHomeScreenState extends ConsumerState<AppHomeScreen> {
               child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    _calorieStatItem('เป้าหมาย', '$targetCal kcal', _green,
-                        Icons.flag_outlined),
+                    _calorieStatItem(
+                        userData.hasBackendTargetCalories
+                            ? 'เป้าหมาย'
+                            : 'เป้าหมาย (ประมาณ)',
+                        '$targetCal kcal',
+                        _green,
+                        Icons.flag_outlined,
+                        helperText: userData.targetSourceLabel),
                     const SizedBox(height: 12),
                     // Removed extra stat item based on user request
                     const SizedBox(height: 8),
@@ -664,7 +670,8 @@ class _AppHomeScreenState extends ConsumerState<AppHomeScreen> {
   }
 
   Widget _calorieStatItem(
-      String label, String value, Color color, IconData icon) {
+      String label, String value, Color color, IconData icon,
+      {String? helperText}) {
     return Row(children: [
       Container(
         width: 32,
@@ -686,6 +693,10 @@ class _AppHomeScreenState extends ConsumerState<AppHomeScreen> {
                 fontWeight: FontWeight.bold,
                 color: color,
                 height: 1.2)),
+        if (helperText != null)
+          Text(helperText,
+              style: TextStyle(
+                  fontSize: 10, color: Colors.grey.shade500, height: 1.2)),
       ]),
     ]);
   }
@@ -704,7 +715,8 @@ class _AppHomeScreenState extends ConsumerState<AppHomeScreen> {
                 _green,
                 Icons.fitness_center_rounded,
                 'assets/images/icon/meat.png',
-                'protein')),
+                'protein',
+                isEstimated: !userData.hasBackendTargetMacros)),
         const SizedBox(width: 10),
         Expanded(
             child: _macroCard(
@@ -714,7 +726,8 @@ class _AppHomeScreenState extends ConsumerState<AppHomeScreen> {
                 _greenDark,
                 Icons.grain_rounded,
                 'assets/images/icon/rice.png',
-                'carbs')),
+                'carbs',
+                isEstimated: !userData.hasBackendTargetMacros)),
         const SizedBox(width: 10),
         Expanded(
             child: _macroCard(
@@ -724,13 +737,15 @@ class _AppHomeScreenState extends ConsumerState<AppHomeScreen> {
                 const Color(0xFF4A7A20),
                 Icons.water_drop_rounded,
                 'assets/images/icon/oil.png',
-                'fat')),
+                'fat',
+                isEstimated: !userData.hasBackendTargetMacros)),
       ]),
     );
   }
 
   Widget _macroCard(String label, int current, int target, Color color,
-      IconData icon, String assetPath, String macroType) {
+      IconData icon, String assetPath, String macroType,
+      {bool isEstimated = false}) {
     final pct = target > 0 ? (current / target).clamp(0.0, 1.0) : 0.0;
     return GestureDetector(
       onTap: () => Navigator.push(
@@ -779,7 +794,7 @@ class _AppHomeScreenState extends ConsumerState<AppHomeScreen> {
                     fontSize: 16,
                     fontWeight: FontWeight.bold,
                     color: Colors.black87)),
-            Text('/ $target g',
+            Text('/ $target g${isEstimated ? ' ประมาณ' : ''}',
                 style: TextStyle(
                     fontSize: 12,
                     color: Colors.grey.shade700,
@@ -1165,8 +1180,7 @@ class _AppHomeScreenState extends ConsumerState<AppHomeScreen> {
       child: Theme(
         data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
         child: ExpansionTile(
-          tilePadding:
-              const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+          tilePadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
           childrenPadding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
           leading: Container(
             width: 44,
@@ -1186,8 +1200,7 @@ class _AppHomeScreenState extends ConsumerState<AppHomeScreen> {
             hasMenu ? '${items.length} รายการ' : 'ยังไม่มีรายการ',
             style: TextStyle(
                 fontSize: 12,
-                color:
-                    hasMenu ? Colors.grey.shade600 : Colors.grey.shade400),
+                color: hasMenu ? Colors.grey.shade600 : Colors.grey.shade400),
           ),
           trailing: hasMenu
               ? null
@@ -1243,10 +1256,11 @@ class _AppHomeScreenState extends ConsumerState<AppHomeScreen> {
             end: Alignment.centerRight,
           ),
           borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: const Color(0xFF66BB6A).withOpacity(0.4)),
+          border:
+              Border.all(color: const Color(0xFF66BB6A).withValues(alpha: 0.4)),
           boxShadow: [
             BoxShadow(
-                color: const Color(0xFF2E7D32).withOpacity(0.35),
+                color: const Color(0xFF2E7D32).withValues(alpha: 0.35),
                 blurRadius: 16,
                 offset: const Offset(0, 4)),
           ],
@@ -1270,10 +1284,10 @@ class _AppHomeScreenState extends ConsumerState<AppHomeScreen> {
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
             decoration: BoxDecoration(
-              color: const Color(0xFF388E3C).withOpacity(0.3),
+              color: const Color(0xFF388E3C).withValues(alpha: 0.3),
               borderRadius: BorderRadius.circular(12),
-              border:
-                  Border.all(color: const Color(0xFF66BB6A).withOpacity(0.5)),
+              border: Border.all(
+                  color: const Color(0xFF66BB6A).withValues(alpha: 0.5)),
             ),
             child: const Text('ดูไร่ →',
                 style: TextStyle(
