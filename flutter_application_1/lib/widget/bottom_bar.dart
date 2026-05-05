@@ -135,7 +135,7 @@ class _MainScreenState extends ConsumerState<MainScreen> {
                 Icons.food_bank_outlined, "บันทึก", 1, selectedIndex),
             _buildBottomNavItem(Icons.restaurant, "อาหาร", 2, selectedIndex),
             _buildBottomNavItem(
-                Icons.leaderboard_rounded, "แดชบอร์ด", 3, selectedIndex),
+                Icons.leaderboard_rounded, "ลีดเดอร์บอร์ด", 3, selectedIndex),
           ],
         ),
       ),

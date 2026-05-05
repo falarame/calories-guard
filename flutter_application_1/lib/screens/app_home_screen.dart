@@ -708,43 +708,25 @@ class _AppHomeScreenState extends ConsumerState<AppHomeScreen> {
       padding: const EdgeInsets.symmetric(horizontal: 16),
       child: Row(children: [
         Expanded(
-            child: _macroCard(
-                'โปรตีน',
-                userData.consumedProtein,
-                userData.targetProtein,
-                _green,
-                Icons.fitness_center_rounded,
-                'assets/images/icon/meat.png',
-                'protein',
+            child: _macroCard('โปรตีน', userData.consumedProtein,
+                userData.targetProtein, _green, '🥩', 'protein',
                 isEstimated: !userData.hasBackendTargetMacros)),
         const SizedBox(width: 10),
         Expanded(
-            child: _macroCard(
-                'คาร์บ',
-                userData.consumedCarbs,
-                userData.targetCarbs,
-                _greenDark,
-                Icons.grain_rounded,
-                'assets/images/icon/rice.png',
-                'carbs',
+            child: _macroCard('คาร์บ', userData.consumedCarbs,
+                userData.targetCarbs, _greenDark, '🍎', 'carbs',
                 isEstimated: !userData.hasBackendTargetMacros)),
         const SizedBox(width: 10),
         Expanded(
-            child: _macroCard(
-                'ไขมัน',
-                userData.consumedFat,
-                userData.targetFat,
-                const Color(0xFF4A7A20),
-                Icons.water_drop_rounded,
-                'assets/images/icon/oil.png',
-                'fat',
+            child: _macroCard('ไขมัน', userData.consumedFat, userData.targetFat,
+                const Color(0xFF4A7A20), '�', 'fat',
                 isEstimated: !userData.hasBackendTargetMacros)),
       ]),
     );
   }
 
   Widget _macroCard(String label, int current, int target, Color color,
-      IconData icon, String assetPath, String macroType,
+      String emoji, String macroType,
       {bool isEstimated = false}) {
     final isOver = target > 0 && current > target;
     final displayColor = isOver ? const Color(0xFFD32F2F) : color;
@@ -782,12 +764,8 @@ class _AppHomeScreenState extends ConsumerState<AppHomeScreen> {
                 color: displayColor.withValues(alpha: 0.12),
                 shape: BoxShape.circle,
               ),
-              child: Padding(
-                padding: const EdgeInsets.all(8.0),
-                child: Image.asset(assetPath,
-                    color: isOver ? const Color(0xFFD32F2F) : null,
-                    errorBuilder: (_, __, ___) =>
-                        Icon(icon, color: displayColor, size: 18)),
+              child: Center(
+                child: Text(emoji, style: const TextStyle(fontSize: 18)),
               ),
             ),
             const SizedBox(height: 10),
