@@ -472,5 +472,9 @@ final userDataProvider =
 });
 final navIndexProvider = StateProvider<int>((ref) => 0);
 
+/// Macro filter that the home screen can pre-select when navigating to the
+/// recommend-food tab. 'protein' | 'carbs' | 'fat' | null (= no filter).
+final macroFilterProvider = StateProvider<String?>((ref) => null);
+
 /// วันที่ที่หน้า Home แสดง (null = วันนี้). หลังบันทึกอาหารย้อนหลังจะเซ็ตเป็นวันนั้นเพื่อให้กลับมาโชว์วันนั้น
 final homeViewDateProvider = StateProvider<DateTime?>((ref) => null);

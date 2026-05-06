@@ -9,7 +9,6 @@ import '../../services/notification_helper.dart';
 import '../../services/lifecycle_service.dart';
 import '../../services/error_reporter.dart';
 import '../../utils/bmi_utils.dart';
-import '/screens/macro/macro_detail_screen.dart';
 import '/screens/restaurant_map_screen.dart';
 import '/screens/bmi/bmi_detail_screen.dart';
 import '/screens/tamagotchi/tamagotchi_screen.dart';
@@ -739,11 +738,10 @@ class _AppHomeScreenState extends ConsumerState<AppHomeScreen> {
     final displayColor = isOver ? const Color(0xFFD32F2F) : color;
     final pct = target > 0 ? (current / target).clamp(0.0, 1.0) : 0.0;
     return GestureDetector(
-      onTap: () => Navigator.push(
-        context,
-        MaterialPageRoute(
-            builder: (_) => MacroDetailScreen(macroType: macroType)),
-      ),
+      onTap: () {
+        ref.read(macroFilterProvider.notifier).state = macroType;
+        ref.read(navIndexProvider.notifier).state = 2;
+      },
       child: Container(
         padding: const EdgeInsets.all(14),
         decoration: BoxDecoration(

@@ -44,6 +44,7 @@ class _RecommendedFoodScreenState extends ConsumerState<RecommendedFoodScreen> {
     _fetchAllFood();
   }
 
+
   // ────────────────────────────────────────────
   //  FETCH FREQUENCY
   // ────────────────────────────────────────────
@@ -271,6 +272,16 @@ class _RecommendedFoodScreenState extends ConsumerState<RecommendedFoodScreen> {
   // ────────────────────────────────────────────
   @override
   Widget build(BuildContext context) {
+    // When the home-screen macro card is tapped, macroFilterProvider is set.
+    // Listen here so we pick it up the moment this tab becomes visible, then
+    // clear the provider so it doesn't re-trigger on future rebuilds.
+    ref.listen<String?>(macroFilterProvider, (_, incoming) {
+      if (incoming != null) {
+        setState(() => _selectedMacroFilter = incoming);
+        ref.read(macroFilterProvider.notifier).state = null;
+      }
+    });
+
     final isSearching = _searchQuery.isNotEmpty;
 
     return Scaffold(
