@@ -24,6 +24,9 @@ class LoginScreen extends ConsumerStatefulWidget {
 
 class _LoginScreenState extends ConsumerState<LoginScreen>
     with SingleTickerProviderStateMixin {
+  static const _green = Color(0xFF628141);
+  static const _bg = Color(0xFFF5F7F0);
+
   // ── Controllers ───────────────────────────────────────────────
   final _emailCtrl = TextEditingController();
   final _passCtrl = TextEditingController();
