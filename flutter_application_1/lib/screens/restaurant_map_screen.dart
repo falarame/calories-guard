@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:http/http.dart' as http;
+import 'package:url_launcher/url_launcher.dart';
 import 'dart:math' show cos, sqrt, asin;
 import '../config/secrets.dart';
 import '../widget/web_unsupported_placeholder.dart';
@@ -107,12 +108,16 @@ class _RestaurantMapScreenState extends State<RestaurantMapScreen> {
     setState(() => _isLoading = true);
 
     try {
+      final keywordParam = _selectedKeyword != 'ทั้งหมด'
+          ? '&keyword=${Uri.encodeComponent(_selectedKeyword)}'
+          : '';
       final url = Uri.parse(
         'https://maps.googleapis.com/maps/api/place/nearbysearch/json'
         '?location=${_currentPosition!.latitude},${_currentPosition!.longitude}'
         '&radius=$_radiusMeters'
         '&type=restaurant'
         '&language=th'
+        '$keywordParam'
         '&key=$_apiKey',
       );
 
@@ -143,6 +148,7 @@ class _RestaurantMapScreenState extends State<RestaurantMapScreen> {
               'lng': lng,
               'distance': distance,
               'open_now': r['opening_hours']?['open_now'] ?? false,
+              'has_opening_hours': r['opening_hours'] != null,
               'photos': r['photos'],
             };
           }).toList();
@@ -169,15 +175,11 @@ class _RestaurantMapScreenState extends State<RestaurantMapScreen> {
 
   void _applyFilters() {
     _filteredRestaurants = _restaurants.where((r) {
-      if (_selectedFilter == 'เปิดอยู่' && !r['open_now']) return false;
-      if (_selectedFilter == '⭐4.0+' && r['rating'] < 4.0) return false;
-      if (_selectedKeyword != 'ทั้งหมด' &&
-          !r['name']
-              .toString()
-              .toLowerCase()
-              .contains(_selectedKeyword.toLowerCase())) {
-        return false;
+      if (_selectedFilter == 'เปิดอยู่') {
+        // Only filter when opening_hours data is available
+        if (r['has_opening_hours'] == true && !r['open_now']) return false;
       }
+      if (_selectedFilter == '⭐4.0+' && r['rating'] < 4.0) return false;
       return true;
     }).toList();
 
@@ -265,7 +267,8 @@ class _RestaurantMapScreenState extends State<RestaurantMapScreen> {
     if (kIsWeb) {
       return const WebUnsupportedPlaceholder(
         title: 'แผนที่ร้านอาหาร',
-        message: 'แผนที่ร้านอาหารใกล้คุณใช้งานได้เฉพาะบนแอปมือถือ\nกรุณาดาวน์โหลดแอปเพื่อใช้งาน',
+        message:
+            'แผนที่ร้านอาหารใกล้คุณใช้งานได้เฉพาะบนแอปมือถือ\nกรุณาดาวน์โหลดแอปเพื่อใช้งาน',
         icon: Icons.map_rounded,
       );
     }
@@ -439,9 +442,8 @@ class _RestaurantMapScreenState extends State<RestaurantMapScreen> {
               onSelected: (selected) {
                 setState(() {
                   _selectedKeyword = keyword;
-                  _applyFilters();
-                  _updateMarkers();
                 });
+                _fetchNearbyRestaurants();
               },
               backgroundColor: Colors.white,
               selectedColor: _orange.withValues(alpha: 0.2),
@@ -760,7 +762,8 @@ class _RestaurantMapScreenState extends State<RestaurantMapScreen> {
                       decoration: BoxDecoration(
                         color: _orangeL,
                         borderRadius: BorderRadius.circular(16),
-                        border: Border.all(color: _orange.withValues(alpha: 0.3)),
+                        border:
+                            Border.all(color: _orange.withValues(alpha: 0.3)),
                       ),
                       child: Row(
                         children: [
@@ -792,8 +795,15 @@ class _RestaurantMapScreenState extends State<RestaurantMapScreen> {
                       children: [
                         Expanded(
                           child: ElevatedButton.icon(
-                            onPressed: () {
-                              // Open Google Maps directions
+                            onPressed: () async {
+                              final lat = restaurant['lat'];
+                              final lng = restaurant['lng'];
+                              final uri = Uri.parse(
+                                  'https://www.google.com/maps/dir/?api=1&destination=$lat,$lng&travelmode=driving');
+                              if (await canLaunchUrl(uri)) {
+                                await launchUrl(uri,
+                                    mode: LaunchMode.externalApplication);
+                              }
                             },
                             icon: const Icon(Icons.directions,
                                 color: Colors.white),
@@ -817,10 +827,17 @@ class _RestaurantMapScreenState extends State<RestaurantMapScreen> {
                         const SizedBox(width: 12),
                         Expanded(
                           child: OutlinedButton.icon(
-                            onPressed: () {
-                              // View menu
+                            onPressed: () async {
+                              final placeId = restaurant['place_id'];
+                              final uri = Uri.parse(
+                                  'https://www.google.com/maps/search/?api=1&query=${Uri.encodeComponent(restaurant['name'])}&query_place_id=$placeId');
+                              if (await canLaunchUrl(uri)) {
+                                await launchUrl(uri,
+                                    mode: LaunchMode.externalApplication);
+                              }
                             },
-                            icon: const Icon(Icons.restaurant_menu, color: _green),
+                            icon: const Icon(Icons.restaurant_menu,
+                                color: _green),
                             label: const Text(
                               'ดูเมนู',
                               style: TextStyle(

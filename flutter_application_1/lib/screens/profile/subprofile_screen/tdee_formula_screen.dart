@@ -91,7 +91,7 @@ class TdeeFormulaScreen extends ConsumerWidget {
         child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
           // Source badge
           if (fromBackend)
-            _infoBanner('✅ ค่าเป้าหมายนี้คำนวณจากระบบโดยตรง (Backend)',
+            _infoBanner('✅ ค่าเป้าหมายนี้คำนวณจากระบบโดยตรง',
                 const Color(0xFFE8EFCF), _green)
           else
             _infoBanner(
