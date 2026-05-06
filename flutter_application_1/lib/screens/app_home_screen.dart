@@ -7,10 +7,12 @@ import '../../services/api_client.dart';
 import '../../services/notification_helper.dart';
 import '../../services/lifecycle_service.dart';
 import '../../services/error_reporter.dart';
+import '../../utils/bmi_utils.dart';
 import '/screens/macro/macro_detail_screen.dart';
 import '/screens/restaurant_map_screen.dart';
 import '/screens/bmi/bmi_detail_screen.dart';
 import '/screens/tamagotchi/tamagotchi_screen.dart';
+import '/screens/weight/weight_chart_screen.dart';
 
 class AppHomeScreen extends ConsumerStatefulWidget {
   const AppHomeScreen({super.key});
@@ -136,18 +138,6 @@ class _AppHomeScreenState extends ConsumerState<AppHomeScreen> {
   // ─── Helpers ─────────────────────────────────────────────────────────────
 
   void _showBmiRangePopup(BuildContext context, double currentBmi) {
-    final rows = [
-      _BmiRange('< 18.5', 'น้ำหนักน้อยกว่าเกณฑ์', const Color(0xFF3498DB),
-          currentBmi > 0 && currentBmi < 18.5),
-      _BmiRange('18.5 – 22.9', 'น้ำหนักสมส่วน', const Color(0xFF628141),
-          currentBmi >= 18.5 && currentBmi < 23.0),
-      _BmiRange('23.0 – 24.9', 'น้ำหนักเกินมาตรฐาน', const Color(0xFFF39C12),
-          currentBmi >= 23.0 && currentBmi < 25.0),
-      _BmiRange('25.0 – 29.9', 'อ้วนระดับ 1', const Color(0xFFE67E22),
-          currentBmi >= 25.0 && currentBmi < 30.0),
-      _BmiRange(
-          '≥ 30.0', 'อ้วนระดับ 2', const Color(0xFFE74C3C), currentBmi >= 30.0),
-    ];
     showDialog(
       context: context,
       builder: (_) => Dialog(
@@ -162,44 +152,46 @@ class _AppHomeScreenState extends ConsumerState<AppHomeScreen> {
                   style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold)),
             ]),
             const SizedBox(height: 14),
-            ...rows.map((r) => Container(
-                  margin: const EdgeInsets.only(bottom: 7),
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
-                  decoration: BoxDecoration(
-                    color: r.isMe
-                        ? r.color.withValues(alpha: 0.12)
-                        : Colors.grey.shade50,
-                    borderRadius: BorderRadius.circular(10),
-                    border:
-                        r.isMe ? Border.all(color: r.color, width: 1.5) : null,
-                  ),
-                  child: Row(children: [
-                    Container(
-                        width: 9,
-                        height: 9,
-                        decoration: BoxDecoration(
-                            color: r.color, shape: BoxShape.circle)),
-                    const SizedBox(width: 10),
-                    Text(r.range,
-                        style: TextStyle(
-                            fontSize: 12,
-                            color: r.isMe ? r.color : Colors.black87,
-                            fontWeight:
-                                r.isMe ? FontWeight.bold : FontWeight.normal)),
-                    const Spacer(),
-                    Text(r.label,
-                        style: TextStyle(
-                            fontSize: 11,
-                            color: r.isMe ? r.color : Colors.grey.shade600,
-                            fontWeight:
-                                r.isMe ? FontWeight.w600 : FontWeight.normal)),
-                    if (r.isMe) ...[
-                      const SizedBox(width: 4),
-                      Icon(Icons.chevron_left_rounded, color: r.color, size: 16)
-                    ],
-                  ]),
-                )),
+            ...bmiBands.map((r) {
+              final isMe = r.contains(currentBmi);
+              return Container(
+                margin: const EdgeInsets.only(bottom: 7),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
+                decoration: BoxDecoration(
+                  color: isMe
+                      ? r.color.withValues(alpha: 0.12)
+                      : Colors.grey.shade50,
+                  borderRadius: BorderRadius.circular(10),
+                  border: isMe ? Border.all(color: r.color, width: 1.5) : null,
+                ),
+                child: Row(children: [
+                  Container(
+                      width: 9,
+                      height: 9,
+                      decoration: BoxDecoration(
+                          color: r.color, shape: BoxShape.circle)),
+                  const SizedBox(width: 10),
+                  Text(r.range,
+                      style: TextStyle(
+                          fontSize: 12,
+                          color: isMe ? r.color : Colors.black87,
+                          fontWeight:
+                              isMe ? FontWeight.bold : FontWeight.normal)),
+                  const Spacer(),
+                  Text(r.label,
+                      style: TextStyle(
+                          fontSize: 11,
+                          color: isMe ? r.color : Colors.grey.shade600,
+                          fontWeight:
+                              isMe ? FontWeight.w600 : FontWeight.normal)),
+                  if (isMe) ...[
+                    const SizedBox(width: 4),
+                    Icon(Icons.chevron_left_rounded, color: r.color, size: 16)
+                  ],
+                ]),
+              );
+            }),
             if (currentBmi > 0) ...[
               const Divider(height: 16),
               Text('BMI ของคุณ: ${currentBmi.toStringAsFixed(1)}',
@@ -211,14 +203,7 @@ class _AppHomeScreenState extends ConsumerState<AppHomeScreen> {
     );
   }
 
-  String getBMIStatus(double bmi) {
-    if (bmi <= 0) return '-';
-    if (bmi < 18.5) return 'น้ำหนักน้อย';
-    if (bmi < 22.9) return 'ปกติ';
-    if (bmi < 24.9) return 'ท้วม';
-    if (bmi < 29.9) return 'อ้วน';
-    return 'อ้วนมาก';
-  }
+  String getBMIStatus(double bmi) => bmiStatusLabel(bmi);
 
   String _formatMealLabel(String key) {
     switch (key) {
@@ -855,25 +840,25 @@ class _AppHomeScreenState extends ConsumerState<AppHomeScreen> {
     final action =
         (userData.weight > userData.targetWeight) ? 'ลดอีก' : 'เพิ่มอีก';
 
-    Color bmiColor = _green;
-    if (bmi > 0) {
-      if (bmi < 18.5) {
-        bmiColor = const Color(0xFF3498DB);
-      } else if (bmi < 22.9) {
-        bmiColor = _green;
-      } else if (bmi < 25) {
-        bmiColor = const Color(0xFFF39C12);
-      } else {
-        bmiColor = const Color(0xFFE74C3C);
-      }
-    }
+    final bmiColor = bmiRiskColor(bmi);
+    final bmiRisk = bmiBandData(bmi);
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16),
       child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
         // Weight card
         Expanded(
-          child: Container(
+          child: GestureDetector(
+            onTap: () async {
+              await Navigator.push(
+                context,
+                MaterialPageRoute(
+                    builder: (_) => const WeightChartScreen()),
+              );
+              if (!mounted) return;
+              _fetchAllData();
+            },
+            child: Container(
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
               color: Colors.white,
@@ -962,6 +947,7 @@ class _AppHomeScreenState extends ConsumerState<AppHomeScreen> {
                 ),
               ),
             ]),
+          ),
           ),
         ),
 
@@ -1064,6 +1050,16 @@ class _AppHomeScreenState extends ConsumerState<AppHomeScreen> {
                             color: bmiColor,
                             fontWeight: FontWeight.w600),
                       ),
+                    ),
+                    const SizedBox(height: 6),
+                    Text(
+                      bmiRisk.riskText,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                          fontSize: 10,
+                          color: Colors.grey.shade600,
+                          height: 1.25),
                     ),
                   ]),
             ),
@@ -1286,12 +1282,4 @@ class _AppHomeScreenState extends ConsumerState<AppHomeScreen> {
       ),
     );
   }
-}
-
-class _BmiRange {
-  final String range;
-  final String label;
-  final Color color;
-  final bool isMe;
-  const _BmiRange(this.range, this.label, this.color, this.isMe);
 }

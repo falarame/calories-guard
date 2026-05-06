@@ -1,72 +1,87 @@
-import pandas as pd
+"""
+Linear-regression weight trend over the recent N days.
+
+Slope is reported in kg/week (more interpretable than per-day) and bucketed
+into trend labels for the coach prompt.
+"""
+from __future__ import annotations
+
+from datetime import date, datetime
+from typing import Iterable
+
 import numpy as np
 from sklearn.linear_model import LinearRegression
-from datetime import datetime, date
 
-class WeightTrendAnalyzer:
-    def __init__(self):
-        self.model = LinearRegression()
+_MIN_POINTS = 3                   # below this we can't trust the slope
+_STABLE_THRESHOLD_KG_PER_WEEK = 0.1  # |slope| under this = "คงที่"
 
-    def analyze_trend(self, weight_logs: list, target_weight: float) -> dict:
-        """
-        วิเคราะห์แนวโน้มน้ำหนักจาก Logs ย้อนหลังด้วย Linear Regression
-        :param weight_logs: list ของ dict { 'date': '2023-10-01', 'weight': 70.5 }
-        :param target_weight: น้ำหนักเป้าหมายของผู้ใช้
-        :return: dict หรือข้อความอธิบายทิศทาง
-        """
-        if not weight_logs or len(weight_logs) < 3:
-            return {
-                "status": "insufficient_data",
-                "message": "ข้อมูลน้ำหนักย้อนหลังไม่เพียงพอ (ต้องการอย่างน้อย 3 วัน) เพื่อพยากรณ์ได้อย่างแม่นยำ"
-            }
 
-        # แปลงข้อมูลเป็น DataFrame
-        df = pd.DataFrame(weight_logs)
-        df['date'] = pd.to_datetime(df['date'])
-        df = df.sort_values('date')
+def _to_ordinal(value) -> int:
+    if isinstance(value, datetime):
+        return value.toordinal()
+    if isinstance(value, date):
+        return value.toordinal()
+    if isinstance(value, str):
+        return datetime.fromisoformat(value).toordinal()
+    raise TypeError(f"Unsupported date type: {type(value).__name__}")
 
-        # เริ่มต้นวันที่ 0
-        min_date = df['date'].min()
-        df['days_passed'] = (df['date'] - min_date).dt.days
-        
-        X = df[['days_passed']]
-        y = df['weight']
 
-        # Train model
-        self.model.fit(X, y)
-        
-        slope = self.model.coef_[0]
-        intercept = self.model.intercept_
-        current_weight = df['weight'].iloc[-1]
-        
-        # ถ้าน้ำหนักไม่เปลี่ยนแปลงเลย
-        if abs(slope) < 0.001:
-            return {
-                "status": "stagnant",
-                "trend": "คงที่",
-                "slope": round(float(slope), 4),
-                "message": "น้ำหนักของคุณค่อนข้างคงที่ในช่วงที่ผ่านมา"
-            }
+def analyze_trend(weight_logs: Iterable[dict], target_weight: float) -> dict:
+    """Fit a line through (date, weight) and return trend metadata.
 
-        days_to_target = -1
-        if (target_weight < current_weight and slope < 0) or (target_weight > current_weight and slope > 0):
-            # ไปถูกทางแล้ว คำนวณวันที่จะถึงเป้า
-            # target = slope * x + intercept -> x = (target - intercept) / slope
-            target_day_index = (target_weight - intercept) / slope
-            days_to_target = max(0, int(target_day_index - df['days_passed'].iloc[-1]))
-            
-            return {
-                "status": "on_track",
-                "trend": "ลดลง" if slope < 0 else "เพิ่มขึ้น",
-                "days_estimated": days_to_target,
-                "slope": round(float(slope), 4),
-                "message": f"คุณอยู่ในทิศทางที่ถูกต้อง! คาดว่าจะถึงเป้าหมายในอีกประมาณ {days_to_target} วัน"
-            }
-        else:
-            # ไปผิดทาง
-            return {
-                "status": "off_track",
-                "trend": "พุ่งขึ้น" if slope > 0 else "ลดลงอย่างต่อเนื่อง",
-                "slope": round(float(slope), 4),
-                "message": "ทิศทางน้ำหนักของคุณกำลังสวนทางกับเป้าหมายที่ตั้งไว้! อาจจะต้องปรับเปลี่ยนพฤติกรรมการกินใหม่นะครับ"
-            }
+    Args:
+        weight_logs: chronological list of {"date": <date|str>, "weight": <float>}
+        target_weight: user's target weight in kg (0 if unset)
+
+    Returns:
+        {
+          "trend": "เพิ่ม" | "ลด" | "คงที่" | "unknown",
+          "slope_per_week": float,
+          "current": float | None,
+          "target": float,
+          "message": str,
+        }
+    """
+    points = list(weight_logs or [])
+    if len(points) < _MIN_POINTS:
+        return {
+            "trend": "unknown",
+            "slope_per_week": 0.0,
+            "current": float(points[-1]["weight"]) if points else None,
+            "target": float(target_weight or 0),
+            "message": "ข้อมูลน้ำหนักยังน้อยเกินไป กรุณาบันทึกอย่างน้อย 3 วัน",
+        }
+
+    xs = np.array([_to_ordinal(p["date"]) for p in points], dtype=float).reshape(-1, 1)
+    ys = np.array([float(p["weight"]) for p in points], dtype=float)
+    model = LinearRegression().fit(xs, ys)
+    slope_per_day = float(model.coef_[0])
+    slope_per_week = round(slope_per_day * 7.0, 3)
+
+    if abs(slope_per_week) < _STABLE_THRESHOLD_KG_PER_WEEK:
+        trend = "คงที่"
+    elif slope_per_week > 0:
+        trend = "เพิ่ม"
+    else:
+        trend = "ลด"
+
+    current = float(points[-1]["weight"])
+    target_value = float(target_weight or 0)
+
+    if target_value <= 0:
+        message = f"แนวโน้ม{trend} ({slope_per_week:+.2f} kg/สัปดาห์)"
+    else:
+        diff = current - target_value
+        direction = "เกิน" if diff > 0 else "ต่ำกว่า"
+        message = (
+            f"แนวโน้ม{trend} ({slope_per_week:+.2f} kg/สัปดาห์) — "
+            f"ตอนนี้{direction}เป้าหมาย {abs(diff):.1f} kg"
+        )
+
+    return {
+        "trend": trend,
+        "slope_per_week": slope_per_week,
+        "current": current,
+        "target": target_value,
+        "message": message,
+    }

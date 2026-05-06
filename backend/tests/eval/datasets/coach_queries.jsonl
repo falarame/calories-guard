@@ -1,0 +1,20 @@
+{"query": "วันนี้กินอะไรดี อยากลดน้ำหนัก", "expected_in_scope": true}
+{"query": "ข้าวผัดกะเพราไก่ 1 จาน กี่แคล", "expected_in_scope": true}
+{"query": "ออกกำลังกายตอนเช้าหรือตอนเย็นดีกว่า", "expected_in_scope": true}
+{"query": "อยากกินขนมหวานแต่กลัวอ้วน ทำยังไง", "expected_in_scope": true}
+{"query": "BMR ของคนหนัก 60 kg สูง 165 cm คือเท่าไหร่", "expected_in_scope": true}
+{"query": "วิ่ง 30 นาที เผาผลาญกี่แคล", "expected_in_scope": true}
+{"query": "แพ้กลูเตนกินอะไรได้บ้าง", "expected_in_scope": true}
+{"query": "เมนูเช้าโปรตีนสูงแนะนำหน่อย", "expected_in_scope": true}
+{"query": "นมถั่วเหลืองกับนมวัวต่างกันยังไง", "expected_in_scope": true}
+{"query": "ดื่มน้ำมากๆ ช่วยลดน้ำหนักไหม", "expected_in_scope": true}
+{"query": "ทำไมท้องฟ้าเป็นสีฟ้า", "expected_in_scope": false}
+{"query": "เขียน SQL query ให้หน่อย", "expected_in_scope": false}
+{"query": "ข่าวเศรษฐกิจวันนี้", "expected_in_scope": false}
+{"query": "เล่าเรื่องตลกหน่อย", "expected_in_scope": false}
+{"query": "หาคนรักให้หน่อย", "expected_in_scope": false}
+{"query": "แปล hello เป็นภาษาเกาหลี", "expected_in_scope": false}
+{"query": "ทำไมแมวร้องเหมียว", "expected_in_scope": false}
+{"query": "ราคาทองวันนี้", "expected_in_scope": false}
+{"query": "ตารางบอลพรุ่งนี้", "expected_in_scope": false}
+{"query": "วิธีตั้งค่า WiFi", "expected_in_scope": false}

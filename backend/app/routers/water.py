@@ -8,6 +8,10 @@ from database import get_db_connection
 from auth.dependencies import get_current_user
 from app.core.dependencies import check_ownership
 from app.models.schemas import WaterLogUpdate
+from app.services.water_safety_service import (
+    classify_water_safety,
+    insert_water_safety_notifications,
+)
 
 router = APIRouter()
 
@@ -55,8 +59,17 @@ def upsert_water_log(user_id: int, entry: WaterLogUpdate, current_user: dict = D
             RETURNING amount_ml
         """, (user_id, target_date, entry.amount_ml, glasses))
         saved = cur.fetchone()["amount_ml"]
+        findings = classify_water_safety(
+            amount_ml=int(saved or 0),
+            date_record=target_date,
+        )
+        insert_water_safety_notifications(conn, user_id, findings)
         conn.commit()
-        return {"date_record": target_date.isoformat(), "amount_ml": saved}
+        return {
+            "date_record": target_date.isoformat(),
+            "amount_ml": saved,
+            "water_safety": [finding.as_dict() for finding in findings],
+        }
     except HTTPException:
         raise
     except Exception as e:

@@ -59,10 +59,10 @@ Map<String, dynamic>? parseApiUser(String jsonBody) {
   try {
     final data = jsonDecode(jsonBody) as Map<String, dynamic>;
     return {
-      'user_id':  data['user_id']  as int?    ?? 0,
+      'user_id': data['user_id'] as int? ?? 0,
       'username': data['username'] as String? ?? 'ผู้ใช้',
-      'weight':   (data['current_weight_kg'] as num?)?.toDouble() ?? 0.0,
-      'height':   (data['height_cm'] as num?)?.toDouble() ?? 0.0,
+      'weight': (data['current_weight_kg'] as num?)?.toDouble() ?? 0.0,
+      'height': (data['height_cm'] as num?)?.toDouble() ?? 0.0,
     };
   } catch (_) {
     return null; // Graceful failure
@@ -71,10 +71,10 @@ Map<String, dynamic>? parseApiUser(String jsonBody) {
 
 Map<String, dynamic> parseLeaderboardEntry(Map<String, dynamic> raw) {
   return {
-    'username':      (raw['username'] as String?)    ?? 'ผู้ใช้',
-    'tama_points':   (raw['tama_points'] as int?)    ?? 0,
-    'current_streak':(raw['current_streak'] as int?) ?? 0,
-    'claimed_badges':(raw['claimed_badges'] as List?)?.cast<String>() ?? [],
+    'username': (raw['username'] as String?) ?? 'ผู้ใช้',
+    'tama_points': (raw['tama_points'] as int?) ?? 0,
+    'current_streak': (raw['current_streak'] as int?) ?? 0,
+    'claimed_badges': (raw['claimed_badges'] as List?)?.cast<String>() ?? [],
   };
 }
 
@@ -89,7 +89,6 @@ int simulateHttpHandling(int statusCode) {
 
 // ══════════════════════════════════════════════════════════════
 void main() {
-
   // ────────────────────────────────────────────────────────────
   // PART 1: NEGATIVE TESTING — Graceful Failure
   // เป้าหมาย: ระบบต้อง "ไม่พัง" เมื่อได้รับ input ที่ผิดปกติ
@@ -163,8 +162,7 @@ void main() {
     });
 
     test('TDEE = 0 → โดน floor (ไม่คืน 0 หรือ negative)', () {
-      final result =
-          calcTargetCalories(tdee: 0, kgPerWeek: 0, gender: 'male');
+      final result = calcTargetCalories(tdee: 0, kgPerWeek: 0, gender: 'male');
       expect(result, greaterThanOrEqualTo(1500));
     });
 
@@ -185,36 +183,36 @@ void main() {
     // min-1
     test('12 (min-1) → invalid', () => expect(isValidAge(12), false));
     // min
-    test('13 (min)   → valid',   () => expect(isValidAge(13), true));
+    test('13 (min)   → valid', () => expect(isValidAge(13), true));
     // min+1
-    test('14 (min+1) → valid',   () => expect(isValidAge(14), true));
+    test('14 (min+1) → valid', () => expect(isValidAge(14), true));
     // nominal
-    test('50 (mid)   → valid',   () => expect(isValidAge(50), true));
+    test('50 (mid)   → valid', () => expect(isValidAge(50), true));
     // max-1
-    test('99 (max-1) → valid',   () => expect(isValidAge(99), true));
+    test('99 (max-1) → valid', () => expect(isValidAge(99), true));
     // max
-    test('100 (max)  → valid',   () => expect(isValidAge(100), true));
+    test('100 (max)  → valid', () => expect(isValidAge(100), true));
     // max+1
     test('101 (max+1)→ invalid', () => expect(isValidAge(101), false));
   });
 
   group('[BVA] Height — boundaries (min=100, max=250)', () {
     test('99 cm  (min-1) → invalid', () => expect(isValidHeight(99), false));
-    test('100 cm (min)   → valid',   () => expect(isValidHeight(100), true));
-    test('101 cm (min+1) → valid',   () => expect(isValidHeight(101), true));
-    test('170 cm (mid)   → valid',   () => expect(isValidHeight(170), true));
-    test('249 cm (max-1) → valid',   () => expect(isValidHeight(249), true));
-    test('250 cm (max)   → valid',   () => expect(isValidHeight(250), true));
+    test('100 cm (min)   → valid', () => expect(isValidHeight(100), true));
+    test('101 cm (min+1) → valid', () => expect(isValidHeight(101), true));
+    test('170 cm (mid)   → valid', () => expect(isValidHeight(170), true));
+    test('249 cm (max-1) → valid', () => expect(isValidHeight(249), true));
+    test('250 cm (max)   → valid', () => expect(isValidHeight(250), true));
     test('251 cm (max+1) → invalid', () => expect(isValidHeight(251), false));
   });
 
   group('[BVA] Weight — boundaries (min=20, max=300)', () {
     test('19 kg  (min-1) → invalid', () => expect(isValidWeight(19), false));
-    test('20 kg  (min)   → valid',   () => expect(isValidWeight(20), true));
-    test('21 kg  (min+1) → valid',   () => expect(isValidWeight(21), true));
-    test('65 kg  (mid)   → valid',   () => expect(isValidWeight(65), true));
-    test('299 kg (max-1) → valid',   () => expect(isValidWeight(299), true));
-    test('300 kg (max)   → valid',   () => expect(isValidWeight(300), true));
+    test('20 kg  (min)   → valid', () => expect(isValidWeight(20), true));
+    test('21 kg  (min+1) → valid', () => expect(isValidWeight(21), true));
+    test('65 kg  (mid)   → valid', () => expect(isValidWeight(65), true));
+    test('299 kg (max-1) → valid', () => expect(isValidWeight(299), true));
+    test('300 kg (max)   → valid', () => expect(isValidWeight(300), true));
     test('301 kg (max+1) → invalid', () => expect(isValidWeight(301), false));
   });
 
@@ -244,25 +242,24 @@ void main() {
 
   group('[BVA] BMI Status — cutoff boundaries', () {
     // ขอบ น้ำหนักน้อย/ปกติ ที่ 18.5
-    test('18.49 → น้ำหนักน้อย', () => expect(
-        bmiStatus(18.49), 'น้ำหนักน้อย'));
-    test('18.50 → ปกติ (boundary)', () => expect(
-        bmiStatus(18.50), 'ปกติ'));
+    test('18.49 → น้ำหนักน้อย', () => expect(bmiStatus(18.49), 'น้ำหนักน้อย'));
+    test('18.50 → ปกติ (boundary)', () => expect(bmiStatus(18.50), 'ปกติ'));
     test('18.51 → ปกติ', () => expect(bmiStatus(18.51), 'ปกติ'));
 
-    // ขอบ ปกติ/ท้วม ที่ 23.0
+    // ขอบ ปกติ/เริ่มเสี่ยง ที่ 23.0
     test('22.99 → ปกติ', () => expect(bmiStatus(22.99), 'ปกติ'));
-    test('23.00 → ท้วม (boundary)', () => expect(bmiStatus(23.00), 'ท้วม'));
-    test('23.01 → ท้วม', () => expect(bmiStatus(23.01), 'ท้วม'));
+    test('23.00 → เริ่มเสี่ยง (boundary)',
+        () => expect(bmiStatus(23.00), 'เริ่มเสี่ยง'));
+    test('23.01 → เริ่มเสี่ยง', () => expect(bmiStatus(23.01), 'เริ่มเสี่ยง'));
 
-    // ขอบ ท้วม/อ้วน ที่ 25.0
-    test('24.99 → ท้วม', () => expect(bmiStatus(24.99), 'ท้วม'));
-    test('25.00 → อ้วน (boundary)', () => expect(bmiStatus(25.00), 'อ้วน'));
-    test('25.01 → อ้วน', () => expect(bmiStatus(25.01), 'อ้วน'));
+    test('24.99 → เริ่มเสี่ยง', () => expect(bmiStatus(24.99), 'เริ่มเสี่ยง'));
+    test('25.00 → เริ่มเสี่ยง', () => expect(bmiStatus(25.00), 'เริ่มเสี่ยง'));
 
-    // ขอบ อ้วน/อ้วนมาก ที่ 30.0
-    test('29.99 → อ้วน', () => expect(bmiStatus(29.99), 'อ้วน'));
-    test('30.00 → อ้วนมาก (boundary)', () => expect(bmiStatus(30.00), 'อ้วนมาก'));
+    // ขอบ เริ่มเสี่ยง/เสี่ยงสูง ที่ 27.5
+    test('27.49 → เริ่มเสี่ยง', () => expect(bmiStatus(27.49), 'เริ่มเสี่ยง'));
+    test('27.50 → เสี่ยงสูง (boundary)',
+        () => expect(bmiStatus(27.50), 'เสี่ยงสูง'));
+    test('30.00 → เสี่ยงสูง', () => expect(bmiStatus(30.00), 'เสี่ยงสูง'));
   });
 
   // ────────────────────────────────────────────────────────────
@@ -297,7 +294,8 @@ void main() {
 
   group('[Integration] API JSON Parsing — Graceful Failure', () {
     test('JSON ถูกต้อง → parse สำเร็จ คืน Map', () {
-      const json = '{"user_id":1,"username":"ต้อง","current_weight_kg":70.0,"height_cm":175.0}';
+      const json =
+          '{"user_id":1,"username":"ต้อง","current_weight_kg":70.0,"height_cm":175.0}';
       final result = parseApiUser(json);
       expect(result, isNotNull);
       expect(result!['username'], 'ต้อง');
@@ -309,7 +307,7 @@ void main() {
       final result = parseApiUser(json);
       expect(result, isNotNull);
       expect(result!['username'], 'ผู้ใช้'); // default
-      expect(result['weight'], 0.0);          // default
+      expect(result['weight'], 0.0); // default
     });
 
     test('JSON เป็น null fields → ใช้ default value', () {
@@ -415,7 +413,6 @@ String bmiStatus(double bmi) {
   if (bmi <= 0) return '-';
   if (bmi < 18.5) return 'น้ำหนักน้อย';
   if (bmi < 23.0) return 'ปกติ';
-  if (bmi < 25.0) return 'ท้วม';
-  if (bmi < 30.0) return 'อ้วน';
-  return 'อ้วนมาก';
+  if (bmi < 27.5) return 'เริ่มเสี่ยง';
+  return 'เสี่ยงสูง';
 }

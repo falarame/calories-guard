@@ -8,20 +8,10 @@ from database import get_db_connection
 from auth.dependencies import get_current_admin
 from app.models.schemas import FoodCreate, FoodAutoAdd, RegionalNameSubmission
 from ai_models import llm_provider
+from ai_models.prompts import RECIPE_SYSTEM_PROMPT as _RECIPE_SYSTEM_PROMPT
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
-
-
-_RECIPE_SYSTEM_PROMPT = (
-    "คุณเป็นเชฟไทยที่ให้คำตอบเป็น JSON เท่านั้น ห้ามมีข้อความอื่นนอกจาก JSON. "
-    "เมื่อได้ชื่ออาหารไทย ให้สร้างสูตรอาหารจริงจากครัวไทยมาตรฐาน ตอบด้วยรูปแบบ: "
-    '{"description": "...", "instructions": "ขั้นที่ 1 ...\\nขั้นที่ 2 ...", '
-    '"prep_time_minutes": 10, "cooking_time_minutes": 15, "serving_people": 1, '
-    '"ingredients": [{"name":"...","amount":"...","unit":"..."}], '
-    '"tools": ["..."], "tips": ["..."]}. '
-    "instructions ให้ขึ้นบรรทัดใหม่ระหว่างแต่ละขั้น ห้ามใส่ markdown."
-)
 
 
 def _parse_ai_recipe(raw: str) -> dict:

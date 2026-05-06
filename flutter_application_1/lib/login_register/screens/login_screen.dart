@@ -6,6 +6,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../l10n/app_localizations.dart';
 import '../../providers/user_data_provider.dart';
 import '../../services/auth_service.dart';
+import 'data_consent_screen.dart';
 import 'forgot_password_screen.dart';
 import 'gender_selection_screen.dart';
 import 'register_screen.dart';
@@ -90,17 +91,12 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
   void _navigateAfterAuthData(Map<String, dynamic> data) {
     if (!mounted) return;
     final shouldContinueOnboarding = data['onboarding_required'] == true;
-    Navigator.pushAndRemoveUntil(
+    routeAfterAuth(
       context,
-      PageRouteBuilder(
-        pageBuilder: (_, __, ___) => shouldContinueOnboarding
-            ? const GenderSelectionScreen()
-            : const MainScreen(),
-        transitionsBuilder: (_, anim, __, child) =>
-            FadeTransition(opacity: anim, child: child),
-        transitionDuration: const Duration(milliseconds: 400),
-      ),
-      (route) => false,
+      ref,
+      destination: (_) => shouldContinueOnboarding
+          ? const GenderSelectionScreen()
+          : const MainScreen(),
     );
   }
 

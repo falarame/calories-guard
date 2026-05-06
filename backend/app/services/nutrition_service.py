@@ -2,7 +2,6 @@ from datetime import date, datetime
 from typing import Optional, List
 
 from database import get_db_connection
-from psycopg2.extras import RealDictCursor
 
 
 def _age_from_birth(birth_date: Optional[date]) -> int:
@@ -95,40 +94,16 @@ def _compute_target_calories(user: dict) -> int:
 
 
 def _check_1700_calorie_warning(user_id: int, conn):
-    now = datetime.now()
-    if now.hour < 17:
-        return
+    """Backward-compatible wrapper for the central calorie safety guard."""
     try:
-        cur = conn.cursor(cursor_factory=RealDictCursor)
-        today_str = now.strftime('%Y-%m-%d')
-        cur.execute("SELECT notification_id FROM notifications WHERE user_id = %s AND type = 'warning' AND DATE(created_at) = %s AND title = 'เตือน: แคลอรีวันนี้ยังต่ำเกินไป!'", (user_id, today_str))
-        if cur.fetchone():
-            return
-        cur.execute("SELECT current_weight_kg, height_cm, birth_date, gender FROM users WHERE user_id = %s", (user_id,))
-        user_row = cur.fetchone()
-        if not user_row:
-            return
-        w = float(user_row.get('current_weight_kg') or 0)
-        h = float(user_row.get('height_cm') or 0)
-        birth = user_row.get('birth_date')
-        if isinstance(birth, str):
-            birth = datetime.strptime(birth[:10], "%Y-%m-%d").date() if birth else None
-        age = _age_from_birth(birth)
-        gender = (user_row.get('gender') or 'male').lower()
-        bmr = (10 * w) + (6.25 * h) - (5 * age) + (5 if gender == 'male' else -161)
-        min_safe_cal = max(bmr, 1500) if gender == 'male' else max(bmr, 1200)
-        cur.execute("SELECT COALESCE(SUM(total_calories_intake), 0) as cal FROM daily_summaries WHERE user_id = %s AND date_record = %s", (user_id, today_str))
-        daily_row = cur.fetchone()
-        today_cal = float(daily_row['cal']) if daily_row else 0.0
-        if today_cal < min_safe_cal:
-            msg = f"ขณะนี้เวลา {now.strftime('%H:%M')} น. คุณเพิ่งทานไปเพียง {int(today_cal)} kcal. ควรทานให้ถึงระะดับขั้นต่ำความปลอดภัย ({int(min_safe_cal)} kcal) เพื่อรักษาระบบเผาผลาญนะ"
-            cur.execute("""
-                INSERT INTO notifications (user_id, title, message, type)
-                VALUES (%s, 'เตือน: แคลอรีวันนี้ยังต่ำเกินไป!', %s, 'warning')
-            """, (user_id, msg))
-            conn.commit()
+        from app.services.nutrition_safety_service import (
+            evaluate_and_persist_calorie_safety,
+        )
+
+        evaluate_and_persist_calorie_safety(conn, user_id, date.today())
+        conn.commit()
     except Exception as e:
-        print(f"Warning Check Error: {e}")
+        print(f"Nutrition Safety Check Error: {e}")
         conn.rollback()
 
 

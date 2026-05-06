@@ -12,6 +12,7 @@ from app.models.schemas import DailyLogUpdate
 from app.services.nutrition_service import (
     _compute_target_calories, _meal_type_to_enum,
 )
+from app.services.nutrition_safety_service import evaluate_and_persist_calorie_safety
 
 router = APIRouter()
 
@@ -49,6 +50,8 @@ def _add_meal_impl(user_id: int, log: DailyLogUpdate):
                   item.cal_per_unit, item.protein_per_unit, item.carbs_per_unit, item.fat_per_unit))
 
         conn.commit()
+
+        nutrition_safety = []
 
         # Push calorie warning notification
         try:
@@ -90,11 +93,19 @@ def _add_meal_impl(user_id: int, log: DailyLogUpdate):
                           'ใกล้ถึงเป้าหมายแล้ว',
                           f'วันนี้คุณรับแคลอรี่ {int(total_intake)} kcal ใกล้ถึงเป้าแล้ว มื้อหน้าเลือกเบาๆ นะ',
                           user_id))
+            nutrition_safety = evaluate_and_persist_calorie_safety(
+                conn,
+                user_id,
+                log.date,
+            )
             conn.commit()
         except Exception:
             pass
 
-        return {"message": "Meal recorded successfully"}
+        return {
+            "message": "Meal recorded successfully",
+            "nutrition_safety": nutrition_safety,
+        }
     except Exception as e:
         conn.rollback()
         note_failure("meals.add_meal", e, user_id=user_id)

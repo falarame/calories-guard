@@ -154,6 +154,18 @@ def _init_missing_tables():
         cur.execute("ALTER TABLE water_logs ADD COLUMN IF NOT EXISTS glasses INT NOT NULL DEFAULT 0")
         cur.execute("ALTER TABLE water_logs ADD COLUMN IF NOT EXISTS updated_at TIMESTAMP DEFAULT NOW()")
         cur.execute("""
+            CREATE TABLE IF NOT EXISTS ai_feedback (
+                id               BIGSERIAL PRIMARY KEY,
+                user_id          BIGINT REFERENCES users(user_id) ON DELETE SET NULL,
+                query            TEXT NOT NULL,
+                response         TEXT NOT NULL,
+                rating           VARCHAR(4) NOT NULL CHECK (rating IN ('up', 'down')),
+                context_type     VARCHAR(20) DEFAULT 'chat',
+                used_in_training BOOLEAN DEFAULT FALSE,
+                created_at       TIMESTAMP DEFAULT NOW()
+            )
+        """)
+        cur.execute("""
             CREATE TABLE IF NOT EXISTS notifications (
                 notification_id BIGSERIAL PRIMARY KEY,
                 user_id         BIGINT NOT NULL REFERENCES users(user_id) ON DELETE CASCADE,
@@ -185,7 +197,7 @@ _init_missing_tables()
 from app.routers import (
     health, auth, users, foods, admin,
     meals, weight, water,
-    insights, social, chat, notifications,
+    insights, social, chat, notifications, feedback,
 )
 
 app.include_router(health.router)
@@ -200,3 +212,4 @@ app.include_router(insights.router)
 app.include_router(social.router)
 app.include_router(chat.router)
 app.include_router(notifications.router)
+app.include_router(feedback.router)

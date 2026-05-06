@@ -32,9 +32,8 @@ String bmiStatus(double bmi) {
   if (bmi <= 0) return '-';
   if (bmi < 18.5) return 'น้ำหนักน้อย';
   if (bmi < 23.0) return 'ปกติ';
-  if (bmi < 25.0) return 'ท้วม';
-  if (bmi < 30.0) return 'อ้วน';
-  return 'อ้วนมาก';
+  if (bmi < 27.5) return 'เริ่มเสี่ยง';
+  return 'เสี่ยงสูง';
 }
 
 /// Mifflin-St Jeor (1990) — PMID 2305711
@@ -165,16 +164,20 @@ void main() {
       expect(bmiStatus(22.9), 'ปกติ');
     });
 
-    test('BMI 23.0 → ท้วม (23.0–24.9)', () {
-      expect(bmiStatus(23.0), 'ท้วม');
+    test('BMI 23.0 → เริ่มเสี่ยง (ควรติดตาม)', () {
+      expect(bmiStatus(23.0), 'เริ่มเสี่ยง');
     });
 
-    test('BMI 25.0 → อ้วน (25.0–29.9)', () {
-      expect(bmiStatus(25.0), 'อ้วน');
+    test('BMI 25.0 → เริ่มเสี่ยง (ยังไม่ถึง 27.5)', () {
+      expect(bmiStatus(25.0), 'เริ่มเสี่ยง');
     });
 
-    test('BMI 30.0 → อ้วนมาก (≥30)', () {
-      expect(bmiStatus(30.0), 'อ้วนมาก');
+    test('BMI 27.5 → เสี่ยงสูง (ควรประเมินจริงจังขึ้น)', () {
+      expect(bmiStatus(27.5), 'เสี่ยงสูง');
+    });
+
+    test('BMI 30.0 → เสี่ยงสูง', () {
+      expect(bmiStatus(30.0), 'เสี่ยงสูง');
     });
 
     test('BMI 0 → - (invalid)', () {

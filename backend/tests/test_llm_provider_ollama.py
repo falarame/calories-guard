@@ -2,8 +2,10 @@ import ai_models.llm_provider as llm_provider
 
 
 class _FakeResponse:
-    def __init__(self, payload):
+    def __init__(self, payload, status_code=200):
         self._payload = payload
+        self.status_code = status_code
+        self.text = ""
 
     def raise_for_status(self):
         return None
@@ -19,10 +21,14 @@ def test_ollama_provider_posts_to_local_chat_api(monkeypatch):
         calls.append({"url": url, "headers": headers, "json": json, "timeout": timeout})
         return _FakeResponse({"message": {"content": "ตอบจาก Ollama"}})
 
-    monkeypatch.setenv("LLM_PROVIDER", "ollama")
     monkeypatch.setenv("OLLAMA_BASE_URL", "http://ollama:11434")
     monkeypatch.setenv("OLLAMA_MODEL", "deepseek-r1:1.5b")
     monkeypatch.setenv("OLLAMA_TIMEOUT", "12")
+    monkeypatch.delenv("OLLAMA_SECRET_API_KEY", raising=False)
+    monkeypatch.delenv("OLLAMA_API_KEY", raising=False)
+    monkeypatch.delenv("CF_ACCESS_CLIENT_ID", raising=False)
+    monkeypatch.delenv("CF_ACCESS_CLIENT_SECRET", raising=False)
+    monkeypatch.setattr(llm_provider, "settings", None)
     monkeypatch.setattr(llm_provider.requests, "post", fake_post)
 
     result = llm_provider.generate("system prompt", "user prompt")
@@ -40,9 +46,10 @@ def test_ollama_provider_posts_to_local_chat_api(monkeypatch):
     assert calls[0]["json"]["options"]["num_predict"] == 320
 
 
-def test_ollama_is_default_provider_without_deepseek_key(monkeypatch):
-    monkeypatch.delenv("LLM_PROVIDER", raising=False)
+def test_ollama_is_configured_without_legacy_provider_keys(monkeypatch):
     monkeypatch.delenv("DEEPSEEK_API_KEY", raising=False)
+    monkeypatch.delenv("GEMINI_API_KEY", raising=False)
+    monkeypatch.delenv("LOCAL_MODEL_PATH", raising=False)
     monkeypatch.setenv("OLLAMA_MODEL", "deepseek-r1:1.5b")
 
     assert llm_provider.is_configured() is True
@@ -55,10 +62,13 @@ def test_ollama_provider_sends_proxy_bearer_token(monkeypatch):
         calls.append({"url": url, "headers": headers, "json": json, "timeout": timeout})
         return _FakeResponse({"message": {"content": "ok"}})
 
-    monkeypatch.setenv("LLM_PROVIDER", "ollama")
     monkeypatch.setenv("OLLAMA_BASE_URL", "https://ollama.example.com")
     monkeypatch.setenv("OLLAMA_MODEL", "deepseek-r1:1.5b")
-    monkeypatch.setenv("OLLAMA_API_KEY", "sk-local-ollama")
+    monkeypatch.setenv("OLLAMA_SECRET_API_KEY", "sk-local-ollama")
+    monkeypatch.delenv("OLLAMA_API_KEY", raising=False)
+    monkeypatch.delenv("CF_ACCESS_CLIENT_ID", raising=False)
+    monkeypatch.delenv("CF_ACCESS_CLIENT_SECRET", raising=False)
+    monkeypatch.setattr(llm_provider, "settings", None)
     monkeypatch.setattr(llm_provider.requests, "post", fake_post)
 
     assert llm_provider.generate("s", "u") == "ok"

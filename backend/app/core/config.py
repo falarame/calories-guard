@@ -3,7 +3,7 @@ Centralized configuration with pydantic-settings.
 
 Fail-fast behavior:
 - Missing env vars for required settings raise at startup, not at first request.
-- Optional settings (DeepSeek, Sentry, SMTP) are tolerated in dev but logged.
+- Optional settings (Sentry, SMTP) are tolerated in dev but logged.
 
 Usage:
     from app.core.config import settings
@@ -65,22 +65,19 @@ if _HAS_PSETTINGS:
         supabase_jwt_secret: str = ""
         supabase_project_url: str = ""  # legacy alias used by supabase_storage.py
 
-        # AI (optional — coach falls back to canned responses if missing)
-        #
-        # The actual LLM backend is selected by llm_provider. Production uses
-        # Ollama with a local DeepSeek model by default; hosted providers are
-        # kept only as legacy fallback options.
-        gemini_api_key: str = ""
-        gemini_model: str = "gemini-2.5-flash"
-        deepseek_api_key: str = ""
-        deepseek_base_url: str = "https://api.deepseek.com"
-        deepseek_model: str = "deepseek-chat"
+        # AI — Ollama is the only supported backend. The daemon may run on
+        # localhost (dev) or behind a Cloudflare Tunnel (prod). See
+        # ollama/README.md for the Docker stack.
         ollama_base_url: str = "http://127.0.0.1:11434"
         ollama_model: str = "deepseek-r1:1.5b"
         ollama_timeout: int = 60
-        local_model_path: str = "deepseek-ai/DeepSeek-R1-Distill-Qwen-1.5B"
-        local_adapter_path: str = ""
-        llm_provider: str = "ollama"
+        ollama_num_predict: int = 320
+        ollama_api_key: str = Field(
+            default="",
+            validation_alias=AliasChoices("OLLAMA_SECRET_API_KEY", "OLLAMA_API_KEY"),
+        )  # bearer when behind a protected Ollama tunnel/proxy
+        cf_access_client_id: str = ""        # alt Cloudflare Access auth
+        cf_access_client_secret: str = ""
         # Kill-switch: set AI_ENABLED=false in Railway to disable AI
         # endpoints (chat + food auto-add) without a redeploy. Used when
         # the provider is rate-limiting, when we're over budget, or during

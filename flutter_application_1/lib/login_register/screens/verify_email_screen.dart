@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../services/auth_service.dart';
+import 'data_consent_screen.dart';
 import 'gender_selection_screen.dart';
 
 class VerifyEmailScreen extends ConsumerStatefulWidget {
@@ -86,11 +87,10 @@ class _VerifyEmailScreenState extends ConsumerState<VerifyEmailScreen> {
 
     if (result['success']) {
       if (mounted) {
-        // Go to Gender Selection
-        Navigator.pushReplacement(
+        routeAfterAuth(
           context,
-          MaterialPageRoute(
-              builder: (context) => const GenderSelectionScreen()),
+          ref,
+          destination: (_) => const GenderSelectionScreen(),
         );
       }
     } else {

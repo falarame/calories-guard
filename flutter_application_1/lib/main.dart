@@ -7,13 +7,16 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:sentry_flutter/sentry_flutter.dart';
 import 'l10n/app_localizations.dart';
+import 'login_register/screens/data_consent_screen.dart';
 import 'login_register/screens/gender_selection_screen.dart';
 import 'login_register/screens/reset_password_screen.dart';
 import 'login_register/screens/welcome_screen.dart';
+import 'providers/settings_provider.dart';
 import 'providers/user_data_provider.dart';
 import 'services/auth_service.dart';
 import 'services/notification_helper.dart';
 import 'services/api_client.dart';
+import 'theme/app_theme.dart';
 import 'constants/constants.dart';
 import 'widget/bottom_bar.dart';
 
@@ -39,17 +42,6 @@ void main() async {
 
   const sentryDsn = String.fromEnvironment('SENTRY_DSN', defaultValue: '');
 
-  // เริ่มต้นและตั้งเวลาแจ้งเตือนในพื้นหลัง (เฉพาะ mobile)
-  if (!kIsWeb) {
-    NotificationHelper.init().then((_) async {
-      await NotificationHelper.scheduleMealReminders();
-      await NotificationHelper.scheduleDailyRecap();
-      await NotificationHelper.scheduleMorningMotivation();
-      await NotificationHelper.scheduleWaterReminders();
-      await NotificationHelper.scheduleWeeklyWeightCheck();
-    });
-  }
-
   if (sentryDsn.isEmpty) {
     runApp(const ProviderScope(child: MyApp()));
   } else {
@@ -65,6 +57,26 @@ void main() async {
       },
       appRunner: () => runApp(const ProviderScope(child: MyApp())),
     );
+  }
+
+  if (!kIsWeb) {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      unawaited(_initNotificationsAfterFirstFrame());
+    });
+  }
+}
+
+Future<void> _initNotificationsAfterFirstFrame() async {
+  try {
+    await NotificationHelper.init();
+    await NotificationHelper.scheduleMealReminders();
+    await NotificationHelper.scheduleDailyRecap();
+    await NotificationHelper.scheduleMorningMotivation();
+    await NotificationHelper.scheduleWaterReminders();
+    await NotificationHelper.scheduleWeeklyWeightCheck();
+  } catch (e, st) {
+    debugPrint('Notification startup skipped: $e');
+    debugPrintStack(stackTrace: st);
   }
 }
 
@@ -96,22 +108,20 @@ class _MissingConfigApp extends StatelessWidget {
   }
 }
 
-class MyApp extends StatelessWidget {
+class MyApp extends ConsumerWidget {
   const MyApp({super.key});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final themeMode = ref.watch(themeModeProvider);
+    final locale = ref.watch(localeProvider);
     return MaterialApp(
       title: 'Calories Guard',
       debugShowCheckedModeBanner: false,
-      theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(seedColor: const Color(0xFF4C6414)),
-        useMaterial3: true,
-        fontFamily: 'Inter',
-      ),
-      // L10n: follow system locale, fall back to Thai if system is neither
-      // Thai nor English. See lib/l10n/app_localizations.dart for the hot-path
-      // catalogue (task #17).
+      theme: buildLightTheme(),
+      darkTheme: buildDarkTheme(),
+      themeMode: themeMode,
+      locale: locale,
       localizationsDelegates: const [
         AppLocalizations.delegate,
         GlobalMaterialLocalizations.delegate,
@@ -119,13 +129,6 @@ class MyApp extends StatelessWidget {
         GlobalCupertinoLocalizations.delegate,
       ],
       supportedLocales: AppLocalizations.supportedLocales,
-      localeResolutionCallback: (deviceLocale, supported) {
-        if (deviceLocale == null) return const Locale('th');
-        for (final l in supported) {
-          if (l.languageCode == deviceLocale.languageCode) return l;
-        }
-        return const Locale('th');
-      },
       home: const AuthBootstrap(),
     );
   }
@@ -222,14 +225,12 @@ class _AuthBootstrapState extends ConsumerState<AuthBootstrap> {
             weight: 0,
           );
     }
-    Navigator.pushAndRemoveUntil(
+    routeAfterAuth(
       context,
-      MaterialPageRoute(
-        builder: (_) => shouldContinueOnboarding
-            ? const GenderSelectionScreen()
-            : const MainScreen(),
-      ),
-      (route) => false,
+      ref,
+      destination: (_) => shouldContinueOnboarding
+          ? const GenderSelectionScreen()
+          : const MainScreen(),
     );
   }
 

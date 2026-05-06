@@ -127,6 +127,30 @@ class NotificationHelper {
     );
   }
 
+  static Future<void> showNutritionSafetyWarning(
+    String title,
+    String body,
+  ) async {
+    if (kIsWeb) return;
+    await showNotification(
+      id: 203,
+      title: title,
+      body: body,
+    );
+  }
+
+  static Future<void> showWaterSafetyWarning(
+    String title,
+    String body,
+  ) async {
+    if (kIsWeb) return;
+    await showNotification(
+      id: 204,
+      title: title,
+      body: body,
+    );
+  }
+
   // 3. แจ้งเตือนความคืบหน้า (Progress) - สรุปตอนค่ำ
   static Future<void> scheduleDailyRecap() async {
     if (kIsWeb) return;

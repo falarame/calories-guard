@@ -1,252 +1,231 @@
 """
-LLM provider abstraction.
+Ollama-only LLM provider.
 
-The rest of the codebase should never import `google.generativeai` or the
-OpenAI/DeepSeek SDK directly — it should go through `generate()` in this
-module, which routes to the right backend based on LLM_PROVIDER.
+The rest of the codebase MUST go through `generate()` / `generate_json()` —
+no module should talk to an external LLM SDK directly. There is exactly one
+backend (Ollama) so swapping models is an env-var change.
 
-Supported providers (selected via env `LLM_PROVIDER`, default: `ollama`):
+Env:
+  OLLAMA_BASE_URL         http://127.0.0.1:11434 (dev) | https://ai.caloriesguard.com (prod tunnel)
+  OLLAMA_MODEL            deepseek-r1:8b
+  OLLAMA_TIMEOUT          60                       (seconds, per request)
+  OLLAMA_NUM_PREDICT      320                      (max output tokens)
+  OLLAMA_SECRET_API_KEY   <bearer>                 (optional — protected tunnel/proxy bearer)
+  CF_ACCESS_CLIENT_ID     <id>                     (optional — alt Cloudflare Access auth)
+  CF_ACCESS_CLIENT_SECRET <secret>                 (paired with CF_ACCESS_CLIENT_ID)
 
-  ollama     — local/self-hosted Ollama HTTP API. Use this for DeepSeek models
-               pulled into Ollama, e.g. `ollama pull deepseek-r1:1.5b`.
-  deepseek   — DeepSeek hosted API (legacy option; requires API key)
-  gemini     — Google Gemini via google-generativeai (legacy option)
-  local      — self-hosted DeepSeek-R1-Distill via transformers+torch
-               (heavy; only meant for dev boxes / when you've fine-tuned an
-                adapter with notebooks/deepseek_finetune.ipynb)
-
-Env vars:
-
-  LLM_PROVIDER          = ollama | local | deepseek | gemini
-                                                        (default: ollama)
-  OLLAMA_BASE_URL       = http://127.0.0.1:11434        (for ollama)
-  OLLAMA_MODEL          = deepseek-r1:1.5b              (for ollama)
-  OLLAMA_API_KEY        = <optional proxy bearer token>
-  OLLAMA_TIMEOUT        = 60                            (seconds)
-  DEEPSEEK_API_KEY      = <key>                         (legacy deepseek)
-  DEEPSEEK_MODEL        = deepseek-chat                 (legacy deepseek)
-  GEMINI_API_KEY        = <key>                         (legacy gemini option)
-  GEMINI_MODEL          = gemini-2.5-flash              (optional override)
-  LOCAL_MODEL_PATH      = deepseek-ai/DeepSeek-R1-Distill-Qwen-1.5B
-                                                        (HF id or local path)
-  LOCAL_ADAPTER_PATH    = <path-to-LoRA-adapter>        (optional, for `local`)
-  LOCAL_LOAD_IN_4BIT    = 1                             (optional, fits the 1.5B
-                                                        base on a 4 GiB GPU —
-                                                        same nf4+bf16 setup the
-                                                        notebook uses for training)
-  LOCAL_MAX_NEW_TOKENS  = 256                           (optional, cap output
-                                                        length — 1024 was the
-                                                        training setting but
-                                                        wastes time on short Q&A)
-  LOCAL_REPETITION_PEN  = 1.3                           (optional, ≥1.0 — small
-                                                        fine-tunes tend to loop;
-                                                        1.2-1.4 helps a lot)
-
-The generate() function is blocking on purpose — the chat router already
-runs it in a thread pool with a 30s timeout (see app/routers/chat.py).
+The chat router runs `generate` in a thread pool with a 30s wall-clock limit,
+so blocking IO here is fine.
 """
 from __future__ import annotations
 
+import json
 import os
-from typing import Optional
+import time
+from typing import Any, Optional
 
 import requests
 
-# Module-level cache for the local model so we don't reload weights per call.
-_local_cache: dict = {}
+try:
+    from app.core.config import settings
+except Exception:  # pragma: no cover - config import can fail in isolated scripts
+    settings = None
 
 
-def _get_provider() -> str:
-    return (os.getenv("LLM_PROVIDER") or "ollama").strip().lower()
+class LLMError(RuntimeError):
+    """Base class for LLM-layer failures surfaced to callers."""
 
 
-def _gemini_generate(system: str, user: str, model_name: Optional[str] = None) -> str:
-    import google.generativeai as genai
-
-    api_key = os.getenv("GEMINI_API_KEY", "")
-    if not api_key:
-        raise RuntimeError("GEMINI_API_KEY is not set")
-    genai.configure(api_key=api_key)
-    model = genai.GenerativeModel(model_name or os.getenv("GEMINI_MODEL", "gemini-2.5-flash"))
-    response = model.generate_content([
-        {"role": "user", "parts": [system]},
-        {"role": "user", "parts": [user]},
-    ])
-    return getattr(response, "text", "") or ""
+class LLMUnavailable(LLMError):
+    """Ollama daemon unreachable or 5xx after retry."""
 
 
-def _deepseek_generate(system: str, user: str, model_name: Optional[str] = None) -> str:
-    # DeepSeek exposes an OpenAI-compatible chat/completions endpoint, so we
-    # reuse the openai SDK rather than hand-rolling an HTTP client. The SDK
-    # is small enough that it won't bloat the image and is already a common
-    # transitive dep.
+class LLMTimeout(LLMError):
+    """Per-request timeout exceeded."""
+
+
+class LLMConfigError(LLMError):
+    """4xx — bad model name, malformed payload, auth rejected."""
+
+
+_DEFAULT_BASE_URL = "http://127.0.0.1:11434"
+_DEFAULT_MODEL = "deepseek-r1:8b"
+_DEFAULT_TIMEOUT = 60.0
+_DEFAULT_NUM_PREDICT = 320
+
+
+def _base_url() -> str:
+    configured = getattr(settings, "ollama_base_url", None) if settings else None
+    return (configured or os.getenv("OLLAMA_BASE_URL") or _DEFAULT_BASE_URL).rstrip("/")
+
+
+def _model() -> str:
+    configured = getattr(settings, "ollama_model", None) if settings else None
+    return configured or os.getenv("OLLAMA_MODEL") or _DEFAULT_MODEL
+
+
+def _timeout() -> float:
+    configured = getattr(settings, "ollama_timeout", None) if settings else None
+    if configured is not None:
+        return float(configured)
     try:
-        from openai import OpenAI
-    except ImportError as e:
-        raise RuntimeError(
-            "openai package is required for LLM_PROVIDER=deepseek. "
-            "Add `openai>=1.0` to requirements.txt."
-        ) from e
-
-    api_key = os.getenv("DEEPSEEK_API_KEY", "")
-    if not api_key:
-        raise RuntimeError("DEEPSEEK_API_KEY is not set")
-
-    client = OpenAI(
-        api_key=api_key,
-        base_url=os.getenv("DEEPSEEK_BASE_URL", "https://api.deepseek.com"),
-    )
-    resp = client.chat.completions.create(
-        model=model_name or os.getenv("DEEPSEEK_MODEL", "deepseek-chat"),
-        messages=[
-            {"role": "system", "content": system},
-            {"role": "user", "content": user},
-        ],
-        temperature=0.7,
-        max_tokens=1024,
-    )
-    return resp.choices[0].message.content or ""
+        return float(os.getenv("OLLAMA_TIMEOUT") or _DEFAULT_TIMEOUT)
+    except ValueError:
+        return _DEFAULT_TIMEOUT
 
 
-def _ollama_generate(system: str, user: str, model_name: Optional[str] = None) -> str:
-    base_url = os.getenv("OLLAMA_BASE_URL", "http://127.0.0.1:11434").rstrip("/")
-    model = model_name or os.getenv("OLLAMA_MODEL", "deepseek-r1:1.5b")
-    timeout = float(os.getenv("OLLAMA_TIMEOUT", "60") or 60)
-    num_predict = int(os.getenv("OLLAMA_NUM_PREDICT", "320") or 320)
-    if not model:
-        raise RuntimeError("OLLAMA_MODEL is not set")
-    api_key = os.getenv("OLLAMA_API_KEY") or os.getenv("OLLAMA_SECRET_API_KEY", "")
-    headers = {"Authorization": f"Bearer {api_key}"} if api_key else None
-
-    response = requests.post(
-        f"{base_url}/api/chat",
-        headers=headers,
-        json={
-            "model": model,
-            "stream": False,
-            "messages": [
-                {"role": "system", "content": system},
-                {"role": "user", "content": user},
-            ],
-            "options": {
-                "temperature": 0.7,
-                "num_predict": num_predict,
-            },
-        },
-        timeout=timeout,
-    )
-    response.raise_for_status()
-    payload = response.json()
-    message = payload.get("message") or {}
-    content = message.get("content")
-    if not content:
-        raise RuntimeError("Ollama returned an empty response")
-    return str(content)
-
-
-def _local_generate(system: str, user: str, model_name: Optional[str] = None) -> str:
-    """
-    Run DeepSeek-R1-Distill (or any HF causal-LM) locally via transformers.
-    Heavy dependency; not installed by default. Use this for dev testing of
-    a fine-tuned adapter produced by notebooks/deepseek_finetune.ipynb.
-    """
+def _num_predict() -> int:
+    configured = getattr(settings, "ollama_num_predict", None) if settings else None
+    if configured is not None:
+        return int(configured)
     try:
-        import torch  # noqa: F401
-        from transformers import AutoModelForCausalLM, AutoTokenizer
-    except ImportError as e:
-        raise RuntimeError(
-            "transformers + torch are required for LLM_PROVIDER=local. "
-            "Install with `pip install torch transformers accelerate peft`."
-        ) from e
+        return int(os.getenv("OLLAMA_NUM_PREDICT") or _DEFAULT_NUM_PREDICT)
+    except ValueError:
+        return _DEFAULT_NUM_PREDICT
 
-    base_path = model_name or os.getenv(
-        "LOCAL_MODEL_PATH", "deepseek-ai/DeepSeek-R1-Distill-Qwen-1.5B"
+
+def _auth_headers() -> dict[str, str]:
+    headers: dict[str, str] = {}
+    bearer = (
+        os.getenv("OLLAMA_SECRET_API_KEY")
+        or os.getenv("OLLAMA_API_KEY")
+        or (getattr(settings, "ollama_api_key", None) if settings else None)
     )
-    adapter_path = os.getenv("LOCAL_ADAPTER_PATH", "")
-
-    load_4bit = os.getenv("LOCAL_LOAD_IN_4BIT", "").strip().lower() in ("1", "true", "yes")
-    cached = _local_cache.get((base_path, adapter_path, load_4bit))
-    if cached is None:
-        tokenizer = AutoTokenizer.from_pretrained(base_path, trust_remote_code=True)
-        if tokenizer.pad_token is None:
-            tokenizer.pad_token = tokenizer.eos_token
-        kwargs: dict = {"trust_remote_code": True, "device_map": "auto"}
-        if load_4bit:
-            import torch
-            from transformers import BitsAndBytesConfig
-            kwargs["quantization_config"] = BitsAndBytesConfig(
-                load_in_4bit=True,
-                bnb_4bit_quant_type="nf4",
-                bnb_4bit_compute_dtype=torch.bfloat16,
-                bnb_4bit_use_double_quant=True,
-            )
-        model = AutoModelForCausalLM.from_pretrained(base_path, **kwargs)
-        if adapter_path:
-            from peft import PeftModel  # lazy import
-            model = PeftModel.from_pretrained(model, adapter_path)
-        model.eval()
-        cached = (tokenizer, model)
-        _local_cache[(base_path, adapter_path, load_4bit)] = cached
-
-    tokenizer, model = cached
-    # Use the tokenizer's chat template — DeepSeek-R1 models need it to wrap
-    # messages with the correct <|im_start|> / <think> tags.
-    messages = [
-        {"role": "system", "content": system},
-        {"role": "user", "content": user},
-    ]
-    prompt = tokenizer.apply_chat_template(
-        messages, tokenize=False, add_generation_prompt=True
+    if bearer:
+        headers["Authorization"] = f"Bearer {bearer}"
+    cf_id = (
+        os.getenv("CF_ACCESS_CLIENT_ID")
+        or (getattr(settings, "cf_access_client_id", None) if settings else None)
     )
-    import torch
-    inputs = tokenizer(prompt, return_tensors="pt").to(model.device)
-    max_new = int(os.getenv("LOCAL_MAX_NEW_TOKENS", "256") or 256)
-    rep_pen = float(os.getenv("LOCAL_REPETITION_PEN", "1.3") or 1.3)
-    with torch.no_grad():
-        out = model.generate(
-            **inputs,
-            max_new_tokens=max_new,
-            do_sample=True,
-            temperature=0.7,
-            top_p=0.9,
-            repetition_penalty=rep_pen,
-            pad_token_id=tokenizer.eos_token_id,
-            eos_token_id=tokenizer.eos_token_id,
-        )
-    # Strip the prompt prefix.
-    gen = out[0][inputs["input_ids"].shape[1]:]
-    return tokenizer.decode(gen, skip_special_tokens=True).strip()
-
-
-def generate(system: str, user: str, model_name: Optional[str] = None) -> str:
-    """
-    Generate a completion for (system, user) messages.
-
-    Returns the model's text. Raises RuntimeError if the selected provider
-    is misconfigured (missing key, missing deps) — callers should catch and
-    surface a user-friendly error.
-    """
-    provider = _get_provider()
-    if provider == "ollama":
-        return _ollama_generate(system, user, model_name)
-    if provider == "gemini":
-        return _gemini_generate(system, user, model_name)
-    if provider == "deepseek":
-        return _deepseek_generate(system, user, model_name)
-    if provider == "local":
-        return _local_generate(system, user, model_name)
-    raise RuntimeError(f"Unknown LLM_PROVIDER: {provider!r}")
+    cf_secret = (
+        os.getenv("CF_ACCESS_CLIENT_SECRET")
+        or (getattr(settings, "cf_access_client_secret", None) if settings else None)
+    )
+    if cf_id and cf_secret:
+        headers["CF-Access-Client-Id"] = cf_id
+        headers["CF-Access-Client-Secret"] = cf_secret
+    return headers
 
 
 def is_configured() -> bool:
-    """Return True if the currently-selected provider has a usable API key."""
-    provider = _get_provider()
-    if provider == "ollama":
-        return bool(os.getenv("OLLAMA_MODEL", "deepseek-r1:1.5b"))
-    if provider == "gemini":
-        return bool(os.getenv("GEMINI_API_KEY"))
-    if provider == "deepseek":
-        return bool(os.getenv("DEEPSEEK_API_KEY"))
-    if provider == "local":
-        return bool(os.getenv("LOCAL_MODEL_PATH") or True)  # HF will pull defaults
-    return False
+    """True if base URL + model are present. Auth is optional."""
+    return bool(_base_url()) and bool(_model())
+
+
+def health_check() -> bool:
+    """Cheap probe — list installed models. Used by /api/chat/health."""
+    try:
+        r = requests.get(
+            f"{_base_url()}/api/tags",
+            headers=_auth_headers() or None,
+            timeout=5,
+        )
+        return r.status_code == 200
+    except requests.RequestException:
+        return False
+
+
+def _post_chat(payload: dict[str, Any]) -> dict[str, Any]:
+    """One POST attempt. Maps requests errors to typed LLM* exceptions."""
+    try:
+        response = requests.post(
+            f"{_base_url()}/api/chat",
+            headers=_auth_headers() or None,
+            json=payload,
+            timeout=_timeout(),
+        )
+    except requests.Timeout as e:
+        raise LLMTimeout(f"Ollama timed out after {_timeout()}s") from e
+    except requests.ConnectionError as e:
+        raise LLMUnavailable(f"Ollama unreachable at {_base_url()}: {e}") from e
+
+    if 400 <= response.status_code < 500:
+        raise LLMConfigError(
+            f"Ollama rejected request ({response.status_code}): {response.text[:300]}"
+        )
+    if response.status_code >= 500:
+        raise LLMUnavailable(
+            f"Ollama 5xx ({response.status_code}): {response.text[:300]}"
+        )
+    try:
+        return response.json()
+    except ValueError as e:
+        raise LLMUnavailable(f"Ollama returned non-JSON body: {response.text[:200]}") from e
+
+
+def _chat(
+    system: str,
+    user: str,
+    *,
+    json_mode: bool = False,
+    temperature: float = 0.7,
+) -> str:
+    """Internal: build payload, retry once on transient failure, return content."""
+    payload: dict[str, Any] = {
+        "model": _model(),
+        "stream": False,
+        "messages": [
+            {"role": "system", "content": system},
+            {"role": "user", "content": user},
+        ],
+        "options": {
+            "temperature": temperature,
+            "num_predict": _num_predict(),
+        },
+    }
+    if json_mode:
+        payload["format"] = "json"
+
+    last_exc: Optional[Exception] = None
+    for attempt in range(2):
+        try:
+            body = _post_chat(payload)
+            message = body.get("message") or {}
+            content = (message.get("content") or "").strip()
+            if not content:
+                raise LLMUnavailable("Ollama returned an empty response")
+            return content
+        except (LLMUnavailable, LLMTimeout) as e:
+            last_exc = e
+            if attempt == 0:
+                time.sleep(2)
+                continue
+            raise
+        except LLMConfigError:
+            # 4xx is deterministic — no point retrying.
+            raise
+
+    assert last_exc is not None
+    raise last_exc
+
+
+def generate(
+    system: str,
+    user: str,
+    *,
+    temperature: float = 0.7,
+) -> str:
+    """Plain text completion. Raises LLM* on failure."""
+    return _chat(system, user, temperature=temperature)
+
+
+def generate_json(
+    system: str,
+    user: str,
+    *,
+    temperature: float = 0.2,
+) -> dict[str, Any]:
+    """JSON-mode completion. Returns a parsed dict.
+
+    Uses Ollama's `format: "json"` so the model is constrained to emit valid
+    JSON. Caller still gets `LLMConfigError` if the model emits something we
+    can't parse (rare but possible with very small models).
+    """
+    raw = _chat(system, user, json_mode=True, temperature=temperature)
+    try:
+        parsed = json.loads(raw)
+    except json.JSONDecodeError as e:
+        raise LLMConfigError(f"Model emitted non-JSON despite format=json: {raw[:300]}") from e
+    if not isinstance(parsed, dict):
+        raise LLMConfigError(f"Expected JSON object, got {type(parsed).__name__}")
+    return parsed

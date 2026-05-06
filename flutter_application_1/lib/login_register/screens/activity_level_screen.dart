@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../providers/user_data_provider.dart';
 import '../../services/auth_service.dart'; // ✅ 1. Import AuthService
+import '../../utils/bmi_utils.dart';
 import '../widgets/bmi_category_table.dart';
 import 'goal_selection_screen.dart';
 
@@ -48,23 +49,6 @@ class _ActivityLevelScreenState extends ConsumerState<ActivityLevelScreen> {
       "icon": Icons.fitness_center,
     },
   ];
-
-  static String _bmiStatus(double bmi) {
-    if (bmi <= 0) return '-';
-    if (bmi < 18.5) return 'น้ำหนักน้อย';
-    if (bmi < 23) return 'ปกติ';
-    if (bmi < 25) return 'ท้วม';
-    if (bmi < 30) return 'อ้วน';
-    return 'อ้วนมาก';
-  }
-
-  static Color _bmiColor(double bmi) {
-    if (bmi <= 0) return Colors.grey;
-    if (bmi < 18.5) return Colors.blue;
-    if (bmi < 23) return Colors.green;
-    if (bmi < 25) return Colors.orange;
-    return Colors.red;
-  }
 
   void _showActivityInfo(BuildContext context) {
     final items = [
@@ -166,8 +150,9 @@ class _ActivityLevelScreenState extends ConsumerState<ActivityLevelScreen> {
   Widget _buildBMICard() {
     final userData = ref.watch(userDataProvider);
     final bmi = userData.bmi;
-    final bmiStatus = _bmiStatus(bmi);
-    final bmiColor = _bmiColor(bmi);
+    final bmiStatus = bmiStatusLabel(bmi);
+    final bmiColor = bmiRiskColor(bmi);
+    final riskData = bmiBandData(bmi);
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
@@ -265,8 +250,8 @@ class _ActivityLevelScreenState extends ConsumerState<ActivityLevelScreen> {
             },
           ),
           const SizedBox(height: 10),
-          const Text('ค่า BMI ของคุณแสดงผลตามเกณฑ์มาตรฐาน',
-              style: TextStyle(fontSize: 12, color: Colors.black87)),
+          Text(riskData.riskText,
+              style: const TextStyle(fontSize: 12, color: Colors.black87)),
         ],
       ),
     );
@@ -391,8 +376,7 @@ class _ActivityLevelScreenState extends ConsumerState<ActivityLevelScreen> {
             // --- BMI Category Table ---
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 20),
-              child:
-                  BmiCategoryTable(bmi: ref.watch(userDataProvider).bmi),
+              child: BmiCategoryTable(bmi: ref.watch(userDataProvider).bmi),
             ),
             const SizedBox(height: 18),
 

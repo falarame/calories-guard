@@ -38,6 +38,8 @@ backend/current_db.txt
 backend/db_output.txt
 backend/db_output_utf8.txt
 backend/output_mermaid.txt
+backend/.runtime/
+backend/logs/
 
 # IDE
 .idea/
@@ -88,6 +90,7 @@ notebooks/out/
 # Editor / IDE local config
 .cursor/
 .claude/scheduled_tasks.lock
+~$*
 
 # Build artifacts and one-off scratch
 flutter_application_1/build_error.txt

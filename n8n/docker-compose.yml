@@ -1,0 +1,34 @@
+services:
+  n8n:
+    image: n8nio/n8n:latest
+    container_name: caloriesguard-n8n
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:5678:5678"
+    environment:
+      N8N_HOST: ${N8N_HOST:-localhost}
+      N8N_PORT: 5678
+      N8N_PROTOCOL: ${N8N_PROTOCOL:-http}
+      WEBHOOK_URL: ${WEBHOOK_URL:-http://localhost:5678}
+      # Basic auth for the n8n UI — change these in .env
+      N8N_BASIC_AUTH_ACTIVE: "true"
+      N8N_BASIC_AUTH_USER: ${N8N_BASIC_AUTH_USER:-admin}
+      N8N_BASIC_AUTH_PASSWORD: ${N8N_BASIC_AUTH_PASSWORD:-changeme}
+      # Timezone for cron triggers
+      GENERIC_TIMEZONE: Asia/Bangkok
+      TZ: Asia/Bangkok
+      # Data persistence
+      N8N_USER_FOLDER: /home/node/.n8n
+      # Backend API (for eval trigger workflow)
+      CALORIESGUARD_API_URL: ${CALORIESGUARD_API_URL:-http://host.docker.internal:8000}
+      # Optional: Slack/Line Notify for eval alerts
+      SLACK_WEBHOOK_URL: ${SLACK_WEBHOOK_URL:-}
+      LINE_NOTIFY_TOKEN: ${LINE_NOTIFY_TOKEN:-}
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    volumes:
+      - n8n_data:/home/node/.n8n
+
+volumes:
+  n8n_data:
+    name: caloriesguard_n8n_data

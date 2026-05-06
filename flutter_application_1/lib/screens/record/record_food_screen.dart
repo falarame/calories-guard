@@ -112,6 +112,7 @@ class _FoodLogScreenState extends ConsumerState<FoodLogScreen>
   bool _isSaving = false;
   bool _isLoadingData = false;
   Timer? _waterDebounce;
+  final Set<String> _shownWaterSafetyKeys = {};
 
   @override
   void initState() {
@@ -180,13 +181,38 @@ class _FoodLogScreenState extends ConsumerState<FoodLogScreen>
     final userId = ref.read(userDataProvider).userId;
     if (userId == 0) return;
     try {
-      await ApiClient().post(
+      final res = await ApiClient().post(
         '/water_logs/$userId',
         body: {
           'amount_ml': _waterGlasses * 250,
           'date_record': DateFormat('yyyy-MM-dd').format(_selectedDate),
         },
       );
+      if (res.statusCode >= 200 && res.statusCode < 300) {
+        final decoded = jsonDecode(utf8.decode(res.bodyBytes));
+        final safety =
+            decoded is Map<String, dynamic> ? decoded['water_safety'] : null;
+        if (safety is List && safety.isNotEmpty && mounted) {
+          final warning = safety.whereType<Map>().map((item) {
+            return item.map((key, value) => MapEntry(key.toString(), value));
+          }).first;
+          final code = warning['code']?.toString() ?? 'water_safety';
+          final dateKey = DateFormat('yyyy-MM-dd').format(_selectedDate);
+          final shownKey = '$dateKey:$code';
+          if (_shownWaterSafetyKeys.add(shownKey)) {
+            final title =
+                warning['title']?.toString() ?? 'วันนี้น้ำยังไม่ถึงเป้า';
+            final message = warning['message']?.toString() ??
+                'ระบบพบว่าวันนี้คุณบันทึกน้ำต่ำกว่าเป้าหมาย';
+            ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+              content: Text('$title\n$message'),
+              backgroundColor: _blue,
+              duration: const Duration(seconds: 5),
+            ));
+            NotificationHelper.showWaterSafetyWarning(title, message);
+          }
+        }
+      }
     } catch (e, st) {
       ErrorReporter.report('record.save_water_log', e, st);
     }
@@ -974,8 +1000,9 @@ class _FoodLogScreenState extends ConsumerState<FoodLogScreen>
           break;
       }
 
-      final calories = await HealthService.fetchCaloriesBurned(_selectedDate);
-      final steps = await HealthService.fetchSteps(_selectedDate);
+      final summary = await HealthService.fetchActivitySummary(_selectedDate);
+      final calories = summary.caloriesBurned;
+      final steps = summary.steps;
       if (!mounted) return;
 
       if (calories > 0 || steps > 0) {
@@ -992,10 +1019,14 @@ class _FoodLogScreenState extends ConsumerState<FoodLogScreen>
 
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(
           content: Text(
-            'ซิงค์สำเร็จ! เผาผลาญ ${calories.toInt()} kcal | ก้าว $steps ก้าว',
+            summary.usesTotalCaloriesFallback
+                ? 'ซิงค์สำเร็จ! เผาผลาญ ${calories.toInt()} kcal | ก้าว $steps ก้าว\n'
+                    'ใช้ข้อมูลพลังงานจาก Samsung Health ผ่าน Health Connect'
+                : 'ซิงค์สำเร็จ! เผาผลาญ ${calories.toInt()} kcal | ก้าว $steps ก้าว',
           ),
           backgroundColor: const Color(0xFF628141),
-          duration: const Duration(seconds: 3),
+          duration:
+              Duration(seconds: summary.usesTotalCaloriesFallback ? 5 : 3),
         ));
       } else {
         // Permissions are fine but no data — typically means Samsung Health
@@ -1059,6 +1090,7 @@ class _FoodLogScreenState extends ConsumerState<FoodLogScreen>
           ['breakfast', 'lunch', 'dinner', 'snack'].contains(meal.id)
               ? meal.id
               : 'snack';
+      final nutritionSafetyWarnings = <Map<String, dynamic>>[];
 
       final dateStr = DateFormat('yyyy-MM-dd').format(_selectedDate);
 
@@ -1095,6 +1127,21 @@ class _FoodLogScreenState extends ConsumerState<FoodLogScreen>
           },
         );
         debugPrint('💾 POST Response: ${postRes.statusCode}');
+        if (postRes.statusCode >= 200 && postRes.statusCode < 300) {
+          final decoded = jsonDecode(utf8.decode(postRes.bodyBytes));
+          final safety = decoded is Map<String, dynamic>
+              ? decoded['nutrition_safety']
+              : null;
+          if (safety is List) {
+            nutritionSafetyWarnings.addAll(
+              safety.whereType<Map>().map((item) {
+                return item.map(
+                  (key, value) => MapEntry(key.toString(), value),
+                );
+              }),
+            );
+          }
+        }
       } else {
         debugPrint(
             '💾 No items to POST (meal is empty - only DELETE was executed)');
@@ -1111,6 +1158,24 @@ class _FoodLogScreenState extends ConsumerState<FoodLogScreen>
         } else if (currentCal >= (targetCalDouble * 0.85).toInt()) {
           NotificationHelper.showCalorieWarning(currentCal, targetCal);
         }
+      }
+
+      if (mounted && nutritionSafetyWarnings.isNotEmpty) {
+        final warning = nutritionSafetyWarnings.firstWhere(
+          (item) => item['severity'] == 'danger',
+          orElse: () => nutritionSafetyWarnings.first,
+        );
+        final title = warning['title']?.toString() ?? 'แคลอรี่วันนี้เสี่ยงเกินไป';
+        final message = warning['message']?.toString() ??
+            'ระบบพบความเสี่ยงจากแคลอรี่ที่บันทึกวันนี้';
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text('$title\n$message'),
+          backgroundColor: warning['severity'] == 'danger'
+              ? Colors.redAccent
+              : const Color(0xFFB7791F),
+          duration: const Duration(seconds: 6),
+        ));
+        NotificationHelper.showNutritionSafetyWarning(title, message);
       }
     } catch (e) {
       debugPrint('❌ Error saving meal: $e');
@@ -1475,7 +1540,7 @@ class _AddFoodSheetState extends ConsumerState<_AddFoodSheet>
             Icon(Icons.warning_amber_rounded,
                 color: Color(0xFFE67E22), size: 26),
             SizedBox(width: 8),
-            Text('มีสารที่คุณแพ้!',
+            Text('ที่ส่วนผสมหรือวัตถุดิบที่คุณแพ้!',
                 style: TextStyle(fontSize: 17, fontWeight: FontWeight.w700)),
           ]),
           content: Column(mainAxisSize: MainAxisSize.min, children: [

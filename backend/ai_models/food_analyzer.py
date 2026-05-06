@@ -1,75 +1,96 @@
-import pandas as pd
+"""
+Pure-Python nutrition gap analysis. No pandas — `collections.Counter` and
+plain dict comprehensions are fast enough for 7-day windows and avoid an
+import that wasn't needed.
+"""
+from __future__ import annotations
 
-class FoodAnalyzer:
-    def __init__(self):
-        pass
+from collections import Counter
+from typing import Iterable
 
-    def analyze_nutrition_gap(self, user_target: dict, recent_logs: list) -> dict:
-        """
-        วิเคราะห์สารอาหารที่ขาดไปเทียบกับเป้าหมายรายวัน ตลอดสัปดาห์ที่ผ่านมา
-        :param user_target: dict { 'target_calories': 2000, 'target_protein': 150, 'target_carbs': 200, 'target_fat': 60 }
-        :param recent_logs: list of dicts (จากตาราง daily_summaries หรือ meals) 
-               { 'date': '2023-10-01', 'calories': 1800, 'protein': 100, 'carbs': 220, 'fat': 50 }
-        :return: ข้อมูลสรุปส่วนต่างสารอาหาร
-        """
-        if not recent_logs:
-            return {
-                "status": "no_data",
-                "message": "ไม่พบประวัติการรับประทานอาหารในช่วงนี้นะครับ แจ้งให้เริ่มบันทึกมื้อแรกได้เลย!"
-            }
+_MACROS: tuple[tuple[str, str], ...] = (
+    ("protein", "โปรตีน"),
+    ("carbs", "คาร์บ"),
+    ("fat", "ไขมัน"),
+    ("calories", "พลังงาน"),
+)
 
-        df = pd.DataFrame(recent_logs)
-        
-        # Calculate averages
-        avg_cal = df['calories'].mean()
-        avg_pro = df['protein'].mean()
-        avg_carb = df['carbs'].mean()
-        avg_fat = df['fat'].mean()
+_GAP_THRESHOLD_PCT = 20.0  # ±20 % from target = flag as critical
 
-        gap_cal = user_target['target_calories'] - avg_cal
-        gap_pro = user_target['target_protein'] - avg_pro
-        gap_carb = user_target['target_carbs'] - avg_carb
-        gap_fat = user_target['target_fat'] - avg_fat
 
-        target_cal = max(user_target['target_calories'], 1)
-        target_pro = max(user_target['target_protein'], 1)
+def _avg(logs: list[dict], key: str) -> float:
+    if not logs:
+        return 0.0
+    return sum(float(d.get(key, 0) or 0) for d in logs) / len(logs)
 
-        recommendations = []
-        if (gap_pro / target_pro) > 0.15: 
-            recommendations.append(f"โปรตีน (ขาดเฉลี่ยกว่า {round((gap_pro/target_pro)*100)}% ของเป้าหมาย)")
-        if (gap_cal / target_cal) < -0.10:
-            surplus_pct = round((abs(gap_cal) / target_cal) * 100)
-            recommendations.append(f"ทานเกินแคลอรีเป้าหมาย (เกินกว่า {surplus_pct}%)")
-        if (gap_cal / target_cal) > 0.20:
-            deficit_pct = round((gap_cal / target_cal) * 100)
-            recommendations.append(f"ทานน้อยเกินไป (ขาดแคลอรีไปกว่า {deficit_pct}%)")
 
-        return {
-            "status": "analyzed",
-            "average_intake": {
-                "calories": round(avg_cal, 2),
-                "protein": round(avg_pro, 2),
-                "carbs": round(avg_carb, 2),
-                "fat": round(avg_fat, 2)
-            },
-            "gaps": {
-                "calories": round(gap_cal, 2),
-                "protein": round(gap_pro, 2),
-                "carbs": round(gap_carb, 2),
-                "fat": round(gap_fat, 2)
-            },
-            "critical_issues": recommendations,
-            "message": "มีการบริโภคโปรตีนน้อยกว่าเป้าหมายเป็นประจำ" if gap_pro > 20 else "โภชนาการอยู่ในเกณฑ์ที่ดีครับ"
+def analyze_nutrition_gap(target: dict, recent_logs: list[dict]) -> dict:
+    """Compare recent macro intake against the user's daily targets.
+
+    Args:
+        target:  dict with keys target_calories, target_protein, target_carbs, target_fat
+        recent_logs: list of per-day dicts with keys calories/protein/carbs/fat
+
+    Returns:
+        {
+          "status": "no_data" | "balanced" | "deficit" | "surplus" | "mixed",
+          "message": str,
+          "critical_issues": list[str],
+          "averages": dict[str, float],
         }
-        
-    def find_frequent_foods(self, detail_items: list, top_n: int = 5) -> list:
-        """
-        ค้นหาอาหารที่ผู้ใช้ทานบ่อยที่สุด
-        """
-        if not detail_items:
-            return []
-            
-        df = pd.DataFrame(detail_items)
-        freq = df['food_name'].value_counts().head(top_n).reset_index()
-        freq.columns = ['food_name', 'count']
-        return freq.to_dict('records')
+    """
+    if not recent_logs:
+        return {
+            "status": "no_data",
+            "message": "ยังไม่มีข้อมูลโภชนาการในระบบ",
+            "critical_issues": [],
+            "averages": {k: 0.0 for k, _ in _MACROS},
+        }
+
+    averages = {macro: round(_avg(recent_logs, macro), 1) for macro, _ in _MACROS}
+    issues: list[str] = []
+    has_deficit = False
+    has_surplus = False
+
+    for macro, label in _MACROS:
+        target_value = float(target.get(f"target_{macro}", 0) or 0)
+        if target_value <= 0:
+            continue
+        actual = averages[macro]
+        gap_pct = (actual - target_value) / target_value * 100.0
+        if gap_pct < -_GAP_THRESHOLD_PCT:
+            issues.append(f"{label}ต่ำกว่าเป้า {abs(int(gap_pct))}%")
+            has_deficit = True
+        elif gap_pct > _GAP_THRESHOLD_PCT:
+            issues.append(f"{label}เกินเป้า {int(gap_pct)}%")
+            has_surplus = True
+
+    if not issues:
+        status = "balanced"
+        message = "โภชนาการสมดุลดี"
+    elif has_deficit and has_surplus:
+        status = "mixed"
+        message = "; ".join(issues)
+    elif has_deficit:
+        status = "deficit"
+        message = "; ".join(issues)
+    else:
+        status = "surplus"
+        message = "; ".join(issues)
+
+    return {
+        "status": status,
+        "message": message,
+        "critical_issues": issues,
+        "averages": averages,
+    }
+
+
+def find_frequent_foods(recent_foods: Iterable[dict], top_n: int = 5) -> list[dict]:
+    """Top-N most-eaten foods over the recent_foods window."""
+    counter: Counter[str] = Counter()
+    for row in recent_foods:
+        name = (row.get("food_name") or "").strip()
+        if name:
+            counter[name] += 1
+    return [{"food_name": name, "count": count} for name, count in counter.most_common(top_n)]

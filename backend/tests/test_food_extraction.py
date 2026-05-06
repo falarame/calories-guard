@@ -49,6 +49,20 @@ def test_regional_alias_can_be_dictionary_match():
     assert any(r["name"] == "ข้าวปุ้น" and r["quantity"] == 1.0 for r in result)
 
 
+def test_longest_match_wins_without_overlap():
+    text = "วันนี้กินข้าวผัดกะเพรา 1 จาน"
+    result = extract_foods(text, db_food_names=["ข้าวผัด", "ข้าวผัดกะเพรา"])
+    names = [r["name"] for r in result]
+    assert names == ["ข้าวผัดกะเพรา"]
+
+
+def test_tokenized_phrase_match_without_spaces():
+    text = "เช้ากินข้าวมันไก่เย็นกินผัดไทย"
+    result = extract_foods(text, db_food_names=["ข้าวมันไก่", "ผัดไทย"])
+    names = [r["name"] for r in result]
+    assert names == ["ข้าวมันไก่", "ผัดไทย"]
+
+
 def test_limit_respected():
     text = "ข้าวผัด ต้มยำ ผัดไทย ส้มตำ ลาบ"
     result = extract_foods(text, limit=2)

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../providers/user_data_provider.dart';
 import '../../services/auth_service.dart';
+import '../../utils/bmi_utils.dart';
 import '../widgets/bmi_category_table.dart';
 import 'target_weight_screen.dart';
 
@@ -201,21 +202,9 @@ class _GoalSelectionScreenState extends ConsumerState<GoalSelectionScreen> {
     final userData = ref.watch(userDataProvider);
     double bmi = userData.bmi;
 
-    String bmiStatus;
-    Color bmiColor;
-    if (bmi < 18.5) {
-      bmiStatus = 'น้ำหนักน้อย';
-      bmiColor = Colors.blue;
-    } else if (bmi < 23) {
-      bmiStatus = 'ปกติ';
-      bmiColor = Colors.green;
-    } else if (bmi < 25) {
-      bmiStatus = 'ท้วม';
-      bmiColor = Colors.orange;
-    } else {
-      bmiStatus = 'อ้วน';
-      bmiColor = Colors.red;
-    }
+    final bmiStatus = bmiStatusLabel(bmi);
+    final bmiColor = bmiRiskColor(bmi);
+    final riskData = bmiBandData(bmi);
 
     return Scaffold(
       backgroundColor: const Color(0xFFE8EFCF),
@@ -375,9 +364,9 @@ class _GoalSelectionScreenState extends ConsumerState<GoalSelectionScreen> {
                         },
                       ),
                       const SizedBox(height: 10),
-                      const Text('ค่า BMI ของคุณแสดงผลตามเกณฑ์มาตรฐาน',
-                          style:
-                              TextStyle(fontSize: 12, color: Colors.black87)),
+                      Text(riskData.riskText,
+                          style: const TextStyle(
+                              fontSize: 12, color: Colors.black87)),
                     ],
                   ),
                 ),

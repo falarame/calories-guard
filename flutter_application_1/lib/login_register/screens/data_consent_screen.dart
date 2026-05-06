@@ -1,153 +1,169 @@
 import 'package:flutter/material.dart';
-import 'gender_selection_screen.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-class DataConsentScreen extends StatefulWidget {
-  const DataConsentScreen({super.key});
+import '../../l10n/app_localizations.dart';
+import '../../providers/settings_provider.dart';
+import '../../theme/app_theme.dart';
+
+class DataConsentScreen extends ConsumerStatefulWidget {
+  const DataConsentScreen({super.key, required this.next});
+
+  /// Builder for the screen to navigate to once consent is granted.
+  /// We take a builder (not a Widget) so the destination is created fresh
+  /// after acceptance — important for screens that read providers in build.
+  final WidgetBuilder next;
 
   @override
-  State<DataConsentScreen> createState() => _DataConsentScreenState();
+  ConsumerState<DataConsentScreen> createState() =>
+      _DataConsentScreenState();
 }
 
-class _DataConsentScreenState extends State<DataConsentScreen> {
+class _DataConsentScreenState extends ConsumerState<DataConsentScreen> {
   bool _isAccepted = false;
+  bool _saving = false;
 
-  // Design Colors
-  final Color primaryGreen = const Color(0xFF628141);
-  final Color darkGreen = const Color(0xFF4C6414);
+  Future<void> _onSave() async {
+    final l10n = AppLocalizations.of(context);
+    if (!_isAccepted) {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        content: Text(l10n.tr('consent.error.must_accept')),
+      ));
+      return;
+    }
+    setState(() => _saving = true);
+    await ref.read(appSettingsProvider.notifier).setConsentAccepted(true);
+    if (!mounted) return;
+    Navigator.pushAndRemoveUntil(
+      context,
+      MaterialPageRoute(builder: widget.next),
+      (route) => false,
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    final palette = context.palette;
+
     return Scaffold(
-      backgroundColor: const Color(0xFFF7FBF2),
+      backgroundColor: palette.surfaceMuted,
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
-        leading: null,
+        automaticallyImplyLeading: false,
         title: ClipRRect(
           borderRadius: BorderRadius.circular(4),
           child: SizedBox(
             width: 200,
             height: 8,
             child: LinearProgressIndicator(
-              value: 0.125, // 10% - ขั้นแรกของการสมัคร
-              backgroundColor: Colors.grey.shade200,
-              color: primaryGreen,
+              value: 0.125,
+              backgroundColor: Theme.of(context).dividerColor,
+              color: palette.brand,
             ),
           ),
         ),
         centerTitle: true,
       ),
-      body: SingleChildScrollView(
-        child: Padding(
-          padding: const EdgeInsets.all(24.0),
+      body: SafeArea(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.fromLTRB(24, 0, 24, 24),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const SizedBox(height: 20),
+              const SizedBox(height: 12),
               Text(
-                "การยินยอมการใช้ข้อมูลส่วนบุคคล",
+                l10n.tr('consent.heading'),
                 style: TextStyle(
                   fontSize: 24,
                   fontWeight: FontWeight.bold,
-                  color: darkGreen,
+                  color: palette.brandStrong,
                 ),
               ),
               const SizedBox(height: 24),
-              const Text(
-                "แอปพลิเคชันนี้มีการเก็บข้อมูลส่วนบุคคลของผู้ใช้ เช่น ชื่อ-นามสกุล อีเมล รหัสผ่าน วันเกิด เพศ น้ำหนัก และส่วนสูง เพื่อใช้ในการสร้างบัญชีผู้ใช้ และนำข้อมูลไปคำนวณค่า BMI, BMR และ TDEE สำหรับการประเมินสุขภาพและแนะนำการรับประทานอาหารที่เหมาะสมกับเป้าหมายควบคุมน้ำหนักของผู้ใช้",
+              Text(
+                l10n.tr('consent.body1'),
                 style: TextStyle(
                   fontSize: 16,
-                  color: Colors.black87,
+                  color: palette.textPrimary,
                   height: 1.6,
                 ),
               ),
               const SizedBox(height: 20),
-              const Text(
-                "ข้อมูลที่ใช้บันทึกในแอปจะถูกนำไปใช้เพื่อการทำงานของระบบ เช่น การติดตามพฤติกรรมการรับประทานอาหาร และการแสดงผลข้อมูลสุขภาพของผู้ใช้ ทั้งนี้ข้อมูลจะถูกจัดเก็บอย่างเหมาะสมและใช้ภายในระบบของแอปพลิเคชันเท่านั้น",
+              Text(
+                l10n.tr('consent.body2'),
                 style: TextStyle(
                   fontSize: 16,
-                  color: Colors.black87,
+                  color: palette.textPrimary,
                   height: 1.6,
                 ),
               ),
-              const SizedBox(height: 40),
-              
-              // Custom Checkbox Section
+              const SizedBox(height: 32),
               InkWell(
-                onTap: () {
-                  setState(() {
-                    _isAccepted = !_isAccepted;
-                  });
-                },
-                child: Row(
-                  children: [
-                    Container(
-                      width: 24,
-                      height: 24,
-                      decoration: BoxDecoration(
-                        color: _isAccepted ? primaryGreen : Colors.white,
-                        border: Border.all(
-                          color: primaryGreen,
-                          width: 2,
+                onTap: () => setState(() => _isAccepted = !_isAccepted),
+                borderRadius: BorderRadius.circular(8),
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 8),
+                  child: Row(
+                    children: [
+                      Container(
+                        width: 24,
+                        height: 24,
+                        decoration: BoxDecoration(
+                          color: _isAccepted
+                              ? palette.brand
+                              : palette.surfaceCard,
+                          border: Border.all(color: palette.brand, width: 2),
+                          borderRadius: BorderRadius.circular(4),
                         ),
-                        borderRadius: BorderRadius.circular(4),
+                        child: _isAccepted
+                            ? const Icon(Icons.check,
+                                size: 18, color: Colors.white)
+                            : null,
                       ),
-                      child: _isAccepted
-                          ? const Icon(
-                              Icons.check,
-                              size: 18,
-                              color: Colors.white,
-                            )
-                          : null,
-                    ),
-                    const SizedBox(width: 12),
-                    const Expanded(
-                      child: Text(
-                        "ฉันยอมรับเงื่อนไขการใช้ข้อมูล",
-                        style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.w500,
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Text(
+                          l10n.tr('consent.checkbox'),
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w500,
+                            color: palette.textPrimary,
+                          ),
                         ),
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
               ),
-              
-              const SizedBox(height: 60),
-              
-              // Save Button
+              const SizedBox(height: 48),
               SizedBox(
                 width: double.infinity,
                 height: 56,
                 child: ElevatedButton(
-                  onPressed: () {
-                    if (_isAccepted) {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(builder: (context) => const GenderSelectionScreen()),
-                      );
-                    } else {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('กรุณายอมรับเงื่อนไขก่อน')),
-                      );
-                    }
-                  },
+                  onPressed: _saving ? null : _onSave,
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: primaryGreen,
+                    backgroundColor: palette.brand,
                     foregroundColor: Colors.white,
+                    disabledBackgroundColor:
+                        palette.brand.withValues(alpha: 0.4),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(28),
                     ),
                     elevation: 0,
                   ),
-                  child: const Text(
-                    "บันทึก",
-                    style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
+                  child: _saving
+                      ? const SizedBox(
+                          width: 22,
+                          height: 22,
+                          child: CircularProgressIndicator(
+                              strokeWidth: 2.5, color: Colors.white),
+                        )
+                      : Text(
+                          l10n.tr('consent.cta'),
+                          style: const TextStyle(
+                              fontSize: 18, fontWeight: FontWeight.bold),
+                        ),
                 ),
               ),
             ],
@@ -156,4 +172,20 @@ class _DataConsentScreenState extends State<DataConsentScreen> {
       ),
     );
   }
+}
+
+/// Pushes the appropriate post-auth screen, gating on the consent flag.
+/// Uses [pushAndRemoveUntil] so the back stack is cleaned up.
+void routeAfterAuth(
+  BuildContext context,
+  WidgetRef ref, {
+  required WidgetBuilder destination,
+}) {
+  final accepted = ref.read(appSettingsProvider).consentAccepted;
+  final route = MaterialPageRoute(
+    builder: accepted
+        ? destination
+        : (ctx) => DataConsentScreen(next: destination),
+  );
+  Navigator.pushAndRemoveUntil(context, route, (_) => false);
 }

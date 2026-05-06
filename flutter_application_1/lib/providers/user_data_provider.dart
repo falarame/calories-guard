@@ -457,6 +457,10 @@ class UserDataNotifier extends StateNotifier<UserData> {
     state = state.copyWith(avatarUrl: url);
   }
 
+  void setCurrentWeight(double weightKg) {
+    state = state.copyWith(weight: weightKg);
+  }
+
   void reset() {
     state = UserData();
   }

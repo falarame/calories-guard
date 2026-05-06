@@ -1,175 +1,258 @@
 """
-Food-name extraction helpers.
+Thai food-name extraction.
 
-Why this module exists:
-  - The chatbot + multi-agent system both need to pull food names out of free
-    Thai text like "วันนี้กินข้าวผัดกะเพรากับต้มยำกุ้ง 2 ถ้วย".
-  - Plain regex misses compound dishes and can't split Thai (no whitespace).
-  - pythainlp.tokenize.word_tokenize + a DB-backed dictionary of known food
-    names gives us solid n-gram matching that degrades gracefully (falls
-    back to regex patterns if pythainlp isn't installed).
+Strategy:
+  1. Tokenize the message (pythainlp if available, regex fallback).
+  2. Build sliding 1- to 4-gram windows.
+  3. Match against either:
+       (a) the caller-supplied `db_food_names` list, OR
+       (b) the live `foods` + `food_regional_names` tables, OR
+       (c) a small built-in fallback list of common Thai dishes.
+  4. Read a "qty + unit" hint from the surrounding text (1 จาน, ครึ่งถ้วย ...).
 
-Public API:
-    extract_foods(text, db_food_names=None, limit=5) -> list[dict]
-        Returns [{"name": ..., "quantity": float|None, "source": "dict|regex"}]
+Anything not found in the lexicon is left for the LLM-estimate path in
+`nutrition_analysis.NutritionAnalysisAgent`.
 """
 from __future__ import annotations
 
+import logging
 import re
-from typing import Iterable, Optional
+from typing import Any, Iterable, Optional
 
-try:
-    from pythainlp.tokenize import word_tokenize as _thai_tokenize
-    _HAS_PYTHAINLP = True
-except ImportError:
-    _HAS_PYTHAINLP = False
+from psycopg2.extras import RealDictCursor
+
+logger = logging.getLogger(__name__)
 
 
-# Known Thai dishes — used when DB lookup is unavailable (e.g. during tests).
-_FALLBACK_DISHES = [
-    "ข้าวผัดกะเพรา", "ข้าวผัด", "กะเพรา", "ต้มยำกุ้ง", "ต้มยำ",
-    "แกงเขียวหวาน", "แกงส้ม", "ผัดไทย", "ส้มตำ", "ลาบ",
-    "ราดหน้า", "ข้าวมันไก่", "ข้าวขาหมู", "หมูกะทะ",
-    "ก๋วยเตี๋ยวเรือ", "ก๋วยเตี๋ยว", "ผัดซีอิ๊ว", "ข้าวไข่เจียว",
-    "สเต็ก", "สลัด", "แซนด์วิช", "โจ๊ก", "ข้าวหน้า",
-]
+_QTY_WORDS: dict[str, float] = {
+    "ครึ่ง": 0.5,
+    "หนึ่ง": 1.0, "สอง": 2.0, "สาม": 3.0, "สี่": 4.0, "ห้า": 5.0,
+    "หก": 6.0, "เจ็ด": 7.0, "แปด": 8.0, "เก้า": 9.0, "สิบ": 10.0,
+}
 
-# "2 ถ้วย", "1 จาน", "ครึ่งจาน"
-_QUANTITY_RE = re.compile(
-    r"(\d+(?:\.\d+)?|ครึ่ง|หนึ่ง|สอง|สาม|สี่|ห้า)\s*(จาน|ถ้วย|ชาม|ชิ้น|แก้ว|คำ|ช้อน)"
+_UNIT_WORDS: tuple[str, ...] = (
+    "จาน", "ถ้วย", "ชาม", "ชิ้น", "แก้ว", "ขวด", "กล่อง", "ห่อ",
+    "ลูก", "ฟอง", "ใบ", "ก้าน", "กรัม", "g", "ml", "มล",
 )
-_THAI_NUM = {"ครึ่ง": 0.5, "หนึ่ง": 1, "สอง": 2, "สาม": 3, "สี่": 4, "ห้า": 5}
+
+_QTY_RE = re.compile(
+    r"(?P<num>\d+(?:[.,]\d+)?|" + "|".join(_QTY_WORDS) + r")\s*"
+    r"(?P<unit>" + "|".join(_UNIT_WORDS) + r")?",
+)
+
+# Common Thai dishes used when no DB or caller-supplied dictionary is given.
+# Keep this short — the DB is the source of truth in production.
+_FALLBACK_DISHES: tuple[str, ...] = (
+    "ข้าวผัด", "ข้าวผัดกะเพรา", "ข้าวผัดหมู", "ข้าวกะเพรา", "ข้าวมันไก่",
+    "ข้าวขาหมู", "ข้าวหมูแดง", "ข้าวเหนียว",
+    "ผัดไทย", "ผัดซีอิ๊ว", "ผัดกะเพรา",
+    "ส้มตำ", "ลาบ", "น้ำตก",
+    "ต้มยำ", "ต้มยำกุ้ง", "ต้มข่า", "ต้มจืด",
+    "แกงเขียวหวาน", "แกงเผ็ด", "แกงส้ม", "แกงมัสมั่น",
+    "ก๋วยเตี๋ยว", "ก๋วยเตี๋ยวเรือ",
+    "ขนมจีน", "ขนมจีนน้ำยา",
+    "โจ๊ก", "ข้าวต้ม",
+)
 
 
-def _match_ngrams(tokens: list[str], dictionary: set[str], max_n: int = 5) -> list[str]:
-    """
-    Greedy longest-match over tokens: tries to match n=max_n..1 against the
-    dictionary so "ข้าวผัดกะเพรา" wins over "ข้าว" + "ผัด" + "กะเพรา".
-    """
-    matches: list[str] = []
-    i = 0
-    while i < len(tokens):
-        hit = None
-        for n in range(min(max_n, len(tokens) - i), 0, -1):
-            cand = "".join(tokens[i:i + n]).strip()
-            if cand in dictionary:
-                hit = (cand, n)
-                break
-        if hit:
-            matches.append(hit[0])
-            i += hit[1]
-        else:
-            i += 1
-    return matches
-
-
-def _regex_fallback(text: str, dictionary: set[str]) -> list[str]:
-    """
-    Fallback when pythainlp is missing: scan the text character-by-character
-    and greedily match the longest dictionary entry starting at each position.
-    Works for Thai (no whitespace) because we treat the text as one string.
-    """
-    # Sort by length desc so longer dishes win ("ข้าวผัดกะเพรา" over "ข้าวผัด")
-    ordered = sorted(dictionary, key=len, reverse=True)
-    found: list[str] = []
-    i = 0
-    while i < len(text):
-        hit = None
-        for term in ordered:
-            if text.startswith(term, i):
-                hit = term
-                break
-        if hit:
-            found.append(hit)
-            i += len(hit)
-        else:
-            i += 1
-    return found
-
-
-def _extract_quantity(text: str, food_name: str) -> Optional[float]:
-    """Find a quantity number near the food name, e.g. 'ข้าวผัด 2 จาน' -> 2.0"""
-    # Look for a number within 15 chars after the food name mention
-    idx = text.find(food_name)
-    if idx < 0:
-        return None
-    window = text[idx: idx + len(food_name) + 20]
-    m = _QUANTITY_RE.search(window)
-    if not m:
-        return None
-    val = m.group(1)
-    if val in _THAI_NUM:
-        return float(_THAI_NUM[val])
+def _tokenize(text: str) -> list[str]:
     try:
-        return float(val)
+        from pythainlp.tokenize import word_tokenize  # type: ignore
+
+        return [t for t in word_tokenize(text, engine="newmm") if t.strip()]
+    except Exception:
+        return [t for t in re.split(r"[\s,]+", text) if t]
+
+
+def _token_spans(text: str, tokens: list[str]) -> list[tuple[str, int, int]]:
+    """Map token strings back to character spans in the original text."""
+    spans: list[tuple[str, int, int]] = []
+    cursor = 0
+    lowered = text.lower()
+    for token in tokens:
+        if not token.strip():
+            continue
+        idx = lowered.find(token.lower(), cursor)
+        if idx == -1:
+            idx = lowered.find(token.lower())
+        if idx == -1:
+            continue
+        end = idx + len(token)
+        spans.append((token, idx, end))
+        cursor = end
+    return spans
+
+
+def _ngram_spans(
+    token_spans: list[tuple[str, int, int]],
+    n_min: int = 1,
+    n_max: int = 6,
+) -> list[tuple[str, int, int]]:
+    out: list[tuple[str, int, int]] = []
+    max_n = min(n_max, len(token_spans))
+    for n in range(n_max, n_min - 1, -1):
+        if n > max_n:
+            continue
+        for i in range(len(token_spans) - n + 1):
+            chunk = token_spans[i : i + n]
+            out.append(("".join(t for t, _, _ in chunk), chunk[0][1], chunk[-1][2]))
+    return out
+
+
+def _parse_qty(near_text: str) -> tuple[float, str]:
+    m = _QTY_RE.search(near_text)
+    if not m:
+        return 1.0, ""
+    num_raw = m.group("num")
+    unit = m.group("unit") or ""
+    if num_raw in _QTY_WORDS:
+        return _QTY_WORDS[num_raw], unit
+    try:
+        return float(num_raw.replace(",", ".")), unit
     except ValueError:
-        return None
+        return 1.0, unit
+
+
+def _load_db_lexicon() -> dict[str, int]:
+    """name (lowered) → food_id. Pulls foods + food_regional_names. Empty on failure."""
+    try:
+        from database import get_db_connection
+    except Exception:
+        return {}
+    conn = get_db_connection()
+    if not conn:
+        return {}
+    try:
+        cur = conn.cursor(cursor_factory=RealDictCursor)
+        lex: dict[str, int] = {}
+        cur.execute("SELECT food_id, food_name FROM foods WHERE deleted_at IS NULL")
+        for row in cur.fetchall():
+            name = (row["food_name"] or "").strip().lower()
+            if name:
+                lex.setdefault(name, row["food_id"])
+        try:
+            cur.execute("SELECT food_id, name_th FROM food_regional_names")
+            for row in cur.fetchall():
+                name = (row["name_th"] or "").strip().lower()
+                if name:
+                    lex.setdefault(name, row["food_id"])
+        except Exception as e:
+            logger.debug("food_regional_names lookup skipped: %s", e)
+        return lex
+    except Exception as e:
+        logger.debug("DB lexicon load failed: %s", e)
+        return {}
+    finally:
+        try:
+            conn.close()
+        except Exception:
+            pass
 
 
 def extract_foods(
     text: str,
+    *,
     db_food_names: Optional[Iterable[str]] = None,
-    limit: int = 5,
-) -> list[dict]:
-    """
-    Extract food mentions from free Thai text.
+    limit: Optional[int] = None,
+) -> list[dict[str, Any]]:
+    """Return food mentions found in `text` (longest-match-wins, no overlap).
 
-    Parameters
-    ----------
-    text : str
-        Raw user message.
-    db_food_names : iterable of str, optional
-        Canonical food names from the `foods` table. When provided, matches
-        are drawn from this set (best accuracy). When absent, a small
-        fallback dictionary is used.
-    limit : int
-        Max items to return.
+    Args:
+        text: free-form Thai/English message.
+        db_food_names: caller-supplied dictionary. When given we skip the
+            DB load — used by unit tests and as a hot path when callers
+            already have a cached list.
+        limit: max mentions to return.
 
-    Returns
-    -------
-    list of dict:
-        [{"name": str, "quantity": float|None, "source": "dict"|"regex"}]
+    Returns:
+        list of dicts with keys: name, food_id, quantity, unit, source, raw.
     """
-    text = (text or "").strip()
-    if not text:
+    if not text or not text.strip():
         return []
 
-    # Build dictionary
-    dictionary: set[str] = set()
-    if db_food_names:
-        dictionary.update(n.strip() for n in db_food_names if n and n.strip())
-    dictionary.update(_FALLBACK_DISHES)
-
-    matches: list[str] = []
-    source = "dict"
-
-    if _HAS_PYTHAINLP:
-        try:
-            tokens = _thai_tokenize(text, engine="newmm")
-            # Drop pure whitespace tokens
-            tokens = [t for t in tokens if t.strip()]
-            matches = _match_ngrams(tokens, dictionary, max_n=6)
-        except Exception:
-            matches = []
-
-    fallback_matches = _regex_fallback(text, dictionary)
-    if matches:
-        matches.extend(m for m in fallback_matches if m not in matches)
+    if db_food_names is not None:
+        lex: dict[str, Optional[int]] = {
+            n.strip().lower(): None for n in db_food_names if n and n.strip()
+        }
+        source_label = "dict"
     else:
-        matches = fallback_matches
-        source = "regex"
+        db_lex = _load_db_lexicon()
+        if db_lex:
+            # Union DB lexicon with fallback so common dishes still match
+            # even if the local DB is missing rows.
+            merged: dict[str, Optional[int]] = {k: v for k, v in db_lex.items()}
+            for f in _FALLBACK_DISHES:
+                merged.setdefault(f.lower(), None)
+            lex = merged
+            source_label = "dict"
+        else:
+            lex = {n.lower(): None for n in _FALLBACK_DISHES}
+            source_label = "fallback"
 
-    # De-dup, preserve order
-    seen = set()
-    deduped: list[str] = []
-    for m in matches:
-        if m not in seen:
-            seen.add(m)
-            deduped.append(m)
-        if len(deduped) >= limit:
-            break
+    if not lex:
+        return []
 
-    return [
-        {"name": name, "quantity": _extract_quantity(text, name), "source": source}
-        for name in deduped
-    ]
+    tokens = _tokenize(text)
+    token_spans = _token_spans(text, tokens)
+    candidates = _ngram_spans(token_spans)
+
+    # Add direct lexicon substring candidates as a safety net. PyThaiNLP is
+    # good, but regional aliases and odd punctuation can still be segmented
+    # differently from the DB name.
+    text_lower = text.lower()
+    for key in lex.keys():
+        if len(key) < 2:
+            continue
+        idx = 0
+        while True:
+            found = text_lower.find(key, idx)
+            if found == -1:
+                break
+            candidates.append((text[found : found + len(key)], found, found + len(key)))
+            idx = found + len(key)
+
+    used_spans: list[tuple[int, int]] = []  # (start, end) of consumed chars
+    mentions: list[dict[str, Any]] = []
+
+    def _overlaps(start: int, end: int) -> bool:
+        for s, e in used_spans:
+            if start < e and end > s:
+                return True
+        return False
+
+    seen_candidates: set[tuple[str, int, int]] = set()
+    ordered_candidates = sorted(
+        candidates,
+        key=lambda item: (-(item[2] - item[1]), item[1]),
+    )
+
+    for raw_candidate, found, end in ordered_candidates:
+        key = raw_candidate.strip().lower()
+        if len(key) < 2:
+            continue
+        candidate_id = (key, found, end)
+        if candidate_id in seen_candidates:
+            continue
+        seen_candidates.add(candidate_id)
+        if key not in lex or _overlaps(found, end):
+            continue
+        window = text[found : end + 12]
+        qty, unit = _parse_qty(window)
+        mentions.append(
+            {
+                "name": text[found:end],
+                "food_id": lex[key],
+                "quantity": qty,
+                "unit": unit,
+                "source": source_label,
+                "raw": window.strip(),
+            }
+        )
+        used_spans.append((found, end))
+        if limit is not None and len(mentions) >= limit:
+            mentions.sort(key=lambda m: text_lower.find(m["name"].lower()))
+            return mentions
+
+    # Order results by their position in the original text.
+    mentions.sort(key=lambda m: text_lower.find(m["name"].lower()))
+    return mentions

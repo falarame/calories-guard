@@ -1,5 +1,5 @@
 """
-Chat endpoints for AI Coach + 3-agent nutrition pipeline.
+Chat endpoints for AI Coach + meal text estimation.
 
 Hardening:
 - Input sanitization (trim, strip control chars, cap at 2000 chars)
@@ -13,10 +13,11 @@ from fastapi import APIRouter, HTTPException, Request
 from slowapi import Limiter
 from slowapi.util import get_remote_address
 
-from chatbot_agent import CoachingAgent
-from ai_models.multi_agent_system import NutritionMultiAgent, NutritionAnalysisAgent
+from ai_models import llm_provider
+from ai_models.coach_agent import CoachAgent
+from ai_models.nutrition_analysis import NutritionAnalysisAgent
 from app.models.schemas import ChatMessage, MealEstimateRequest
-from app.core.config import AI_ENABLED
+from app.core.config import AI_ENABLED, settings
 from app.core.observability import track, note_failure
 
 router = APIRouter()
@@ -36,8 +37,7 @@ def _require_ai_enabled() -> None:
             detail="AI temporarily unavailable",
         )
 
-coach_agent = CoachingAgent()
-_multi_agent = NutritionMultiAgent()
+coach_agent = CoachAgent()
 _nutrition_agent = NutritionAnalysisAgent()
 
 _AI_TIMEOUT_SEC = 30
@@ -64,6 +64,29 @@ def _run_with_timeout(fn, *args, **kwargs):
             raise HTTPException(status_code=504, detail="AI ตอบช้าเกินไป กรุณาลองใหม่")
 
 
+@router.get("/api/chat/health")
+def chat_health():
+    """Probe Ollama reachability + report which model is configured.
+
+    No rate limit on purpose — ops/uptime monitors hit this regularly.
+    """
+    import os
+    return {
+        "ai_enabled": AI_ENABLED,
+        "ollama_ok": llm_provider.health_check() if AI_ENABLED else False,
+        "model": (
+            getattr(settings, "ollama_model", None)
+            if settings is not None
+            else os.getenv("OLLAMA_MODEL", "deepseek-r1:1.5b")
+        ),
+        "base_url": (
+            getattr(settings, "ollama_base_url", None)
+            if settings is not None
+            else os.getenv("OLLAMA_BASE_URL", "http://127.0.0.1:11434")
+        ),
+    }
+
+
 @router.post("/api/chat/coach")
 @limiter.limit("10/hour")
 def chat_with_coach(request: Request, payload: ChatMessage):
@@ -84,6 +107,40 @@ def chat_with_coach(request: Request, payload: ChatMessage):
         except Exception as e:
             note_failure("chat.coach", e, user_id=payload.user_id)
             raise HTTPException(status_code=500, detail=f"AI Coach Error: {str(e)}")
+
+
+@router.post("/api/chat/multi")
+@limiter.limit("10/hour")
+def chat_multi_agent(request: Request, payload: ChatMessage):
+    """Legacy endpoint kept for Flutter chat_screen compatibility.
+
+    Previously routed through a 3-agent pipeline; now delegates straight
+    to CoachAgent. Keeps the same response envelope so the client doesn't
+    need to change.
+    """
+    _require_ai_enabled()
+    msg = _sanitize_message(payload.message)
+    if not msg:
+        raise HTTPException(status_code=400, detail="ข้อความว่างเปล่า")
+    with track("chat.multi", "POST /api/chat/multi",
+               user_id=payload.user_id, msg_len=len(msg)):
+        try:
+            response_text = _run_with_timeout(
+                coach_agent.generate_response, payload.user_id, msg
+            )
+            return {"response": response_text, "agent": "coach"}
+        except HTTPException:
+            raise
+        except Exception as e:
+            note_failure("chat.multi", e, user_id=payload.user_id)
+            return {
+                "response": (
+                    "ขออภัยครับ ตอนนี้ AI Coach มีปัญหาในการประมวลผลชั่วคราว "
+                    "แต่ระบบยังใช้งานได้อยู่ ลองถามใหม่อีกครั้ง หรือถามแบบสั้นลงได้นะครับ"
+                ),
+                "agent": "fallback",
+                "error": "coach_failed",
+            }
 
 
 @router.post("/api/meals/estimate")
@@ -120,37 +177,3 @@ def estimate_meal_from_text(request: Request, payload: MealEstimateRequest):
         raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Meal estimate error: {str(e)}")
-
-
-@router.post("/api/chat/multi")
-@limiter.limit("10/hour")
-def chat_multi_agent(request: Request, payload: ChatMessage):
-    """
-    3-Agent AI pipeline:
-      Agent1 (DataOrchestrator) -> Agent2 (NutritionAnalysis) -> Agent3 (ResponseComposer/LLM)
-    """
-    _require_ai_enabled()
-    msg = _sanitize_message(payload.message)
-    if not msg:
-        raise HTTPException(status_code=400, detail="ข้อความว่างเปล่า")
-    with track("chat.multi", "POST /api/chat/multi",
-               user_id=payload.user_id, msg_len=len(msg)):
-        try:
-            response_text = _run_with_timeout(
-                _multi_agent.run,
-                payload.user_id, msg,
-                lat=payload.lat, lng=payload.lng,
-            )
-            return {"response": response_text, "agent": "multi_3"}
-        except HTTPException:
-            raise
-        except Exception as e:
-            note_failure("chat.multi", e, user_id=payload.user_id)
-            return {
-                "response": (
-                    "ขออภัยครับ ตอนนี้ AI Coach มีปัญหาในการประมวลผลชั่วคราว "
-                    "แต่ระบบยังใช้งานได้อยู่ ลองถามใหม่อีกครั้ง หรือถามแบบสั้นลงได้นะครับ"
-                ),
-                "agent": "fallback",
-                "error": "multi_agent_failed",
-            }

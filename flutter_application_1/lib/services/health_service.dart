@@ -16,8 +16,8 @@ class HealthService {
 
   static const List<HealthDataType> _types = [
     HealthDataType.ACTIVE_ENERGY_BURNED,
+    HealthDataType.TOTAL_CALORIES_BURNED,
     HealthDataType.STEPS,
-    HealthDataType.WORKOUT,
   ];
 
   static const List<HealthDataAccess> _permissions = [
@@ -65,15 +65,23 @@ class HealthService {
     await _health.installHealthConnect();
   }
 
-  /// Request read permissions for calories/steps/workouts.
+  /// Request read permissions for calories/steps.
+  ///
+  /// Samsung Health syncs some exercise calorie entries to Health Connect as
+  /// TOTAL_CALORIES_BURNED rather than ACTIVE_ENERGY_BURNED, so both calorie
+  /// records are requested. WORKOUT is intentionally not part of the required
+  /// permission set; if workout permission is denied, step/calorie sync should
+  /// still work.
   static Future<bool> requestPermissions() async {
     await _ensureConfigured();
     try {
       // `hasPermissions` can return null if the plugin can't determine
       // the state — treat that as "not granted" and re-request.
-      final has = await _health.hasPermissions(_types, permissions: _permissions);
+      final has =
+          await _health.hasPermissions(_types, permissions: _permissions);
       if (has == true) return true;
-      return await _health.requestAuthorization(_types, permissions: _permissions);
+      return await _health.requestAuthorization(_types,
+          permissions: _permissions);
     } catch (_) {
       return false;
     }
@@ -96,34 +104,80 @@ class HealthService {
     return granted ? HealthReadiness.ok : HealthReadiness.permissionDenied;
   }
 
-  /// Total kcal burned between 00:00 and 23:59:59 of [date] (device local).
-  static Future<double> fetchCaloriesBurned(DateTime date) async {
+  static DateTime _startOfDay(DateTime date) =>
+      DateTime(date.year, date.month, date.day);
+
+  static double _sumNumericValues(List<HealthDataPoint> data) {
+    double total = 0;
+    for (final point in data) {
+      final v = point.value;
+      if (v is NumericHealthValue) {
+        total += v.numericValue.toDouble();
+      }
+    }
+    return total;
+  }
+
+  static Future<double> _fetchNumericTotal(
+    DateTime date,
+    HealthDataType type,
+  ) async {
     await _ensureConfigured();
     try {
-      final start = DateTime(date.year, date.month, date.day);
+      final start = _startOfDay(date);
       final end = start.add(const Duration(days: 1));
       final data = await _health.getHealthDataFromTypes(
         startTime: start,
         endTime: end,
-        types: [HealthDataType.ACTIVE_ENERGY_BURNED],
+        types: [type],
       );
-      double total = 0;
-      for (final point in data) {
-        final v = point.value;
-        if (v is NumericHealthValue) {
-          total += v.numericValue.toDouble();
-        }
-      }
-      return total;
+      return _sumNumericValues(data);
     } catch (_) {
       return 0;
     }
   }
 
+  /// Total activity kcal between 00:00 and 23:59:59 of [date] (device local).
+  ///
+  /// Prefer ACTIVE_ENERGY_BURNED when present. Samsung Health commonly exposes
+  /// workout/exercise calories through TOTAL_CALORIES_BURNED, so use that as a
+  /// fallback when active energy is empty.
+  static Future<double> fetchCaloriesBurned(DateTime date) async {
+    final active = await _fetchNumericTotal(
+      date,
+      HealthDataType.ACTIVE_ENERGY_BURNED,
+    );
+    if (active > 0) return active;
+    return _fetchNumericTotal(date, HealthDataType.TOTAL_CALORIES_BURNED);
+  }
+
+  static Future<HealthActivitySummary> fetchActivitySummary(
+    DateTime date,
+  ) async {
+    final activeCalories = await _fetchNumericTotal(
+      date,
+      HealthDataType.ACTIVE_ENERGY_BURNED,
+    );
+    final totalCalories = await _fetchNumericTotal(
+      date,
+      HealthDataType.TOTAL_CALORIES_BURNED,
+    );
+    final steps = await fetchSteps(date);
+    final usesTotalCaloriesFallback = activeCalories <= 0 && totalCalories > 0;
+
+    return HealthActivitySummary(
+      caloriesBurned: activeCalories > 0 ? activeCalories : totalCalories,
+      steps: steps,
+      activeCalories: activeCalories,
+      totalCalories: totalCalories,
+      usesTotalCaloriesFallback: usesTotalCaloriesFallback,
+    );
+  }
+
   static Future<int> fetchSteps(DateTime date) async {
     await _ensureConfigured();
     try {
-      final start = DateTime(date.year, date.month, date.day);
+      final start = _startOfDay(date);
       final end = start.add(const Duration(days: 1));
       final steps = await _health.getTotalStepsInInterval(start, end);
       return steps ?? 0;
@@ -157,6 +211,22 @@ class HealthService {
       await launchUrl(uri, mode: LaunchMode.externalApplication);
     }
   }
+}
+
+class HealthActivitySummary {
+  final double caloriesBurned;
+  final int steps;
+  final double activeCalories;
+  final double totalCalories;
+  final bool usesTotalCaloriesFallback;
+
+  const HealthActivitySummary({
+    required this.caloriesBurned,
+    required this.steps,
+    required this.activeCalories,
+    required this.totalCalories,
+    required this.usesTotalCaloriesFallback,
+  });
 }
 
 /// State machine describing what the app should do next before fetching

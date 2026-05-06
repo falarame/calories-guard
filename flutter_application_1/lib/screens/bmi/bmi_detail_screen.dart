@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'dart:math' as math;
+import '../../utils/bmi_utils.dart';
 
 class BmiDetailScreen extends StatefulWidget {
   final double currentBmi;
@@ -60,26 +61,7 @@ class _BmiDetailScreenState extends State<BmiDetailScreen>
     return weight / (h * h);
   }
 
-  _BmiCategory _category(double bmi) {
-    if (bmi <= 0) return _BmiCategory.unknown;
-    if (bmi < 18.5) return _BmiCategory.underweight;
-    if (bmi < 23.0) return _BmiCategory.normal;
-    if (bmi < 25.0) return _BmiCategory.overweight;
-    if (bmi < 30.0) return _BmiCategory.obese1;
-    return _BmiCategory.obese2;
-  }
-
-  Color _bmiColor(double bmi) {
-    final cat = _category(bmi);
-    switch (cat) {
-      case _BmiCategory.underweight: return const Color(0xFF3498DB);
-      case _BmiCategory.normal:      return _green;
-      case _BmiCategory.overweight:  return const Color(0xFFF39C12);
-      case _BmiCategory.obese1:      return const Color(0xFFE67E22);
-      case _BmiCategory.obese2:      return const Color(0xFFE74C3C);
-      default:                        return Colors.grey;
-    }
-  }
+  Color _bmiColor(double bmi) => bmiRiskColor(bmi);
 
   void _calculate() {
     final w = double.tryParse(_weightCtrl.text);
@@ -99,7 +81,7 @@ class _BmiDetailScreenState extends State<BmiDetailScreen>
   Widget build(BuildContext context) {
     final displayBmi = _calcBmi ?? widget.currentBmi;
     final color = _bmiColor(displayBmi);
-    final catData = _categoryData(_category(displayBmi));
+    final catData = bmiBandData(displayBmi);
 
     return Scaffold(
       backgroundColor: const Color(0xFFF5F7F0),
@@ -125,7 +107,7 @@ class _BmiDetailScreenState extends State<BmiDetailScreen>
 
   // ─── Header ────────────────────────────────────────────────────────────────
 
-  Widget _buildHeader(double bmi, Color color, _CatData catData) {
+  Widget _buildHeader(double bmi, Color color, BmiBandData catData) {
     return Container(
       decoration: const BoxDecoration(
         gradient: LinearGradient(
@@ -144,7 +126,8 @@ class _BmiDetailScreenState extends State<BmiDetailScreen>
             child: Container(
               padding: const EdgeInsets.all(8),
               decoration: BoxDecoration(
-                  color: Colors.white.withValues(alpha: 0.2), shape: BoxShape.circle),
+                  color: Colors.white.withValues(alpha: 0.2),
+                  shape: BoxShape.circle),
               child: const Icon(Icons.arrow_back_ios_new_rounded,
                   color: Colors.white, size: 18),
             ),
@@ -177,8 +160,7 @@ class _BmiDetailScreenState extends State<BmiDetailScreen>
           const SizedBox(width: 28),
           Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
             Container(
-              padding:
-                  const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
               decoration: BoxDecoration(
                 color: Colors.white.withValues(alpha: 0.25),
                 borderRadius: BorderRadius.circular(20),
@@ -191,13 +173,11 @@ class _BmiDetailScreenState extends State<BmiDetailScreen>
             ),
             const SizedBox(height: 8),
             Text(catData.riskText,
-                style: const TextStyle(
-                    fontSize: 13, color: Colors.white70)),
+                style: const TextStyle(fontSize: 13, color: Colors.white70)),
             const SizedBox(height: 4),
             Text(
               '${widget.weightKg.toStringAsFixed(1)} กก. · ${widget.heightCm.toStringAsFixed(0)} ซม.',
-              style: const TextStyle(
-                  fontSize: 12, color: Colors.white60),
+              style: const TextStyle(fontSize: 12, color: Colors.white60),
             ),
           ]),
         ]),
@@ -230,13 +210,12 @@ class _BmiDetailScreenState extends State<BmiDetailScreen>
               height: 36,
               decoration: BoxDecoration(
                   color: _green.withValues(alpha: 0.1), shape: BoxShape.circle),
-              child: const Icon(Icons.calculate_outlined,
-                  size: 18, color: _green),
+              child:
+                  const Icon(Icons.calculate_outlined, size: 18, color: _green),
             ),
             const SizedBox(width: 12),
             const Text('สูตรคำนวณ BMI',
-                style: TextStyle(
-                    fontSize: 16, fontWeight: FontWeight.bold)),
+                style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
           ]),
           const SizedBox(height: 16),
           // Formula box
@@ -257,7 +236,10 @@ class _BmiDetailScreenState extends State<BmiDetailScreen>
                     color: _greenDark),
               ),
               Container(
-                  width: 220, height: 2, color: _greenDark, margin: const EdgeInsets.symmetric(vertical: 4)),
+                  width: 220,
+                  height: 2,
+                  color: _greenDark,
+                  margin: const EdgeInsets.symmetric(vertical: 4)),
               const Text(
                 'ส่วนสูง (ม.) × ส่วนสูง (ม.)',
                 style: TextStyle(
@@ -299,7 +281,7 @@ class _BmiDetailScreenState extends State<BmiDetailScreen>
 
   // ─── Gauge card ────────────────────────────────────────────────────────────
 
-  Widget _buildGaugeCard(double bmi, Color color, _CatData catData) {
+  Widget _buildGaugeCard(double bmi, Color color, BmiBandData catData) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16),
       child: Container(
@@ -319,8 +301,7 @@ class _BmiDetailScreenState extends State<BmiDetailScreen>
           const Align(
             alignment: Alignment.centerLeft,
             child: Text('ระดับ BMI ของคุณ',
-                style: TextStyle(
-                    fontSize: 16, fontWeight: FontWeight.bold)),
+                style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
           ),
           const SizedBox(height: 20),
           SizedBox(
@@ -368,10 +349,11 @@ class _BmiDetailScreenState extends State<BmiDetailScreen>
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Text('10', style: TextStyle(fontSize: 11, color: Colors.grey)),
-                Text('18.5', style: TextStyle(fontSize: 11, color: Colors.grey)),
+                Text('18.5',
+                    style: TextStyle(fontSize: 11, color: Colors.grey)),
                 Text('23', style: TextStyle(fontSize: 11, color: Colors.grey)),
-                Text('25', style: TextStyle(fontSize: 11, color: Colors.grey)),
-                Text('30', style: TextStyle(fontSize: 11, color: Colors.grey)),
+                Text('27.5',
+                    style: TextStyle(fontSize: 11, color: Colors.grey)),
                 Text('40', style: TextStyle(fontSize: 11, color: Colors.grey)),
               ],
             ),
@@ -384,19 +366,6 @@ class _BmiDetailScreenState extends State<BmiDetailScreen>
   // ─── Classification table ──────────────────────────────────────────────────
 
   Widget _buildTableCard() {
-    const rows = [
-      _TableRow('น้ำหนักต่ำกว่าเกณฑ์', 'น้อยกว่า 18.5',
-          'เสี่ยงโรคขาดสารอาหาร', Color(0xFF3498DB)),
-      _TableRow('น้ำหนักสมส่วน', '18.5 – 22.9',
-          'โอกาสมีโรคแทรกซ้อนน้อย', Color(0xFF27AE60)),
-      _TableRow('น้ำหนักเกินมาตรฐาน', '23.0 – 24.9',
-          'ภาวะน้ำหนักเกินระยะเริ่มต้น', Color(0xFFF39C12)),
-      _TableRow('น้ำหนักอยู่ในเกณฑ์อ้วน', '25.0 – 29.9',
-          'ภาวะน้ำหนักเกินมาก ระยะอ้วนเริ่มต้น', Color(0xFFE67E22)),
-      _TableRow('น้ำหนักอยู่ในเกณฑ์อ้วนมาก', 'มากกว่า 30',
-          'ภาวะน้ำหนักเกินมาก โรคอ้วน', Color(0xFFE74C3C)),
-    ];
-
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16),
       child: Container(
@@ -418,21 +387,20 @@ class _BmiDetailScreenState extends State<BmiDetailScreen>
                 width: 36,
                 height: 36,
                 decoration: BoxDecoration(
-                    color: _green.withValues(alpha: 0.1), shape: BoxShape.circle),
+                    color: _green.withValues(alpha: 0.1),
+                    shape: BoxShape.circle),
                 child: const Icon(Icons.table_chart_outlined,
                     size: 18, color: _green),
               ),
               const SizedBox(width: 12),
               const Text('เกณฑ์ค่า BMI (WHO อ้างอิงคนเอเชีย)',
-                  style: TextStyle(
-                      fontSize: 15, fontWeight: FontWeight.bold)),
+                  style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold)),
             ]),
           ),
           // Table header
           Container(
             margin: const EdgeInsets.symmetric(horizontal: 16),
-            padding:
-                const EdgeInsets.symmetric(vertical: 10, horizontal: 12),
+            padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 12),
             decoration: BoxDecoration(
               color: _green,
               borderRadius: BorderRadius.circular(10),
@@ -457,21 +425,18 @@ class _BmiDetailScreenState extends State<BmiDetailScreen>
           ),
           const SizedBox(height: 8),
           // Table rows
-          ...rows.map((r) {
+          ...bmiBands.map((r) {
             final userBmi = _calcBmi ?? widget.currentBmi;
-            final isUser = _isUserRow(userBmi, r.bmiRange);
+            final isUser = r.contains(userBmi);
             return Container(
               margin: const EdgeInsets.fromLTRB(16, 0, 16, 6),
-              padding: const EdgeInsets.symmetric(
-                  vertical: 12, horizontal: 12),
+              padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 12),
               decoration: BoxDecoration(
                 color: isUser
                     ? r.color.withValues(alpha: 0.12)
                     : Colors.grey.shade50,
                 borderRadius: BorderRadius.circular(10),
-                border: isUser
-                    ? Border.all(color: r.color, width: 1.5)
-                    : null,
+                border: isUser ? Border.all(color: r.color, width: 1.5) : null,
               ),
               child: Row(children: [
                 Expanded(
@@ -499,10 +464,9 @@ class _BmiDetailScreenState extends State<BmiDetailScreen>
                       ]),
                       Padding(
                         padding: const EdgeInsets.only(left: 16, top: 2),
-                        child: Text(r.risk,
+                        child: Text(r.riskText,
                             style: TextStyle(
-                                fontSize: 10,
-                                color: Colors.grey.shade500)),
+                                fontSize: 10, color: Colors.grey.shade500)),
                       ),
                     ],
                   ),
@@ -512,7 +476,7 @@ class _BmiDetailScreenState extends State<BmiDetailScreen>
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      Text(r.bmiRange,
+                      Text(r.range,
                           textAlign: TextAlign.center,
                           style: TextStyle(
                               fontSize: 12,
@@ -543,16 +507,6 @@ class _BmiDetailScreenState extends State<BmiDetailScreen>
     );
   }
 
-  bool _isUserRow(double bmi, String range) {
-    if (bmi <= 0) return false;
-    if (range.contains('18.5') && bmi < 18.5) return true;
-    if (range.contains('22.9') && bmi >= 18.5 && bmi < 23.0) return true;
-    if (range.contains('24.9') && bmi >= 23.0 && bmi < 25.0) return true;
-    if (range.contains('29.9') && bmi >= 25.0 && bmi < 30.0) return true;
-    if (range.contains('30') && !range.contains('29.9') && bmi >= 30.0) return true;
-    return false;
-  }
-
   // ─── Calculator card ────────────────────────────────────────────────────────
 
   Widget _buildCalculatorCard() {
@@ -578,13 +532,12 @@ class _BmiDetailScreenState extends State<BmiDetailScreen>
               height: 36,
               decoration: BoxDecoration(
                   color: _green.withValues(alpha: 0.1), shape: BoxShape.circle),
-              child: const Icon(Icons.edit_note_rounded,
-                  size: 18, color: _green),
+              child:
+                  const Icon(Icons.edit_note_rounded, size: 18, color: _green),
             ),
             const SizedBox(width: 12),
             const Text('คำนวณ BMI ด้วยตัวเอง',
-                style: TextStyle(
-                    fontSize: 16, fontWeight: FontWeight.bold)),
+                style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
           ]),
           const SizedBox(height: 18),
           // Input fields
@@ -601,8 +554,7 @@ class _BmiDetailScreenState extends State<BmiDetailScreen>
               onPressed: _calculate,
               icon: const Icon(Icons.calculate_rounded),
               label: const Text('คำนวณ',
-                  style: TextStyle(
-                      fontSize: 16, fontWeight: FontWeight.bold)),
+                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
               style: ElevatedButton.styleFrom(
                 backgroundColor: _green,
                 foregroundColor: Colors.white,
@@ -633,7 +585,7 @@ class _BmiDetailScreenState extends State<BmiDetailScreen>
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  _categoryData(_category(_calcBmi!)).label,
+                  bmiBandData(_calcBmi!).label,
                   style: TextStyle(
                       fontSize: 14,
                       color: _bmiColor(_calcBmi!),
@@ -647,8 +599,7 @@ class _BmiDetailScreenState extends State<BmiDetailScreen>
     );
   }
 
-  Widget _inputField(
-      TextEditingController ctrl, String label, String suffix) {
+  Widget _inputField(TextEditingController ctrl, String label, String suffix) {
     return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
       Text(label,
           style: TextStyle(
@@ -658,13 +609,11 @@ class _BmiDetailScreenState extends State<BmiDetailScreen>
       const SizedBox(height: 6),
       TextField(
         controller: ctrl,
-        keyboardType:
-            const TextInputType.numberWithOptions(decimal: true),
+        keyboardType: const TextInputType.numberWithOptions(decimal: true),
         style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
         decoration: InputDecoration(
           suffixText: suffix,
-          suffixStyle:
-              TextStyle(color: Colors.grey.shade500, fontSize: 13),
+          suffixStyle: TextStyle(color: Colors.grey.shade500, fontSize: 13),
           filled: true,
           fillColor: const Color(0xFFF5F7F0),
           border: OutlineInputBorder(
@@ -681,41 +630,6 @@ class _BmiDetailScreenState extends State<BmiDetailScreen>
       ),
     ]);
   }
-
-  _CatData _categoryData(_BmiCategory cat) {
-    switch (cat) {
-      case _BmiCategory.underweight:
-        return const _CatData('น้ำหนักน้อยกว่าเกณฑ์', 'เสี่ยงโรคขาดสารอาหาร');
-      case _BmiCategory.normal:
-        return const _CatData('น้ำหนักสมส่วน', 'โอกาสเจ็บป่วยต่ำ');
-      case _BmiCategory.overweight:
-        return const _CatData('น้ำหนักเกินมาตรฐาน', 'ควรควบคุมน้ำหนัก');
-      case _BmiCategory.obese1:
-        return const _CatData('อ้วนระดับ 1', 'มีความเสี่ยงทางสุขภาพ');
-      case _BmiCategory.obese2:
-        return const _CatData('อ้วนระดับ 2', 'ความเสี่ยงสูงมาก');
-      default:
-        return const _CatData('ไม่ทราบ', '-');
-    }
-  }
-}
-
-// ─── Enums & Data classes ─────────────────────────────────────────────────────
-
-enum _BmiCategory { unknown, underweight, normal, overweight, obese1, obese2 }
-
-class _CatData {
-  final String label;
-  final String riskText;
-  const _CatData(this.label, this.riskText);
-}
-
-class _TableRow {
-  final String label;
-  final String bmiRange;
-  final String risk;
-  final Color color;
-  const _TableRow(this.label, this.bmiRange, this.risk, this.color);
 }
 
 // ─── BMI Gauge Painter ─────────────────────────────────────────────────────
@@ -727,11 +641,10 @@ class _BmiGaugePainter extends CustomPainter {
   _BmiGaugePainter({required this.bmi, required this.animValue});
 
   static const _zones = [
-    _Zone(10.0, 18.5, Color(0xFF3498DB)),  // underweight
-    _Zone(18.5, 23.0, Color(0xFF27AE60)),  // normal
-    _Zone(23.0, 25.0, Color(0xFFF39C12)),  // overweight
-    _Zone(25.0, 30.0, Color(0xFFE67E22)),  // obese1
-    _Zone(30.0, 40.0, Color(0xFFE74C3C)),  // obese2
+    _Zone(10.0, 18.5, Color(0xFF3498DB)), // underweight
+    _Zone(18.5, 23.0, Color(0xFF628141)), // normal
+    _Zone(23.0, 27.5, Color(0xFFF39C12)), // increased risk
+    _Zone(27.5, 40.0, Color(0xFFE74C3C)), // high risk
   ];
 
   @override
@@ -780,12 +693,8 @@ class _BmiGaugePainter extends CustomPainter {
         ..strokeWidth = 3
         ..strokeCap = StrokeCap.round;
       canvas.drawLine(Offset(cx, cy), Offset(needleX, needleY), needlePaint);
-      canvas.drawCircle(
-          Offset(cx, cy), 6,
-          Paint()..color = Colors.black87);
-      canvas.drawCircle(
-          Offset(cx, cy), 4,
-          Paint()..color = Colors.white);
+      canvas.drawCircle(Offset(cx, cy), 6, Paint()..color = Colors.black87);
+      canvas.drawCircle(Offset(cx, cy), 4, Paint()..color = Colors.white);
     }
   }
 

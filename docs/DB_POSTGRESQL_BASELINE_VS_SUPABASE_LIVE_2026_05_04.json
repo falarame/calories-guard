@@ -1,0 +1,607 @@
+{
+  "source_note": {
+    "live_schema": "cleangoal",
+    "baseline_file": "databaseV4.sql",
+    "local_postgres_env_present": false,
+    "db_mode": "supabase"
+  },
+  "counts": {
+    "baseline_tables": 31,
+    "live_base_tables": 44,
+    "live_views": 1,
+    "baseline_enums": 8,
+    "live_enums": 9
+  },
+  "live_views": [
+    "v_admin_temp_food_review"
+  ],
+  "tables_added_in_live_vs_databaseV4": [
+    "dish_categories",
+    "dishes",
+    "exercise_logs",
+    "food_allergy_flags",
+    "food_ingredients_archive",
+    "food_regional_name_submissions",
+    "food_regional_names",
+    "food_regional_popularity",
+    "food_requests_archive",
+    "ingredients_archive",
+    "recipe_relation_orphan_archive",
+    "recipe_reviews_orphan_archive",
+    "schema_migrations",
+    "temp_food",
+    "unit_conversion_orphan_archive",
+    "unit_conversions",
+    "user_favorites",
+    "user_gamification",
+    "verified_food",
+    "water_logs"
+  ],
+  "tables_removed_from_live_vs_databaseV4": [
+    "food_ingredients",
+    "food_requests",
+    "ingredients",
+    "progress",
+    "user_activities",
+    "user_goals",
+    "weekly_summaries"
+  ],
+  "column_diffs_common_tables": {
+    "daily_summaries": {
+      "added_columns": [
+        "total_carbs",
+        "total_fat",
+        "total_protein",
+        "updated_at",
+        "water_glasses"
+      ],
+      "removed_columns": [
+        "item_id"
+      ]
+    },
+    "detail_items": {
+      "added_columns": [
+        "carbs_per_unit",
+        "fat_per_unit",
+        "protein_per_unit",
+        "updated_at"
+      ],
+      "removed_columns": []
+    },
+    "foods": {
+      "added_columns": [
+        "dish_id",
+        "serving_unit_id"
+      ],
+      "removed_columns": [
+        "food_category",
+        "serving_unit"
+      ]
+    },
+    "meals": {
+      "added_columns": [
+        "updated_at"
+      ],
+      "removed_columns": [
+        "item_id"
+      ]
+    },
+    "recipes": {
+      "added_columns": [
+        "generated_by",
+        "ingredients_json",
+        "tips_json",
+        "tools_json"
+      ],
+      "removed_columns": [
+        "category",
+        "cuisine",
+        "difficulty",
+        "is_published",
+        "recipe_name",
+        "total_time_minutes"
+      ]
+    },
+    "units": {
+      "added_columns": [
+        "quantity"
+      ],
+      "removed_columns": [
+        "conversion_factor"
+      ]
+    },
+    "user_meal_plans": {
+      "added_columns": [],
+      "removed_columns": [
+        "item_id"
+      ]
+    },
+    "users": {
+      "added_columns": [
+        "consent_accepted_at",
+        "last_tdee_recalc_date",
+        "region",
+        "region_source"
+      ],
+      "removed_columns": []
+    }
+  },
+  "enums_added": [
+    "thai_region"
+  ],
+  "enums_removed": [],
+  "enum_value_diffs": {},
+  "live_triggers_by_table": {
+    "daily_summaries": [
+      "trg_daily_summaries_updated_at (BEFORE UPDATE)"
+    ],
+    "detail_items": [
+      "trg_detail_items_updated_at (BEFORE UPDATE)",
+      "trg_sync_daily_summary (AFTER DELETE)",
+      "trg_sync_daily_summary (AFTER INSERT)",
+      "trg_sync_daily_summary (AFTER UPDATE)"
+    ],
+    "exercise_logs": [
+      "trg_exercise_logs_updated_at (BEFORE UPDATE)"
+    ],
+    "foods": [
+      "trg_foods_sync_detail_items (AFTER UPDATE)"
+    ],
+    "meals": [
+      "trg_meals_updated_at (BEFORE UPDATE)"
+    ],
+    "recipe_favorites": [
+      "trg_update_recipe_favorite_count (AFTER DELETE)",
+      "trg_update_recipe_favorite_count (AFTER INSERT)"
+    ],
+    "recipe_reviews": [
+      "trg_update_recipe_rating (AFTER DELETE)",
+      "trg_update_recipe_rating (AFTER INSERT)",
+      "trg_update_recipe_rating (AFTER UPDATE)"
+    ],
+    "temp_food": [
+      "trg_create_verified_food (AFTER INSERT)",
+      "trg_temp_food_touch_updated_at (BEFORE UPDATE)"
+    ],
+    "verified_food": [
+      "trg_verified_food_touch_updated_at (BEFORE UPDATE)"
+    ],
+    "water_logs": [
+      "trg_sync_water_to_daily (AFTER DELETE)",
+      "trg_sync_water_to_daily (AFTER INSERT)",
+      "trg_sync_water_to_daily (AFTER UPDATE)"
+    ]
+  },
+  "live_table_columns": {
+    "allergy_flags": [
+      "description",
+      "flag_id",
+      "name"
+    ],
+    "beverages": [
+      "beverage_id",
+      "caffeine_mg",
+      "container_type",
+      "food_id",
+      "is_alcoholic",
+      "sugar_level_label",
+      "volume_ml"
+    ],
+    "daily_summaries": [
+      "date_record",
+      "goal_calories",
+      "is_goal_met",
+      "summary_id",
+      "total_calories_intake",
+      "total_carbs",
+      "total_fat",
+      "total_protein",
+      "updated_at",
+      "user_id",
+      "water_glasses"
+    ],
+    "detail_items": [
+      "amount",
+      "cal_per_unit",
+      "carbs_per_unit",
+      "created_at",
+      "day_number",
+      "fat_per_unit",
+      "food_id",
+      "food_name",
+      "item_id",
+      "meal_id",
+      "note",
+      "plan_id",
+      "protein_per_unit",
+      "summary_id",
+      "unit_id",
+      "updated_at"
+    ],
+    "dish_categories": [
+      "canonical_food_type",
+      "category_name",
+      "created_at",
+      "description",
+      "dish_category_id",
+      "display_order"
+    ],
+    "dishes": [
+      "canonical_food_type",
+      "created_at",
+      "cuisine",
+      "deleted_at",
+      "description",
+      "dish_category_id",
+      "dish_id",
+      "dish_name",
+      "image_url",
+      "updated_at"
+    ],
+    "email_verification_codes": [
+      "code",
+      "created_at",
+      "expires_at",
+      "id",
+      "used",
+      "user_id"
+    ],
+    "exercise_logs": [
+      "activity_name",
+      "calories_burned",
+      "created_at",
+      "date_record",
+      "duration_minutes",
+      "intensity",
+      "log_id",
+      "note",
+      "updated_at",
+      "user_id"
+    ],
+    "food_allergy_flags": [
+      "flag_id",
+      "food_id"
+    ],
+    "food_ingredients_archive": [
+      "amount",
+      "calculated_grams",
+      "food_id",
+      "food_ing_id",
+      "ingredient_id",
+      "note",
+      "unit_id"
+    ],
+    "food_regional_name_submissions": [
+      "created_at",
+      "food_id",
+      "name_th",
+      "popularity",
+      "region",
+      "reviewed_at",
+      "reviewed_by",
+      "status",
+      "submission_id",
+      "user_id"
+    ],
+    "food_regional_names": [
+      "approved_by",
+      "created_at",
+      "created_by",
+      "deleted_at",
+      "food_id",
+      "is_primary",
+      "name_th",
+      "region",
+      "updated_at",
+      "variant_id"
+    ],
+    "food_regional_popularity": [
+      "food_id",
+      "note",
+      "popularity",
+      "region",
+      "updated_at"
+    ],
+    "food_requests_archive": [
+      "created_at",
+      "food_name",
+      "ingredients_json",
+      "request_id",
+      "reviewed_by",
+      "status",
+      "user_id"
+    ],
+    "foods": [
+      "calories",
+      "carbs",
+      "cholesterol",
+      "created_at",
+      "deleted_at",
+      "dish_id",
+      "fat",
+      "fiber_g",
+      "food_id",
+      "food_name",
+      "food_type",
+      "image_url",
+      "protein",
+      "serving_quantity",
+      "serving_unit_id",
+      "sodium",
+      "sugar",
+      "updated_at"
+    ],
+    "health_contents": [
+      "category_tag",
+      "content_id",
+      "created_at",
+      "description",
+      "difficulty_level",
+      "is_published",
+      "resource_url",
+      "thumbnail_url",
+      "title",
+      "type"
+    ],
+    "ingredients_archive": [
+      "calories_per_unit",
+      "category",
+      "created_at",
+      "default_unit_id",
+      "ingredient_id",
+      "name"
+    ],
+    "meals": [
+      "created_at",
+      "meal_id",
+      "meal_time",
+      "meal_type",
+      "total_amount",
+      "updated_at",
+      "user_id"
+    ],
+    "notifications": [
+      "created_at",
+      "is_read",
+      "message",
+      "notification_id",
+      "title",
+      "type",
+      "user_id"
+    ],
+    "password_reset_codes": [
+      "code",
+      "created_at",
+      "expires_at",
+      "id",
+      "used",
+      "user_id"
+    ],
+    "recipe_favorites": [
+      "created_at",
+      "fav_id",
+      "recipe_id",
+      "user_id"
+    ],
+    "recipe_ingredients": [
+      "created_at",
+      "ing_id",
+      "ingredient_name",
+      "is_optional",
+      "note",
+      "quantity",
+      "recipe_id",
+      "sort_order",
+      "unit"
+    ],
+    "recipe_relation_orphan_archive": [
+      "archive_id",
+      "archive_reason",
+      "archived_at",
+      "legacy_recipe_id",
+      "legacy_user_id",
+      "row_data",
+      "source_pk",
+      "source_table"
+    ],
+    "recipe_reviews": [
+      "comment",
+      "created_at",
+      "rating",
+      "recipe_id",
+      "review_id",
+      "user_id"
+    ],
+    "recipe_reviews_orphan_archive": [
+      "archive_id",
+      "archive_reason",
+      "archived_at",
+      "comment",
+      "created_at",
+      "legacy_food_id",
+      "legacy_recipe_id",
+      "rating",
+      "review_id",
+      "user_id"
+    ],
+    "recipe_steps": [
+      "created_at",
+      "image_url",
+      "instruction",
+      "recipe_id",
+      "step_id",
+      "step_number",
+      "time_minutes",
+      "tips",
+      "title"
+    ],
+    "recipe_tips": [
+      "created_at",
+      "recipe_id",
+      "sort_order",
+      "tip_id",
+      "tip_text"
+    ],
+    "recipe_tools": [
+      "created_at",
+      "recipe_id",
+      "sort_order",
+      "tool_emoji",
+      "tool_id",
+      "tool_name"
+    ],
+    "recipes": [
+      "avg_rating",
+      "cooking_time_minutes",
+      "created_at",
+      "deleted_at",
+      "description",
+      "favorite_count",
+      "food_id",
+      "generated_by",
+      "image_url",
+      "ingredients_json",
+      "instructions",
+      "prep_time_minutes",
+      "recipe_id",
+      "review_count",
+      "serving_people",
+      "source_reference",
+      "tips_json",
+      "tools_json"
+    ],
+    "roles": [
+      "role_id",
+      "role_name"
+    ],
+    "schema_migrations": [
+      "applied_at",
+      "version"
+    ],
+    "snacks": [
+      "food_id",
+      "is_sweet",
+      "packaging_type",
+      "snack_id",
+      "trans_fat"
+    ],
+    "temp_food": [
+      "calories",
+      "carbs",
+      "created_at",
+      "fat",
+      "food_name",
+      "protein",
+      "tf_id",
+      "updated_at",
+      "user_id"
+    ],
+    "unit_conversion_orphan_archive": [
+      "archive_id",
+      "archive_reason",
+      "archived_at",
+      "conversion_id",
+      "from_unit_id",
+      "row_data",
+      "to_unit_id"
+    ],
+    "unit_conversions": [
+      "conversion_id",
+      "created_at",
+      "factor",
+      "from_unit_id",
+      "note",
+      "to_unit_id"
+    ],
+    "units": [
+      "name",
+      "quantity",
+      "unit_id"
+    ],
+    "user_allergy_preferences": [
+      "created_at",
+      "flag_id",
+      "preference_type",
+      "user_id"
+    ],
+    "user_favorites": [
+      "created_at",
+      "food_id",
+      "id",
+      "user_id"
+    ],
+    "user_gamification": [
+      "claimed_badges",
+      "tama_points",
+      "tier_level",
+      "updated_at",
+      "user_id"
+    ],
+    "user_meal_plans": [
+      "created_at",
+      "description",
+      "is_premium",
+      "name",
+      "plan_id",
+      "source_type",
+      "user_id"
+    ],
+    "users": [
+      "activity_level",
+      "avatar_url",
+      "birth_date",
+      "consent_accepted_at",
+      "created_at",
+      "current_streak",
+      "current_weight_kg",
+      "deleted_at",
+      "email",
+      "gender",
+      "goal_start_date",
+      "goal_target_date",
+      "goal_type",
+      "height_cm",
+      "is_email_verified",
+      "last_kpi_check_date",
+      "last_login_date",
+      "last_tdee_recalc_date",
+      "password_hash",
+      "region",
+      "region_source",
+      "role_id",
+      "target_calories",
+      "target_carbs",
+      "target_fat",
+      "target_protein",
+      "target_weight_kg",
+      "total_login_days",
+      "updated_at",
+      "user_id",
+      "username"
+    ],
+    "verified_food": [
+      "created_at",
+      "is_verify",
+      "tf_id",
+      "updated_at",
+      "verified_at",
+      "verified_by",
+      "vf_id"
+    ],
+    "water_logs": [
+      "amount_ml",
+      "date_record",
+      "glasses",
+      "log_id",
+      "updated_at",
+      "user_id"
+    ],
+    "weight_logs": [
+      "created_at",
+      "log_id",
+      "recorded_date",
+      "user_id",
+      "weight_kg"
+    ]
+  }
+}

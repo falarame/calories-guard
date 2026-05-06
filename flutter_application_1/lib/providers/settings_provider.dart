@@ -5,17 +5,25 @@ import 'package:shared_preferences/shared_preferences.dart';
 // ─── Keys ────────────────────────────────────────────────────────────────────
 const _kLanguage = 'settings_language';
 const _kTheme = 'settings_theme';
+const _kConsentAccepted = 'settings_consent_accepted';
 
 // ─── State ───────────────────────────────────────────────────────────────────
 class AppSettings {
   final String language; // 'th' | 'en'
   final String theme;    // 'light' | 'dark' | 'system'
+  final bool consentAccepted;
 
-  const AppSettings({this.language = 'th', this.theme = 'light'});
+  const AppSettings({
+    this.language = 'en',
+    this.theme = 'light',
+    this.consentAccepted = false,
+  });
 
-  AppSettings copyWith({String? language, String? theme}) => AppSettings(
+  AppSettings copyWith({String? language, String? theme, bool? consentAccepted}) =>
+      AppSettings(
         language: language ?? this.language,
         theme: theme ?? this.theme,
+        consentAccepted: consentAccepted ?? this.consentAccepted,
       );
 }
 
@@ -28,8 +36,9 @@ class AppSettingsNotifier extends StateNotifier<AppSettings> {
   Future<void> _load() async {
     final prefs = await SharedPreferences.getInstance();
     state = AppSettings(
-      language: prefs.getString(_kLanguage) ?? 'th',
+      language: prefs.getString(_kLanguage) ?? 'en',
       theme: prefs.getString(_kTheme) ?? 'light',
+      consentAccepted: prefs.getBool(_kConsentAccepted) ?? false,
     );
   }
 
@@ -43,6 +52,12 @@ class AppSettingsNotifier extends StateNotifier<AppSettings> {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString(_kTheme, theme);
     state = state.copyWith(theme: theme);
+  }
+
+  Future<void> setConsentAccepted(bool accepted) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool(_kConsentAccepted, accepted);
+    state = state.copyWith(consentAccepted: accepted);
   }
 }
 
@@ -63,4 +78,9 @@ final themeModeProvider = Provider<ThemeMode>((ref) {
     default:
       return ThemeMode.light;
   }
+});
+
+// Convenience: Locale from settings
+final localeProvider = Provider<Locale>((ref) {
+  return Locale(ref.watch(appSettingsProvider).language);
 });

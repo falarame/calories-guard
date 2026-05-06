@@ -21,6 +21,7 @@ if ([string]::IsNullOrWhiteSpace($GoogleWebClientId)) {
 
 $projectRoot = Split-Path -Parent $PSScriptRoot
 Set-Location $projectRoot
+$env:DEBUG = ""
 
 $flutterApk = Join-Path $projectRoot "android\app\build\outputs\flutter-apk\app-debug.apk"
 $gradleApk = Join-Path $projectRoot "android\app\build\outputs\apk\debug\app-debug.apk"

@@ -12,6 +12,8 @@ import 'package:intl/intl.dart';
 
 import '/providers/user_data_provider.dart'; // ปรับ Path ให้ตรงกับโครงสร้างของคุณ
 import '/services/error_reporter.dart';
+import '/utils/bmi_utils.dart';
+import '/widgets/weight_chart_card.dart';
 
 class ProgressScreen extends ConsumerStatefulWidget {
   const ProgressScreen({super.key});
@@ -21,8 +23,6 @@ class ProgressScreen extends ConsumerStatefulWidget {
 }
 
 class _ProgressScreenState extends ConsumerState<ProgressScreen> {
-  int _selectedTabIndex = 0;
-
   DateTime _currentMonth = DateTime.now();
 
   /// ออฟเซ็ตสัปดาห์ของกราฟ: 0 = สัปดาห์นี้, -1 = สัปดาห์ก่อน, 1 = สัปดาห์ถัดไป
@@ -537,27 +537,11 @@ class _ProgressScreenState extends ConsumerState<ProgressScreen> {
   // --- Helper Functions for BMI & Streak ---
 
   String _getBMIStatus(double bmi) {
-    if (bmi < 18.5) return 'น้ำหนักน้อย';
-
-    if (bmi < 22.9) return 'ปกติ';
-
-    if (bmi < 24.9) return 'ท้วม';
-
-    if (bmi < 29.9) return 'อ้วน';
-
-    return 'อ้วนมาก';
+    return bmiStatusLabel(bmi);
   }
 
   Color _getBMIColor(double bmi) {
-    if (bmi < 18.5) return const Color(0xFF1710ED);
-
-    if (bmi < 22.9) return const Color(0xFF69AE6D);
-
-    if (bmi < 24.9) return const Color(0xFFD3D347);
-
-    if (bmi < 29.9) return const Color(0xFFCAAC58);
-
-    return const Color(0xFFFF0000);
+    return bmiRiskColor(bmi);
   }
 
   int _calculateStreak() {
@@ -680,6 +664,7 @@ class _ProgressScreenState extends ConsumerState<ProgressScreen> {
     String bmiStatus = _getBMIStatus(bmi);
 
     Color bmiColor = _getBMIColor(bmi);
+    final bmiRisk = bmiBandData(bmi);
 
     int streak = userData.currentStreak > 0
         ? userData.currentStreak
@@ -772,31 +757,13 @@ class _ProgressScreenState extends ConsumerState<ProgressScreen> {
 
                       const SizedBox(height: 20),
 
-                      Container(
-                        margin: const EdgeInsets.symmetric(horizontal: 13),
-                        height: 42,
-                        decoration: BoxDecoration(
-                            color: const Color(0xFF628141),
-                            borderRadius: BorderRadius.circular(50)),
-                        child: Row(
-                          children: [
-                            _buildTabItem(0, 'ภาพรวม'),
-                            _buildTabItem(1, 'ความสำเร็จ'),
-                          ],
-                        ),
-                      ),
+                      const SizedBox(height: 4),
 
-                      const SizedBox(height: 20),
+                      _buildWeeklyChartSection(targetCal, userData),
 
-                      if (_selectedTabIndex == 0) ...[
-                        // --- แท็บภาพรวม: กราฟแคล + Quick Stats + BMI + ปฏิทิน ---
+                      const SizedBox(height: 10),
 
-                        _buildWeeklyChartSection(targetCal, userData),
-
-                        const SizedBox(height: 10),
-                      ],
-
-                      if (_selectedTabIndex == 0) ...[
+                      ...[
                         // --- 2. BMI Card ---
 
                         _buildWhiteCard(
@@ -891,8 +858,8 @@ class _ProgressScreenState extends ConsumerState<ProgressScreen> {
                                 },
                               ),
                               const SizedBox(height: 10),
-                              const Text('ค่า BMI ของคุณแสดงผลตามเกณฑ์มาตรฐาน',
-                                  style: TextStyle(
+                              Text(bmiRisk.riskText,
+                                  style: const TextStyle(
                                       fontSize: 10, color: Colors.black87)),
                             ],
                           ),
@@ -966,9 +933,7 @@ class _ProgressScreenState extends ConsumerState<ProgressScreen> {
                         ),
 
                         const SizedBox(height: 40),
-                      ], // end if tab 0
-
-                      if (_selectedTabIndex == 1) const SizedBox(height: 20),
+                      ],
                     ],
                   ),
                 ),
@@ -1223,11 +1188,11 @@ class _ProgressScreenState extends ConsumerState<ProgressScreen> {
 
           const SizedBox(height: 14),
 
-          _buildGoalProgressCard(),
-
-          const SizedBox(height: 14),
-
-          _buildWeightChartCard(userData.targetWeight.toDouble()),
+          WeightChartCard(
+            weightLogs: _weightLogs,
+            goalProgress: _goalProgress,
+            targetWeight: userData.targetWeight.toDouble(),
+          ),
         ],
       ),
     );
@@ -1503,334 +1468,6 @@ class _ProgressScreenState extends ConsumerState<ProgressScreen> {
     );
   }
 
-  // ── Goal Progress Card ────────────────────────────────────────────────────
-  Widget _buildGoalProgressCard() {
-    if (_goalProgress.isEmpty) return const SizedBox.shrink();
-
-    final pct = (_goalProgress['progress_pct'] as num?)?.toDouble() ?? 0.0;
-    final curr = (_goalProgress['current_weight'] as num?)?.toDouble() ?? 0.0;
-    final target = (_goalProgress['target_weight'] as num?)?.toDouble() ?? 0.0;
-    final start = (_goalProgress['start_weight'] as num?)?.toDouble() ?? curr;
-    final remKg = (_goalProgress['remaining_kg'] as num?)?.toDouble() ?? 0.0;
-    final goalType = _goalProgress['goal_type'] as String? ?? '';
-    final estDays = _goalProgress['estimated_days'] as int?;
-    final targetDate = _goalProgress['goal_target_date'] as String?;
-
-    // ชื่อเป้าหมาย
-    String goalLabel;
-    IconData goalIcon;
-    Color goalColor;
-    switch (goalType) {
-      case 'lose_weight':
-        goalLabel = 'ลดน้ำหนัก';
-        goalIcon = Icons.trending_down_rounded;
-        goalColor = const Color(0xFFE85D04);
-        break;
-      case 'gain_weight':
-      case 'gain_muscle':
-        goalLabel = 'เพิ่มน้ำหนัก / กล้ามเนื้อ';
-        goalIcon = Icons.trending_up_rounded;
-        goalColor = const Color(0xFF628141);
-        break;
-      default:
-        goalLabel = 'รักษาน้ำหนัก';
-        goalIcon = Icons.balance_rounded;
-        goalColor = const Color(0xFF3D5A27);
-    }
-
-    // วันที่เป้าหมาย
-    String deadlineText = 'ไม่ได้กำหนด';
-    if (targetDate != null) {
-      try {
-        final dt = DateTime.parse(targetDate);
-        deadlineText = DateFormat('d MMM yyyy', 'th').format(dt);
-        final daysLeft = dt.difference(DateTime.now()).inDays;
-        if (daysLeft >= 0) deadlineText += ' (อีก $daysLeft วัน)';
-      } catch (_) {}
-    }
-
-    // ประมาณการ
-    String estimateText = '—';
-    if (estDays != null && estDays > 0) {
-      if (estDays < 30) {
-        estimateText = 'อีก ~$estDays วัน';
-      } else {
-        final months = (estDays / 30).toStringAsFixed(1);
-        estimateText = 'อีก ~$months เดือน';
-      }
-    }
-
-    return _buildWhiteCard(
-      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        // Header
-        Row(children: [
-          Container(
-            width: 38,
-            height: 38,
-            decoration: BoxDecoration(
-                color: goalColor.withValues(alpha: 0.12),
-                borderRadius: BorderRadius.circular(12)),
-            child: Icon(goalIcon, size: 20, color: goalColor),
-          ),
-          const SizedBox(width: 10),
-          Expanded(
-            child:
-                Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              const Text('เป้าหมายของฉัน',
-                  style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold)),
-              Text(goalLabel,
-                  style: TextStyle(
-                      fontSize: 12,
-                      color: goalColor,
-                      fontWeight: FontWeight.w600)),
-            ]),
-          ),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-            decoration: BoxDecoration(
-                color: goalColor, borderRadius: BorderRadius.circular(20)),
-            child: Text('${pct.toStringAsFixed(1)}%',
-                style: const TextStyle(
-                    color: Colors.white,
-                    fontWeight: FontWeight.bold,
-                    fontSize: 14)),
-          ),
-        ]),
-        const SizedBox(height: 16),
-
-        // Progress bar
-        ClipRRect(
-          borderRadius: BorderRadius.circular(6),
-          child: LinearProgressIndicator(
-            value: (pct / 100).clamp(0.0, 1.0),
-            backgroundColor: Colors.grey.shade200,
-            valueColor: AlwaysStoppedAnimation<Color>(goalColor),
-            minHeight: 10,
-          ),
-        ),
-        const SizedBox(height: 8),
-
-        // Weight row
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            _goalWeightChip('เริ่มต้น', '${start.toStringAsFixed(1)} กก.',
-                Colors.grey.shade600),
-            _goalWeightChip(
-                'ปัจจุบัน', '${curr.toStringAsFixed(1)} กก.', goalColor),
-            _goalWeightChip('เป้าหมาย', '${target.toStringAsFixed(1)} กก.',
-                const Color(0xFF3D5A27)),
-          ],
-        ),
-        const SizedBox(height: 12),
-        const Divider(height: 1),
-        const SizedBox(height: 12),
-
-        // Info grid
-        Row(children: [
-          Expanded(
-              child: _infoChip(Icons.flag_rounded, 'กำหนดเส้นตาย', deadlineText,
-                  const Color(0xFF465396))),
-          const SizedBox(width: 8),
-          Expanded(
-              child: _infoChip(Icons.timer_outlined, 'คาดการณ์', estimateText,
-                  const Color(0xFF628141))),
-          const SizedBox(width: 8),
-          Expanded(
-              child: _infoChip(Icons.monitor_weight_outlined, 'เหลืออีก',
-                  '${remKg.toStringAsFixed(1)} กก.', const Color(0xFFE85D04))),
-        ]),
-      ]),
-    );
-  }
-
-  Widget _goalWeightChip(String label, String value, Color color) =>
-      Column(children: [
-        Text(value,
-            style: TextStyle(
-                fontSize: 14, fontWeight: FontWeight.bold, color: color)),
-        Text(label, style: const TextStyle(fontSize: 10, color: Colors.grey)),
-      ]);
-
-  Widget _infoChip(IconData icon, String label, String value, Color color) =>
-      Container(
-        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
-        decoration: BoxDecoration(
-            color: color.withValues(alpha: 0.07),
-            borderRadius: BorderRadius.circular(12)),
-        child: Column(children: [
-          Icon(icon, size: 18, color: color),
-          const SizedBox(height: 4),
-          Text(label,
-              style: const TextStyle(fontSize: 9, color: Colors.grey),
-              textAlign: TextAlign.center),
-          const SizedBox(height: 2),
-          Text(value,
-              style: TextStyle(
-                  fontSize: 11, fontWeight: FontWeight.bold, color: color),
-              textAlign: TextAlign.center,
-              maxLines: 2,
-              overflow: TextOverflow.ellipsis),
-        ]),
-      );
-
-  // ── Weight Line Chart Card ────────────────────────────────────────────────
-  Widget _buildWeightChartCard(double targetWeight) {
-    if (_weightLogs.isEmpty) {
-      return _buildWhiteCard(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text('กราฟน้ำหนัก',
-                style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold)),
-            const SizedBox(height: 30),
-            Center(
-              child: Column(children: [
-                Icon(Icons.monitor_weight_outlined,
-                    size: 48, color: Colors.grey.shade300),
-                const SizedBox(height: 8),
-                Text('ยังไม่มีข้อมูลน้ำหนัก\nบันทึกน้ำหนักในโปรไฟล์เพื่อดูกราฟ',
-                    textAlign: TextAlign.center,
-                    style:
-                        TextStyle(fontSize: 13, color: Colors.grey.shade500)),
-              ]),
-            ),
-            const SizedBox(height: 16),
-          ],
-        ),
-      );
-    }
-
-    final spots = <FlSpot>[];
-    double minW = double.infinity, maxW = 0;
-    for (int i = 0; i < _weightLogs.length; i++) {
-      final w = (_weightLogs[i]['weight'] as num).toDouble();
-      spots.add(FlSpot(i.toDouble(), w));
-      if (w < minW) minW = w;
-      if (w > maxW) maxW = w;
-    }
-    minW = (minW - 2).floorToDouble();
-    maxW = (maxW + 2).ceilToDouble();
-
-    // Labels: show every N-th date
-    final step = (_weightLogs.length / 5).ceil().clamp(1, 999);
-
-    return _buildWhiteCard(
-      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
-          const Text('กราฟน้ำหนัก',
-              style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold)),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-            decoration: BoxDecoration(
-                color: const Color(0xFFE8EFCF),
-                borderRadius: BorderRadius.circular(20)),
-            child: Row(children: [
-              const Icon(Icons.show_chart, size: 14, color: Color(0xFF628141)),
-              const SizedBox(width: 4),
-              Text('${_weightLogs.length} จุด',
-                  style: const TextStyle(
-                      fontSize: 11,
-                      color: Color(0xFF3D5A27),
-                      fontWeight: FontWeight.w600)),
-            ]),
-          ),
-        ]),
-        const SizedBox(height: 16),
-        SizedBox(
-          height: 180,
-          child: LineChart(
-            LineChartData(
-              minY: minW,
-              maxY: maxW,
-              gridData: FlGridData(
-                show: true,
-                drawVerticalLine: false,
-                getDrawingHorizontalLine: (_) =>
-                    FlLine(color: Colors.grey.shade200, strokeWidth: 1),
-              ),
-              borderData: FlBorderData(show: false),
-              titlesData: FlTitlesData(
-                leftTitles: AxisTitles(
-                  sideTitles: SideTitles(
-                    showTitles: true,
-                    reservedSize: 36,
-                    getTitlesWidget: (v, _) => Text('${v.toInt()}',
-                        style:
-                            const TextStyle(fontSize: 10, color: Colors.grey)),
-                  ),
-                ),
-                bottomTitles: AxisTitles(
-                  sideTitles: SideTitles(
-                    showTitles: true,
-                    interval: step.toDouble(),
-                    getTitlesWidget: (v, _) {
-                      final idx = v.toInt();
-                      if (idx < 0 || idx >= _weightLogs.length)
-                        return const SizedBox();
-                      final raw = _weightLogs[idx]['date'] as String;
-                      try {
-                        final dt = DateTime.parse(raw);
-                        return Text('${dt.day}/${dt.month}',
-                            style: const TextStyle(
-                                fontSize: 9, color: Colors.grey));
-                      } catch (_) {
-                        return const SizedBox();
-                      }
-                    },
-                  ),
-                ),
-                rightTitles:
-                    const AxisTitles(sideTitles: SideTitles(showTitles: false)),
-                topTitles:
-                    const AxisTitles(sideTitles: SideTitles(showTitles: false)),
-              ),
-              lineBarsData: [
-                // Actual weight line
-                LineChartBarData(
-                  spots: spots,
-                  isCurved: true,
-                  color: const Color(0xFF628141),
-                  barWidth: 2.5,
-                  dotData: FlDotData(
-                    show: true,
-                    getDotPainter: (s, _, __, ___) => FlDotCirclePainter(
-                        radius: 3,
-                        color: Colors.white,
-                        strokeWidth: 2,
-                        strokeColor: const Color(0xFF628141)),
-                  ),
-                  belowBarData: BarAreaData(
-                    show: true,
-                    color: const Color(0xFF628141).withValues(alpha: 0.08),
-                  ),
-                ),
-                // Target weight dashed line
-                if (targetWeight > minW && targetWeight < maxW)
-                  LineChartBarData(
-                    spots: [
-                      FlSpot(0, targetWeight),
-                      FlSpot((spots.length - 1).toDouble(), targetWeight),
-                    ],
-                    isCurved: false,
-                    color: Colors.red.shade300,
-                    barWidth: 1.5,
-                    dashArray: [6, 4],
-                    dotData: const FlDotData(show: false),
-                  ),
-              ],
-            ),
-          ),
-        ),
-        const SizedBox(height: 8),
-        Row(children: [
-          _chartLegendChipLight(const Color(0xFF628141), 'น้ำหนักจริง'),
-          const SizedBox(width: 8),
-          _chartLegendChipLight(Colors.red.shade300, 'เป้าหมาย'),
-        ]),
-      ]),
-    );
-  }
 
   String _formatNumber(int n) {
     if (n.abs() < 1000) return '$n';
@@ -2175,34 +1812,6 @@ class _ProgressScreenState extends ConsumerState<ProgressScreen> {
     );
   }
 
-  Widget _buildTabItem(int index, String title) {
-    bool isActive = _selectedTabIndex == index;
-
-    return Expanded(
-      child: GestureDetector(
-        onTap: () {
-          setState(() {
-            _selectedTabIndex = index;
-          });
-
-          if (index == 1) _fetchWeeklyData(weekStart: _getChartWeekMonday());
-        },
-        child: Container(
-          margin: const EdgeInsets.all(2),
-          decoration: BoxDecoration(
-              color: isActive ? Colors.white : Colors.transparent,
-              borderRadius: BorderRadius.circular(50)),
-          alignment: Alignment.center,
-          child: Text(title,
-              style: TextStyle(
-                  fontFamily: 'Inter',
-                  fontSize: 13,
-                  fontWeight: isActive ? FontWeight.bold : FontWeight.normal,
-                  color: isActive ? Colors.black : Colors.white)),
-        ),
-      ),
-    );
-  }
 }
 
 class _WeeklyBarChart extends StatelessWidget {

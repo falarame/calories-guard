@@ -2,8 +2,10 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_application_1/services/api_client.dart';
+import '../../../l10n/app_localizations.dart';
 import '../../../providers/user_data_provider.dart';
 import '../../../providers/settings_provider.dart';
+import '../../../theme/app_theme.dart';
 import '../../../login_register/screens/welcome_screen.dart';
 
 class SettingScreen extends ConsumerStatefulWidget {
@@ -14,18 +16,19 @@ class SettingScreen extends ConsumerStatefulWidget {
 }
 
 class _SettingScreenState extends ConsumerState<SettingScreen> {
-  static const _green = Color(0xFF628141);
-  static const _greenDark = Color(0xFF3D5A27);
-  static const _regions = [
-    {'code': 'central', 'label': 'ภาคกลาง'},
-    {'code': 'northern', 'label': 'ภาคเหนือ'},
-    {'code': 'northeastern', 'label': 'ภาคอีสาน'},
-    {'code': 'southern', 'label': 'ภาคใต้'},
-  ];
-
   bool _isNotificationOn = true;
   bool _regionLoading = false;
   String? _selectedRegion;
+
+  List<Map<String, String>> _regions(AppLocalizations l10n) => [
+        {'code': 'central', 'label': l10n.tr('settings.region.central')},
+        {'code': 'northern', 'label': l10n.tr('settings.region.northern')},
+        {
+          'code': 'northeastern',
+          'label': l10n.tr('settings.region.northeastern')
+        },
+        {'code': 'southern', 'label': l10n.tr('settings.region.southern')},
+      ];
 
   @override
   void initState() {
@@ -33,9 +36,10 @@ class _SettingScreenState extends ConsumerState<SettingScreen> {
     _fetchRegion();
   }
 
-  String get _regionLabel {
-    final match = _regions.where((r) => r['code'] == _selectedRegion);
-    return match.isEmpty ? 'ยังไม่ตั้งค่า' : match.first['label']!;
+  String _regionLabel(AppLocalizations l10n) {
+    final match =
+        _regions(l10n).where((r) => r['code'] == _selectedRegion);
+    return match.isEmpty ? l10n.tr('common.not_set') : match.first['label']!;
   }
 
   Future<void> _fetchRegion() async {
@@ -57,8 +61,8 @@ class _SettingScreenState extends ConsumerState<SettingScreen> {
     }
   }
 
-  // ─── Delete Account ──────────────────────────────────────────────────────
   Future<void> _deleteAccount() async {
+    final l10n = AppLocalizations.of(context);
     final userId = ref.read(userDataProvider).userId;
     try {
       final response = await ApiClient().delete('/users/$userId');
@@ -71,8 +75,8 @@ class _SettingScreenState extends ConsumerState<SettingScreen> {
             (route) => false,
           );
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-                content: Text('ลบบัญชีเรียบร้อยแล้ว'),
+            SnackBar(
+                content: Text(l10n.tr('settings.delete_account.success')),
                 backgroundColor: Colors.grey),
           );
         }
@@ -81,26 +85,30 @@ class _SettingScreenState extends ConsumerState<SettingScreen> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-              content: Text('เกิดข้อผิดพลาด: $e'), backgroundColor: Colors.red),
+              content: Text(l10n.tr(
+                  'settings.delete_account.error',
+                  {'message': '$e'})),
+              backgroundColor: Colors.red),
         );
       }
     }
   }
 
   void _showDeleteConfirmDialog() {
+    final l10n = AppLocalizations.of(context);
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: const Text('ยืนยันการลบบัญชี',
-            style: TextStyle(fontWeight: FontWeight.bold, color: Colors.red)),
-        content: const Text(
-            'การกระทำนี้ไม่สามารถย้อนกลับได้ ข้อมูลทั้งหมดของคุณจะหายไป ยืนยันหรือไม่?'),
+        title: Text(l10n.tr('settings.delete_account.confirm_title'),
+            style: const TextStyle(
+                fontWeight: FontWeight.bold, color: Colors.red)),
+        content: Text(l10n.tr('settings.delete_account.confirm_body')),
         actions: [
           TextButton(
               onPressed: () => Navigator.pop(context),
-              child:
-                  const Text('ยกเลิก', style: TextStyle(color: Colors.grey))),
+              child: Text(l10n.tr('common.cancel'),
+                  style: const TextStyle(color: Colors.grey))),
           ElevatedButton(
             onPressed: () {
               Navigator.pop(context);
@@ -111,8 +119,8 @@ class _SettingScreenState extends ConsumerState<SettingScreen> {
                 foregroundColor: Colors.white,
                 shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(12))),
-            child: const Text('ยืนยันลบ',
-                style: TextStyle(fontWeight: FontWeight.bold)),
+            child: Text(l10n.tr('settings.delete_account.confirm_cta'),
+                style: const TextStyle(fontWeight: FontWeight.bold)),
           ),
         ],
       ),
@@ -120,6 +128,8 @@ class _SettingScreenState extends ConsumerState<SettingScreen> {
   }
 
   void _showInfoDialog(String title, String content) {
+    final l10n = AppLocalizations.of(context);
+    final palette = context.palette;
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
@@ -130,26 +140,27 @@ class _SettingScreenState extends ConsumerState<SettingScreen> {
           ElevatedButton(
               onPressed: () => Navigator.pop(context),
               style: ElevatedButton.styleFrom(
-                  backgroundColor: _green,
+                  backgroundColor: palette.brand,
                   foregroundColor: Colors.white,
                   shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(12))),
-              child: const Text('ปิด')),
+              child: Text(l10n.tr('common.close'))),
         ],
       ),
     );
   }
 
-  // ─── Language Selector (persisted) ──────────────────────────────────────
   void _showLanguageSelector() {
+    final l10n = AppLocalizations.of(context);
     final current = ref.read(appSettingsProvider).language;
+    final palette = context.palette;
     showModalBottomSheet(
       context: context,
       backgroundColor: Colors.transparent,
       builder: (context) => Container(
-        decoration: const BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+        decoration: BoxDecoration(
+          color: palette.surfaceCard,
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
         ),
         padding: const EdgeInsets.fromLTRB(24, 16, 24, 32),
         child: Column(mainAxisSize: MainAxisSize.min, children: [
@@ -157,24 +168,27 @@ class _SettingScreenState extends ConsumerState<SettingScreen> {
               width: 40,
               height: 4,
               decoration: BoxDecoration(
-                  color: Colors.grey.shade300,
+                  color: Theme.of(context).dividerColor,
                   borderRadius: BorderRadius.circular(2))),
           const SizedBox(height: 20),
-          const Text('เลือกภาษา / Select Language',
-              style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold)),
+          Text(l10n.tr('settings.language.picker_title'),
+              style: TextStyle(
+                  fontSize: 17,
+                  fontWeight: FontWeight.bold,
+                  color: palette.textPrimary)),
           const SizedBox(height: 16),
-          _languageOption(
-            flag: '🇹🇭',
-            label: 'ไทย (Thai)',
-            code: 'th',
-            selected: current == 'th',
-          ),
-          const SizedBox(height: 10),
           _languageOption(
             flag: '🇬🇧',
             label: 'English',
             code: 'en',
             selected: current == 'en',
+          ),
+          const SizedBox(height: 10),
+          _languageOption(
+            flag: '🇹🇭',
+            label: 'ไทย (Thai)',
+            code: 'th',
+            selected: current == 'th',
           ),
           const SizedBox(height: 8),
         ]),
@@ -188,13 +202,16 @@ class _SettingScreenState extends ConsumerState<SettingScreen> {
     required String code,
     required bool selected,
   }) {
+    final palette = context.palette;
+    final l10n = AppLocalizations.of(context);
     return GestureDetector(
       onTap: () {
         ref.read(appSettingsProvider.notifier).setLanguage(code);
         Navigator.pop(context);
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-          content: Text('เปลี่ยนภาษาเป็น $label แล้ว'),
-          backgroundColor: _green,
+          content: Text(
+              l10n.tr('settings.language.changed', {'label': label})),
+          backgroundColor: palette.brand,
           duration: const Duration(seconds: 2),
         ));
       },
@@ -202,10 +219,10 @@ class _SettingScreenState extends ConsumerState<SettingScreen> {
         duration: const Duration(milliseconds: 200),
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
         decoration: BoxDecoration(
-          color: selected ? const Color(0xFFEAF2DB) : Colors.grey.shade50,
+          color: selected ? palette.brandSoft : palette.surfaceMuted,
           borderRadius: BorderRadius.circular(14),
           border: Border.all(
-            color: selected ? _green : Colors.grey.shade200,
+            color: selected ? palette.brand : Theme.of(context).dividerColor,
             width: selected ? 1.5 : 1,
           ),
         ),
@@ -214,28 +231,32 @@ class _SettingScreenState extends ConsumerState<SettingScreen> {
           const SizedBox(width: 14),
           Expanded(
             child: Text(label,
-                style:
-                    const TextStyle(fontSize: 16, fontWeight: FontWeight.w500)),
+                style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w500,
+                    color: palette.textPrimary)),
           ),
           if (selected)
-            const Icon(Icons.check_circle_rounded, color: _green, size: 22)
+            Icon(Icons.check_circle_rounded, color: palette.brand, size: 22)
           else
-            Icon(Icons.circle_outlined, color: Colors.grey.shade300, size: 22),
+            Icon(Icons.circle_outlined,
+                color: palette.textFaint, size: 22),
         ]),
       ),
     );
   }
 
-  // ─── Theme Selector (persisted) ─────────────────────────────────────────
   void _showThemeSelector() {
+    final l10n = AppLocalizations.of(context);
     final current = ref.read(appSettingsProvider).theme;
+    final palette = context.palette;
     showModalBottomSheet(
       context: context,
       backgroundColor: Colors.transparent,
       builder: (context) => Container(
-        decoration: const BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+        decoration: BoxDecoration(
+          color: palette.surfaceCard,
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
         ),
         padding: const EdgeInsets.fromLTRB(24, 16, 24, 32),
         child: Column(mainAxisSize: MainAxisSize.min, children: [
@@ -243,15 +264,18 @@ class _SettingScreenState extends ConsumerState<SettingScreen> {
               width: 40,
               height: 4,
               decoration: BoxDecoration(
-                  color: Colors.grey.shade300,
+                  color: Theme.of(context).dividerColor,
                   borderRadius: BorderRadius.circular(2))),
           const SizedBox(height: 20),
-          const Text('เลือกธีม / Choose Theme',
-              style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold)),
+          Text(l10n.tr('settings.theme.picker_title'),
+              style: TextStyle(
+                  fontSize: 17,
+                  fontWeight: FontWeight.bold,
+                  color: palette.textPrimary)),
           const SizedBox(height: 16),
           _themeOption(
             icon: Icons.wb_sunny_rounded,
-            label: 'สว่าง (Light)',
+            label: l10n.tr('settings.theme.light'),
             code: 'light',
             color: const Color(0xFFF39C12),
             selected: current == 'light',
@@ -259,7 +283,7 @@ class _SettingScreenState extends ConsumerState<SettingScreen> {
           const SizedBox(height: 10),
           _themeOption(
             icon: Icons.nightlight_round,
-            label: 'มืด (Dark)',
+            label: l10n.tr('settings.theme.dark'),
             code: 'dark',
             color: const Color(0xFF2C3E50),
             selected: current == 'dark',
@@ -267,7 +291,7 @@ class _SettingScreenState extends ConsumerState<SettingScreen> {
           const SizedBox(height: 10),
           _themeOption(
             icon: Icons.settings_system_daydream_rounded,
-            label: 'ตามระบบ (System)',
+            label: l10n.tr('settings.theme.system'),
             code: 'system',
             color: const Color(0xFF3498DB),
             selected: current == 'system',
@@ -285,13 +309,16 @@ class _SettingScreenState extends ConsumerState<SettingScreen> {
     required Color color,
     required bool selected,
   }) {
+    final palette = context.palette;
+    final l10n = AppLocalizations.of(context);
     return GestureDetector(
       onTap: () {
         ref.read(appSettingsProvider.notifier).setTheme(code);
         Navigator.pop(context);
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-          content: Text('เปลี่ยนธีมเป็น $label แล้ว'),
-          backgroundColor: _green,
+          content:
+              Text(l10n.tr('settings.theme.changed', {'label': label})),
+          backgroundColor: palette.brand,
           duration: const Duration(seconds: 2),
         ));
       },
@@ -299,10 +326,10 @@ class _SettingScreenState extends ConsumerState<SettingScreen> {
         duration: const Duration(milliseconds: 200),
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
         decoration: BoxDecoration(
-          color: selected ? color.withValues(alpha: 0.08) : Colors.grey.shade50,
+          color: selected ? color.withValues(alpha: 0.10) : palette.surfaceMuted,
           borderRadius: BorderRadius.circular(14),
           border: Border.all(
-            color: selected ? color : Colors.grey.shade200,
+            color: selected ? color : Theme.of(context).dividerColor,
             width: selected ? 1.5 : 1,
           ),
         ),
@@ -311,7 +338,7 @@ class _SettingScreenState extends ConsumerState<SettingScreen> {
             width: 40,
             height: 40,
             decoration: BoxDecoration(
-              color: color.withValues(alpha: 0.12),
+              color: color.withValues(alpha: 0.14),
               shape: BoxShape.circle,
             ),
             child: Icon(icon, color: color, size: 20),
@@ -319,27 +346,31 @@ class _SettingScreenState extends ConsumerState<SettingScreen> {
           const SizedBox(width: 14),
           Expanded(
             child: Text(label,
-                style:
-                    const TextStyle(fontSize: 16, fontWeight: FontWeight.w500)),
+                style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w500,
+                    color: palette.textPrimary)),
           ),
           if (selected)
             Icon(Icons.check_circle_rounded, color: color, size: 22)
           else
-            Icon(Icons.circle_outlined, color: Colors.grey.shade300, size: 22),
+            Icon(Icons.circle_outlined,
+                color: palette.textFaint, size: 22),
         ]),
       ),
     );
   }
 
-  // ─── Food Region Selector ───────────────────────────────────────────────
   void _showRegionSelector() {
+    final l10n = AppLocalizations.of(context);
+    final palette = context.palette;
     showModalBottomSheet(
       context: context,
       backgroundColor: Colors.transparent,
       builder: (context) => Container(
-        decoration: const BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+        decoration: BoxDecoration(
+          color: palette.surfaceCard,
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
         ),
         padding: const EdgeInsets.fromLTRB(24, 16, 24, 32),
         child: Column(mainAxisSize: MainAxisSize.min, children: [
@@ -347,20 +378,26 @@ class _SettingScreenState extends ConsumerState<SettingScreen> {
               width: 40,
               height: 4,
               decoration: BoxDecoration(
-                  color: Colors.grey.shade300,
+                  color: Theme.of(context).dividerColor,
                   borderRadius: BorderRadius.circular(2))),
           const SizedBox(height: 20),
-          const Text('เลือกภูมิภาคของชื่ออาหาร',
-              style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold)),
+          Text(l10n.tr('settings.region.picker_title'),
+              style: TextStyle(
+                  fontSize: 17,
+                  fontWeight: FontWeight.bold,
+                  color: palette.textPrimary)),
           const SizedBox(height: 16),
-          _regionOption(code: null, label: 'ใช้ชื่อกลาง', isLast: false),
+          _regionOption(
+              code: null,
+              label: l10n.tr('settings.region.use_central'),
+              isLast: false),
           const SizedBox(height: 10),
-          ..._regions.map((r) => Padding(
+          ..._regions(l10n).map((r) => Padding(
                 padding: const EdgeInsets.only(bottom: 10),
                 child: _regionOption(
                   code: r['code'],
                   label: r['label']!,
-                  isLast: r == _regions.last,
+                  isLast: r == _regions(l10n).last,
                 ),
               )),
         ]),
@@ -373,6 +410,7 @@ class _SettingScreenState extends ConsumerState<SettingScreen> {
     required String label,
     required bool isLast,
   }) {
+    final palette = context.palette;
     final selected = _selectedRegion == code;
     return GestureDetector(
       onTap: () => _saveRegion(code, label),
@@ -380,10 +418,10 @@ class _SettingScreenState extends ConsumerState<SettingScreen> {
         duration: const Duration(milliseconds: 200),
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
         decoration: BoxDecoration(
-          color: selected ? const Color(0xFFEAF2DB) : Colors.grey.shade50,
+          color: selected ? palette.brandSoft : palette.surfaceMuted,
           borderRadius: BorderRadius.circular(14),
           border: Border.all(
-            color: selected ? _green : Colors.grey.shade200,
+            color: selected ? palette.brand : Theme.of(context).dividerColor,
             width: selected ? 1.5 : 1,
           ),
         ),
@@ -392,27 +430,33 @@ class _SettingScreenState extends ConsumerState<SettingScreen> {
             width: 40,
             height: 40,
             decoration: BoxDecoration(
-              color: _green.withValues(alpha: 0.10),
+              color: palette.brand.withValues(alpha: 0.10),
               shape: BoxShape.circle,
             ),
-            child: const Icon(Icons.location_on_outlined, color: _green, size: 20),
+            child: Icon(Icons.location_on_outlined,
+                color: palette.brand, size: 20),
           ),
           const SizedBox(width: 14),
           Expanded(
             child: Text(label,
-                style:
-                    const TextStyle(fontSize: 16, fontWeight: FontWeight.w500)),
+                style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w500,
+                    color: palette.textPrimary)),
           ),
           if (selected)
-            const Icon(Icons.check_circle_rounded, color: _green, size: 22)
+            Icon(Icons.check_circle_rounded, color: palette.brand, size: 22)
           else
-            Icon(Icons.circle_outlined, color: Colors.grey.shade300, size: 22),
+            Icon(Icons.circle_outlined,
+                color: palette.textFaint, size: 22),
         ]),
       ),
     );
   }
 
   Future<void> _saveRegion(String? code, String label) async {
+    final l10n = AppLocalizations.of(context);
+    final palette = context.palette;
     final userId = ref.read(userDataProvider).userId;
     if (userId == 0) return;
     try {
@@ -425,46 +469,48 @@ class _SettingScreenState extends ConsumerState<SettingScreen> {
         setState(() => _selectedRegion = code);
         Navigator.pop(context);
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-          content: Text('ตั้งชื่ออาหารเป็น $label แล้ว'),
-          backgroundColor: _green,
+          content: Text(
+              l10n.tr('settings.region.changed', {'label': label})),
+          backgroundColor: palette.brand,
           duration: const Duration(seconds: 2),
         ));
       } else {
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-          content: Text('บันทึกภูมิภาคไม่สำเร็จ (${response.statusCode})'),
+          content: Text(l10n.tr('settings.region.failed',
+              {'code': '${response.statusCode}'})),
           backgroundColor: Colors.red,
         ));
       }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-          content: Text('เกิดข้อผิดพลาด: $e'),
+          content: Text('${l10n.tr('common.error')}: $e'),
           backgroundColor: Colors.red,
         ));
       }
     }
   }
 
-  // ─── Build ────────────────────────────────────────────────────────────────
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    final palette = context.palette;
     final settings = ref.watch(appSettingsProvider);
-    final langLabel = settings.language == 'en' ? 'English' : 'ไทย';
+    final langLabel = settings.language == 'th' ? 'ไทย' : 'English';
     final themeLabel = switch (settings.theme) {
-      'dark' => 'มืด',
-      'system' => 'ตามระบบ',
-      _ => 'สว่าง',
+      'dark' => l10n.tr('settings.theme.dark'),
+      'system' => l10n.tr('settings.theme.system'),
+      _ => l10n.tr('settings.theme.light'),
     };
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF5F7F0),
+      backgroundColor: palette.surfaceMuted,
       body: SingleChildScrollView(
         child: Column(children: [
-          // ─── Header ────────────────────────────────────────────
           Container(
-            decoration: const BoxDecoration(
+            decoration: BoxDecoration(
               gradient: LinearGradient(
-                colors: [_greenDark, _green],
+                colors: [palette.brandStrong, palette.brand],
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
               ),
@@ -482,10 +528,10 @@ class _SettingScreenState extends ConsumerState<SettingScreen> {
                       color: Colors.white, size: 18),
                 ),
               ),
-              const Expanded(
-                child: Text('ตั้งค่า',
+              Expanded(
+                child: Text(l10n.tr('settings.title'),
                     textAlign: TextAlign.center,
-                    style: TextStyle(
+                    style: const TextStyle(
                         fontSize: 20,
                         fontWeight: FontWeight.bold,
                         color: Colors.white)),
@@ -496,44 +542,40 @@ class _SettingScreenState extends ConsumerState<SettingScreen> {
 
           const SizedBox(height: 24),
 
-          // ─── Group 1: ทั่วไป ──────────────────────────────────
-          _buildSectionLabel('ทั่วไป'),
+          _buildSectionLabel(l10n.tr('settings.group.general')),
           const SizedBox(height: 10),
           _buildCard([
             _buildTile(
               icon: Icons.privacy_tip_outlined,
-              iconColor: Colors.grey.shade500,
-              title: 'ความเป็นส่วนตัว',
-              onTap: () => _showInfoDialog('ความเป็นส่วนตัว',
-                  'เราเก็บรักษาข้อมูลส่วนบุคคลของคุณอย่างปลอดภัยตามมาตรฐาน PDPA'),
+              title: l10n.tr('settings.privacy'),
+              onTap: () => _showInfoDialog(
+                  l10n.tr('settings.privacy'), l10n.tr('settings.privacy.body')),
             ),
             _buildNotificationTile(),
           ]),
 
           const SizedBox(height: 16),
 
-          // ─── Group 2: การแสดงผล ───────────────────────────────
-          _buildSectionLabel('การแสดงผล'),
+          _buildSectionLabel(l10n.tr('settings.group.display')),
           const SizedBox(height: 10),
           _buildCard([
             _buildTileWithValue(
               icon: Icons.language_rounded,
-              iconColor: Colors.grey.shade500,
-              title: 'ภาษา',
+              title: l10n.tr('settings.language'),
               value: langLabel,
               onTap: _showLanguageSelector,
             ),
             _buildTileWithValue(
               icon: Icons.location_on_outlined,
-              iconColor: Colors.grey.shade500,
-              title: 'ชื่ออาหารตามภูมิภาค',
-              value: _regionLoading ? 'กำลังโหลด' : _regionLabel,
+              title: l10n.tr('settings.region'),
+              value: _regionLoading
+                  ? l10n.tr('settings.loading')
+                  : _regionLabel(l10n),
               onTap: _showRegionSelector,
             ),
             _buildTileWithValue(
               icon: Icons.palette_outlined,
-              iconColor: Colors.grey.shade500,
-              title: 'ธีม',
+              title: l10n.tr('settings.theme'),
               value: themeLabel,
               isLast: true,
               onTap: _showThemeSelector,
@@ -542,60 +584,52 @@ class _SettingScreenState extends ConsumerState<SettingScreen> {
 
           const SizedBox(height: 16),
 
-          // ─── Group 3: สนับสนุน ───────────────────────────────
-          _buildSectionLabel('สนับสนุน'),
+          _buildSectionLabel(l10n.tr('settings.group.support')),
           const SizedBox(height: 10),
           _buildCard([
             _buildTile(
               icon: Icons.lightbulb_outline_rounded,
-              iconColor: Colors.grey.shade500,
-              title: 'เสนอฟีเจอร์ใหม่',
-              onTap: () => _showInfoDialog(
-                  'ติดต่อเรา', 'ส่งข้อเสนอแนะได้ที่ support@caloriesguard.com'),
+              title: l10n.tr('settings.suggest_feature'),
+              onTap: () => _showInfoDialog(l10n.tr('settings.contact'),
+                  l10n.tr('settings.suggest_feature.body')),
             ),
             _buildTile(
               icon: Icons.help_outline_rounded,
-              iconColor: Colors.grey.shade500,
-              title: 'ขอความช่วยเหลือ',
+              title: l10n.tr('settings.help'),
               isLast: true,
-              onTap: () =>
-                  _showInfoDialog('ช่วยเหลือ', 'คู่มือการใช้งานเบื้องต้น...'),
+              onTap: () => _showInfoDialog(
+                  l10n.tr('settings.help'), l10n.tr('settings.help.body')),
             ),
           ]),
 
           const SizedBox(height: 16),
 
-          // ─── Group 4: เกี่ยวกับ ───────────────────────────────
-          _buildSectionLabel('เกี่ยวกับ'),
+          _buildSectionLabel(l10n.tr('settings.group.about')),
           const SizedBox(height: 10),
           _buildCard([
             _buildTile(
               icon: Icons.star_outline_rounded,
-              iconColor: Colors.grey.shade500,
-              title: 'ให้คะแนนเรา',
+              title: l10n.tr('settings.rate'),
               onTap: () => ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('ขอบคุณที่ให้คะแนนเรา ❤️'))),
+                  SnackBar(content: Text(l10n.tr('settings.rate.thanks')))),
             ),
             _buildTile(
               icon: Icons.info_outline_rounded,
-              iconColor: Colors.grey.shade500,
-              title: 'เกี่ยวกับ',
+              title: l10n.tr('settings.about'),
               isLast: true,
-              onTap: () =>
-                  _showInfoDialog('เกี่ยวกับแอป', 'Calories Guard v1.0.0'),
+              onTap: () => _showInfoDialog(
+                  l10n.tr('settings.about'), l10n.tr('settings.about.body')),
             ),
           ]),
 
           const SizedBox(height: 16),
 
-          // ─── Group 5: บัญชี ───────────────────────────────────
-          _buildSectionLabel('บัญชี'),
+          _buildSectionLabel(l10n.tr('settings.group.account')),
           const SizedBox(height: 10),
           _buildCard([
             _buildTile(
               icon: Icons.swap_horiz_rounded,
-              iconColor: Colors.grey.shade500,
-              title: 'เปลี่ยนบัญชี',
+              title: l10n.tr('settings.switch_account'),
               onTap: () {
                 ref.read(userDataProvider.notifier).reset();
                 Navigator.pushAndRemoveUntil(
@@ -606,8 +640,7 @@ class _SettingScreenState extends ConsumerState<SettingScreen> {
             ),
             _buildTile(
               icon: Icons.delete_outline_rounded,
-              iconColor: Colors.grey.shade500,
-              title: 'ลบบัญชี',
+              title: l10n.tr('settings.delete_account'),
               isDestructive: true,
               isLast: true,
               onTap: _showDeleteConfirmDialog,
@@ -616,7 +649,6 @@ class _SettingScreenState extends ConsumerState<SettingScreen> {
 
           const SizedBox(height: 32),
 
-          // ─── Logout ─────────────────────────────────────────
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 20),
             child: SizedBox(
@@ -631,9 +663,9 @@ class _SettingScreenState extends ConsumerState<SettingScreen> {
                       (route) => false);
                 },
                 icon: const Icon(Icons.logout_rounded),
-                label: const Text('ออกจากระบบ',
-                    style:
-                        TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                label: Text(l10n.tr('settings.logout'),
+                    style: const TextStyle(
+                        fontSize: 16, fontWeight: FontWeight.bold)),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: const Color(0xFFE74C3C),
                   foregroundColor: Colors.white,
@@ -650,26 +682,29 @@ class _SettingScreenState extends ConsumerState<SettingScreen> {
     );
   }
 
-  // ─── Helper Widgets ───────────────────────────────────────────────────────
-
   Widget _buildSectionLabel(String label) {
+    final palette = context.palette;
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 22),
-      child: Text(label,
-          style: TextStyle(
-              fontSize: 13,
-              fontWeight: FontWeight.w600,
-              color: Colors.grey.shade500,
-              letterSpacing: 0.5)),
+      child: Align(
+        alignment: AlignmentDirectional.centerStart,
+        child: Text(label,
+            style: TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.w600,
+                color: palette.textSecondary,
+                letterSpacing: 0.5)),
+      ),
     );
   }
 
   Widget _buildCard(List<Widget> children) {
+    final palette = context.palette;
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 20),
       child: Container(
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: palette.surfaceCard,
           borderRadius: BorderRadius.circular(20),
           boxShadow: [
             BoxShadow(
@@ -685,12 +720,12 @@ class _SettingScreenState extends ConsumerState<SettingScreen> {
 
   Widget _buildTile({
     required IconData icon,
-    required Color iconColor,
     required String title,
     VoidCallback? onTap,
     bool isLast = false,
     bool isDestructive = false,
   }) {
+    final palette = context.palette;
     return Column(children: [
       ListTile(
         contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
@@ -698,33 +733,36 @@ class _SettingScreenState extends ConsumerState<SettingScreen> {
           width: 38,
           height: 38,
           decoration: BoxDecoration(
-              color: Colors.grey.shade100,
+              color: palette.surfaceMuted,
               borderRadius: BorderRadius.circular(10)),
-          child: Icon(icon, color: iconColor, size: 20),
+          child: Icon(icon, color: palette.textSecondary, size: 20),
         ),
         title: Text(title,
             style: TextStyle(
                 fontSize: 15,
                 fontWeight: FontWeight.w500,
-                color: isDestructive ? Colors.red : Colors.black87)),
+                color: isDestructive ? Colors.red : palette.textPrimary)),
         trailing: Icon(Icons.arrow_forward_ios_rounded,
-            size: 14, color: Colors.grey.shade400),
+            size: 14, color: palette.textFaint),
         onTap: onTap,
       ),
       if (!isLast)
         Divider(
-            height: 1, indent: 70, endIndent: 20, color: Colors.grey.shade100),
+            height: 1,
+            indent: 70,
+            endIndent: 20,
+            color: Theme.of(context).dividerColor),
     ]);
   }
 
   Widget _buildTileWithValue({
     required IconData icon,
-    required Color iconColor,
     required String title,
     required String value,
     VoidCallback? onTap,
     bool isLast = false,
   }) {
+    final palette = context.palette;
     return Column(children: [
       ListTile(
         contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
@@ -732,34 +770,39 @@ class _SettingScreenState extends ConsumerState<SettingScreen> {
           width: 38,
           height: 38,
           decoration: BoxDecoration(
-              color: Colors.grey.shade100,
+              color: palette.surfaceMuted,
               borderRadius: BorderRadius.circular(10)),
-          child: Icon(icon, color: iconColor, size: 20),
+          child: Icon(icon, color: palette.textSecondary, size: 20),
         ),
         title: Text(title,
-            style: const TextStyle(
+            style: TextStyle(
                 fontSize: 15,
                 fontWeight: FontWeight.w500,
-                color: Colors.black87)),
+                color: palette.textPrimary)),
         trailing: Row(mainAxisSize: MainAxisSize.min, children: [
           Text(value,
               style: TextStyle(
                   fontSize: 13,
-                  color: Colors.grey.shade500,
+                  color: palette.textSecondary,
                   fontWeight: FontWeight.w500)),
           const SizedBox(width: 6),
           Icon(Icons.arrow_forward_ios_rounded,
-              size: 14, color: Colors.grey.shade400),
+              size: 14, color: palette.textFaint),
         ]),
         onTap: onTap,
       ),
       if (!isLast)
         Divider(
-            height: 1, indent: 70, endIndent: 20, color: Colors.grey.shade100),
+            height: 1,
+            indent: 70,
+            endIndent: 20,
+            color: Theme.of(context).dividerColor),
     ]);
   }
 
   Widget _buildNotificationTile() {
+    final l10n = AppLocalizations.of(context);
+    final palette = context.palette;
     return Column(children: [
       ListTile(
         contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
@@ -767,24 +810,27 @@ class _SettingScreenState extends ConsumerState<SettingScreen> {
           width: 38,
           height: 38,
           decoration: BoxDecoration(
-              color: Colors.grey.shade100,
+              color: palette.surfaceMuted,
               borderRadius: BorderRadius.circular(10)),
           child: Icon(Icons.notifications_outlined,
-              color: Colors.grey.shade500, size: 20),
+              color: palette.textSecondary, size: 20),
         ),
-        title: const Text('การแจ้งเตือน',
+        title: Text(l10n.tr('settings.notifications'),
             style: TextStyle(
                 fontSize: 15,
                 fontWeight: FontWeight.w500,
-                color: Colors.black87)),
+                color: palette.textPrimary)),
         trailing: Switch(
           value: _isNotificationOn,
-          activeThumbColor: _green,
+          activeThumbColor: palette.brand,
           onChanged: (val) => setState(() => _isNotificationOn = val),
         ),
       ),
       Divider(
-          height: 1, indent: 70, endIndent: 20, color: Colors.grey.shade100),
+          height: 1,
+          indent: 70,
+          endIndent: 20,
+          color: Theme.of(context).dividerColor),
     ]);
   }
 }
