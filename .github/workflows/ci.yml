@@ -60,7 +60,7 @@ jobs:
           cache: true
 
       - name: Copy secrets example -> secrets
-        run: cp lib/config/secrets.example.dart lib/config/secrets.dart || true
+        run: cp lib/config/example.secrets.dart lib/config/secrets.dart || true
 
       - name: Install deps
         run: flutter pub get
