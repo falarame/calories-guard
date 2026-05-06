@@ -759,9 +759,9 @@ void main() {
   // ══════════════════════════════════════════════════════════════
 
   group('[AppSettings] default + copyWith', () {
-    test('default language = th, theme = light', () {
+    test('default language = en, theme = light', () {
       const s = AppSettings();
-      expect(s.language, 'th');
+      expect(s.language, 'en');
       expect(s.theme, 'light');
     });
 
