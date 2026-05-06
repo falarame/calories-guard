@@ -106,7 +106,11 @@ class AuthService {
       if (response.statusCode == 200) {
         final data = _parseJson(response.body);
         if (data == null) {
-          return {'success': false, 'message': 'ไม่สามารถเชื่อมต่อกับเซิร์ฟเวอร์ได้ กรุณาลองใหม่อีกครั้ง'};
+          return {
+            'success': false,
+            'message':
+                'ไม่สามารถเชื่อมต่อกับเซิร์ฟเวอร์ได้ กรุณาลองใหม่อีกครั้ง'
+          };
         }
         final backendToken = data['access_token'] as String?;
         if (backendToken != null) {
@@ -116,16 +120,25 @@ class AuthService {
       } else {
         if (response.statusCode == 409) {
           await _supabase.auth.signOut();
-          return {'success': false, 'message': 'อีเมลนี้ถูกใช้งานแล้ว กรุณาเข้าสู่ระบบหรือใช้ลืมรหัสผ่าน'};
+          return {
+            'success': false,
+            'message':
+                'อีเมลนี้ถูกใช้งานแล้ว กรุณาเข้าสู่ระบบหรือใช้ลืมรหัสผ่าน'
+          };
         }
         final errorData = _parseJson(response.body);
         return {
           'success': false,
-          'message': errorData?['detail'] as String? ?? 'Backend sync failed (${response.statusCode})',
+          'message': errorData?['detail'] as String? ??
+              'Backend sync failed (${response.statusCode})',
         };
       }
     } catch (e) {
-      return {'success': false, 'message': 'ไม่สามารถเชื่อมต่อกับเซิร์ฟเวอร์ได้ กรุณาตรวจสอบการเชื่อมต่ออินเทอร์เน็ต'};
+      return {
+        'success': false,
+        'message':
+            'ไม่สามารถเชื่อมต่อกับเซิร์ฟเวอร์ได้ กรุณาตรวจสอบการเชื่อมต่ออินเทอร์เน็ต'
+      };
     }
   }
 
@@ -160,7 +173,11 @@ class AuthService {
       if (response.statusCode == 200) {
         final data = _parseJson(response.body);
         if (data == null) {
-          return {'success': false, 'message': 'ไม่สามารถเชื่อมต่อกับเซิร์ฟเวอร์ได้ กรุณาลองใหม่อีกครั้ง'};
+          return {
+            'success': false,
+            'message':
+                'ไม่สามารถเชื่อมต่อกับเซิร์ฟเวอร์ได้ กรุณาลองใหม่อีกครั้ง'
+          };
         }
         // Use backend-issued JWT for all subsequent API calls
         final backendToken = data['access_token'] as String?;
@@ -172,10 +189,15 @@ class AuthService {
         final errorData = _parseJson(response.body);
         return {
           'success': false,
-          'message': errorData?['detail'] as String? ?? 'เข้าสู่ระบบล้มเหลว (${response.statusCode})',
+          'message': errorData?['detail'] as String? ??
+              'เข้าสู่ระบบล้มเหลว (${response.statusCode})',
         };
       }
     } on AuthException catch (e) {
+      final backendResult = await _loginWithBackendPassword(email, password);
+      if (backendResult['success'] == true) {
+        return backendResult;
+      }
       final lower = e.message.toLowerCase();
       if (lower.contains('email not confirmed') ||
           lower.contains('not confirmed')) {
@@ -186,12 +208,46 @@ class AuthService {
           'success': false,
           'needsEmailVerification': true,
           'message':
-              'อีเมลนี้ยังไม่ได้ยืนยัน กรุณากรอกรหัสจากอีเมล Supabase ล่าสุด',
+              'อีเมลนี้ยังไม่ได้ยืนยัน กรุณากรอกรหัสยืนยันจากอีเมลล่าสุด',
         };
       }
-      return {'success': false, 'message': e.message};
+      return {
+        'success': false,
+        'message': backendResult['message'] ?? e.message
+      };
     } catch (e) {
-      return {'success': false, 'message': 'ไม่สามารถเชื่อมต่อกับเซิร์ฟเวอร์ได้ กรุณาตรวจสอบการเชื่อมต่ออินเทอร์เน็ต'};
+      return {
+        'success': false,
+        'message':
+            'ไม่สามารถเชื่อมต่อกับเซิร์ฟเวอร์ได้ กรุณาตรวจสอบการเชื่อมต่ออินเทอร์เน็ต'
+      };
+    }
+  }
+
+  Future<Map<String, dynamic>> _loginWithBackendPassword(
+    String email,
+    String password,
+  ) async {
+    try {
+      final response = await _api.post('/login', body: {
+        'email': email,
+        'password': password,
+      });
+      final data = _parseJson(response.body);
+      if (response.statusCode == 200 && data != null) {
+        final backendToken = data['access_token'] as String?;
+        if (backendToken != null) {
+          ApiClient.setManualToken(backendToken);
+        }
+        return {'success': true, 'data': data};
+      }
+      return {
+        'success': false,
+        'statusCode': response.statusCode,
+        'message': data?['detail'] as String? ?? 'เข้าสู่ระบบล้มเหลว',
+      };
+    } catch (_) {
+      return {'success': false, 'message': 'เข้าสู่ระบบล้มเหลว'};
     }
   }
 
@@ -216,16 +272,25 @@ class AuthService {
 
       if (response.statusCode == 200) {
         final data = _parseJson(response.body);
+        final backendToken = data?['access_token'] as String?;
+        if (backendToken != null) {
+          ApiClient.setManualToken(backendToken);
+        }
         return {'success': true, 'data': data ?? {}};
       } else {
         final errorData = _parseJson(response.body);
         return {
           'success': false,
-          'message': errorData?['detail'] as String? ?? 'Social login failed (${response.statusCode})',
+          'message': errorData?['detail'] as String? ??
+              'Social login failed (${response.statusCode})',
         };
       }
     } catch (e) {
-      return {'success': false, 'message': 'ไม่สามารถเชื่อมต่อกับเซิร์ฟเวอร์ได้ กรุณาตรวจสอบการเชื่อมต่ออินเทอร์เน็ต'};
+      return {
+        'success': false,
+        'message':
+            'ไม่สามารถเชื่อมต่อกับเซิร์ฟเวอร์ได้ กรุณาตรวจสอบการเชื่อมต่ออินเทอร์เน็ต'
+      };
     }
   }
 
@@ -257,11 +322,11 @@ class AuthService {
 
   // --- Email Verification ---
   //
-  // Flow: Supabase Auth sends a 6-digit OTP on signUp (or a link, depending on
-  // the Supabase dashboard Email Template). We verify the OTP with Supabase
-  // directly, then sync the verified flag to our backend so /login can pass.
+  // Flow: try Supabase OTP first, then fall back to the backend OTP generated
+  // by /register or /resend-verification-email.
   Future<Map<String, dynamic>> verifyEmail(String email, String code) async {
     var supabaseVerified = false;
+    String? supabaseErrorMessage;
     try {
       // Step 1 — Verify the OTP with Supabase Auth.
       final authResponse = await _supabase.auth.verifyOTP(
@@ -270,18 +335,15 @@ class AuthService {
         token: code,
       );
       if (authResponse.user == null) {
-        return {'success': false, 'message': 'รหัสไม่ถูกต้องหรือหมดอายุ'};
+        supabaseErrorMessage = 'รหัสไม่ถูกต้องหรือหมดอายุ';
+      } else {
+        supabaseVerified = true;
       }
-      supabaseVerified = true;
     } on AuthException catch (e) {
       final lower = e.message.toLowerCase();
       final expired = lower.contains('expired') || lower.contains('invalid');
-      return {
-        'success': false,
-        'message': expired
-            ? 'รหัสไม่ถูกต้องหรือหมดอายุ กรุณากดส่งรหัสใหม่'
-            : 'กรุณาใช้รหัสยืนยันจากอีเมล Supabase ล่าสุด',
-      };
+      supabaseErrorMessage =
+          expired ? 'รหัสไม่ถูกต้องหรือหมดอายุ กรุณากดส่งรหัสใหม่' : e.message;
     }
 
     try {
@@ -293,7 +355,11 @@ class AuthService {
       if (response.statusCode == 200) {
         final data = _parseJson(response.body);
         if (data == null) {
-          return {'success': false, 'message': 'ไม่สามารถเชื่อมต่อกับเซิร์ฟเวอร์ได้ กรุณาลองใหม่อีกครั้ง'};
+          return {
+            'success': false,
+            'message':
+                'ไม่สามารถเชื่อมต่อกับเซิร์ฟเวอร์ได้ กรุณาลองใหม่อีกครั้ง'
+          };
         }
         final backendToken = data['access_token'] as String?;
         if (backendToken != null) ApiClient.setManualToken(backendToken);
@@ -302,39 +368,118 @@ class AuthService {
       final errorData = _parseJson(response.body);
       return {
         'success': false,
-        'message': errorData?['detail'] as String? ?? 'รหัสไม่ถูกต้องหรือหมดอายุ',
+        'message': errorData?['detail'] as String? ??
+            supabaseErrorMessage ??
+            'รหัสไม่ถูกต้องหรือหมดอายุ',
       };
     } catch (e) {
-      return {'success': false, 'message': 'ไม่สามารถเชื่อมต่อกับเซิร์ฟเวอร์ได้ กรุณาตรวจสอบการเชื่อมต่ออินเทอร์เน็ต'};
+      return {
+        'success': false,
+        'message':
+            'ไม่สามารถเชื่อมต่อกับเซิร์ฟเวอร์ได้ กรุณาตรวจสอบการเชื่อมต่ออินเทอร์เน็ต'
+      };
     }
   }
 
   Future<Map<String, dynamic>> resendEmailVerification(String email) async {
+    AuthException? supabaseError;
     try {
       try {
         await _supabase.auth.resend(type: OtpType.signup, email: email);
+      } on AuthException catch (e) {
+        supabaseError = e;
       } catch (_) {
-        rethrow;
+        // Backend OTP is the source of truth for this fallback flow.
       }
-      return {'success': true, 'message': 'ส่งรหัสยืนยันใหม่แล้ว'};
-    } on AuthException catch (e) {
-      return {'success': false, 'message': e.message};
+
+      final response = await _api.post('/resend-verification-email', body: {
+        'email': email,
+      });
+      final data = _parseJson(response.body);
+      if (response.statusCode == 200) {
+        return {
+          'success': true,
+          'message': data?['message'] as String? ?? 'ส่งรหัสยืนยันใหม่แล้ว',
+        };
+      }
+      return {
+        'success': false,
+        'message': data?['detail'] as String? ??
+            supabaseError?.message ??
+            'ส่งรหัสใหม่ไม่สำเร็จ',
+      };
     } catch (e) {
       return {'success': false, 'message': 'Connection error: $e'};
     }
   }
 
-  // --- Password Reset (Supabase handles this) ---
+  // --- Password Reset (backend OTP fallback, independent from Supabase mail) ---
 
   Future<Map<String, dynamic>> requestPasswordReset(String email) async {
     try {
-      await _supabase.auth.resetPasswordForEmail(
-        email,
-        redirectTo: oauthRedirectTo,
-      );
-      return {'success': true, 'message': 'Password reset email sent'};
-    } on AuthException catch (e) {
-      return {'success': false, 'message': e.message};
+      final response = await _api.post('/password-reset/request', body: {
+        'email': email,
+      });
+      final data = _parseJson(response.body);
+      if (response.statusCode == 200) {
+        return {
+          'success': true,
+          'mode': 'code',
+          'message': data?['message'] as String? ?? 'ส่งรหัสรีเซ็ตรหัสผ่านแล้ว',
+        };
+      }
+      return {
+        'success': false,
+        'message': data?['detail'] as String? ?? 'ส่งรหัสไม่สำเร็จ',
+      };
+    } catch (e) {
+      return {'success': false, 'message': 'Connection error: $e'};
+    }
+  }
+
+  Future<Map<String, dynamic>> verifyPasswordResetCode({
+    required String email,
+    required String code,
+    required DateTime birthDate,
+  }) async {
+    try {
+      final response = await _api.post('/password-reset/verify', body: {
+        'email': email,
+        'code': code,
+        'birth_date': birthDate.toIso8601String().split('T').first,
+      });
+      final data = _parseJson(response.body);
+      return {
+        'success': response.statusCode == 200,
+        'message': response.statusCode == 200
+            ? (data?['message'] as String? ?? 'ยืนยันโค้ดสำเร็จ')
+            : (data?['detail'] as String? ?? 'รหัสไม่ถูกต้องหรือหมดอายุ'),
+      };
+    } catch (e) {
+      return {'success': false, 'message': 'Connection error: $e'};
+    }
+  }
+
+  Future<Map<String, dynamic>> confirmPasswordReset({
+    required String email,
+    required String code,
+    required DateTime birthDate,
+    required String newPassword,
+  }) async {
+    try {
+      final response = await _api.post('/password-reset/confirm', body: {
+        'email': email,
+        'code': code,
+        'birth_date': birthDate.toIso8601String().split('T').first,
+        'new_password': newPassword,
+      });
+      final data = _parseJson(response.body);
+      return {
+        'success': response.statusCode == 200,
+        'message': response.statusCode == 200
+            ? (data?['message'] as String? ?? 'รีเซ็ตรหัสผ่านสำเร็จ')
+            : (data?['detail'] as String? ?? 'รีเซ็ตรหัสผ่านไม่สำเร็จ'),
+      };
     } catch (e) {
       return {'success': false, 'message': 'Connection error: $e'};
     }

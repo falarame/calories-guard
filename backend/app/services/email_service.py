@@ -82,7 +82,7 @@ def send_email(to_email: str, subject: str, html_body: str) -> bool:
         return False
 
 
-def send_welcome_email(email: str, username: str):
+def send_welcome_email(email: str, username: str) -> bool:
     subject = "ยินดีต้อนรับสู่ Calories Guard!"
     html = f"""
     <html>
@@ -95,10 +95,10 @@ def send_welcome_email(email: str, username: str):
         <p>ด้วยความปรารถนาดี,<br>ทีมงาน Calories Guard</p>
     </html>
     """
-    send_email(email, subject, html)
+    return send_email(email, subject, html)
 
 
-def send_verification_email(email: str, username: str, code: str):
+def send_verification_email(email: str, username: str, code: str) -> bool:
     subject = "ยืนยันอีเมลของคุณ - Calories Guard"
     html = f"""
     <html>
@@ -112,10 +112,10 @@ def send_verification_email(email: str, username: str, code: str):
     </body>
     </html>
     """
-    send_email(email, subject, html)
+    return send_email(email, subject, html)
 
 
-def send_password_reset_email(email: str, username: str, code: str):
+def send_password_reset_email(email: str, username: str, code: str) -> bool:
     subject = "รีเซ็ตรหัสผ่าน - Calories Guard"
     html = f"""
     <html>
@@ -132,4 +132,4 @@ def send_password_reset_email(email: str, username: str, code: str):
     </body>
     </html>
     """
-    send_email(email, subject, html)
+    return send_email(email, subject, html)

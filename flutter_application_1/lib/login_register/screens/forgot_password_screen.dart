@@ -1,15 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../services/auth_service.dart';
+import 'reset_password_code_screen.dart';
 
-/// Forgot-password flow is delegated to Supabase Auth.
-///
-/// Supabase sends a password-reset *link* (not an OTP) to the user's inbox.
-/// Clicking the link returns to the app/web origin; AuthBootstrap listens for
-/// the passwordRecovery event and opens ResetPasswordScreen.
-///
-/// The legacy OTP-based flow (backend `/password-reset/*`) is kept on the
-/// server for backwards compatibility but is no longer called from the app.
+/// Forgot-password uses the backend OTP flow so it still works when Supabase
+/// email delivery or confirmation is delayed.
 class ForgotPasswordScreen extends ConsumerStatefulWidget {
   const ForgotPasswordScreen({super.key});
 
@@ -39,7 +34,7 @@ class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen> {
     );
   }
 
-  Future<void> _sendResetLink() async {
+  Future<void> _sendResetCode() async {
     final email = _emailController.text.trim();
     if (email.isEmpty) {
       _showMessage('กรุณากรอกอีเมล', isError: true);
@@ -59,9 +54,15 @@ class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen> {
 
     if (result['success']) {
       setState(() => _sent = true);
-      _showMessage(result['message'] ?? 'ส่งลิงก์รีเซ็ตรหัสผ่านไปที่อีเมลแล้ว');
+      _showMessage(result['message'] ?? 'ส่งรหัสรีเซ็ตรหัสผ่านแล้ว');
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (_) => ResetPasswordCodeScreen(email: email),
+        ),
+      );
     } else {
-      _showMessage(result['message'] ?? 'ส่งลิงก์ไม่สำเร็จ', isError: true);
+      _showMessage(result['message'] ?? 'ส่งรหัสไม่สำเร็จ', isError: true);
     }
   }
 
@@ -81,7 +82,7 @@ class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               const Text(
-                'รีเซ็ตรหัสผ่านผ่านอีเมล',
+                'รีเซ็ตรหัสผ่านด้วยรหัส OTP',
                 style: TextStyle(
                   fontSize: 22,
                   fontWeight: FontWeight.w700,
@@ -90,7 +91,7 @@ class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen> {
               ),
               const SizedBox(height: 10),
               const Text(
-                'กรอกอีเมลที่ใช้สมัครบัญชี ระบบจะส่งลิงก์รีเซ็ตรหัสผ่าน\nไปที่อีเมลของคุณ คลิกลิงก์เพื่อตั้งรหัสผ่านใหม่',
+                'กรอกอีเมลที่ใช้สมัครบัญชี ระบบจะส่งรหัส 6 หลักไปที่อีเมลของคุณ\nจากนั้นใช้รหัสพร้อมวันเกิดเพื่อตั้งรหัสผ่านใหม่',
                 style:
                     TextStyle(fontSize: 14, color: Colors.black87, height: 1.4),
               ),
@@ -124,7 +125,7 @@ class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen> {
                       SizedBox(width: 10),
                       Expanded(
                         child: Text(
-                          'ส่งลิงก์รีเซ็ตรหัสผ่านแล้ว\n'
+                          'ส่งรหัสรีเซ็ตรหัสผ่านแล้ว\n'
                           'กรุณาตรวจสอบกล่องจดหมายและโฟลเดอร์สแปม',
                           style: TextStyle(fontSize: 14, height: 1.4),
                         ),
@@ -144,7 +145,7 @@ class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen> {
                         borderRadius: BorderRadius.circular(16),
                       ),
                     ),
-                    onPressed: _isLoading ? null : _sendResetLink,
+                    onPressed: _isLoading ? null : _sendResetCode,
                     child: _isLoading
                         ? const SizedBox(
                             width: 20,
@@ -153,9 +154,7 @@ class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen> {
                                 color: Colors.white, strokeWidth: 2),
                           )
                         : Text(
-                            _sent
-                                ? 'ส่งลิงก์อีกครั้ง'
-                                : 'ส่งลิงก์รีเซ็ตรหัสผ่าน',
+                            _sent ? 'ส่งรหัสอีกครั้ง' : 'ส่งรหัสรีเซ็ตรหัสผ่าน',
                             style: const TextStyle(
                                 fontSize: 16, color: Colors.white),
                           ),

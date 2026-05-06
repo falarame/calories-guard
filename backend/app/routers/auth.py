@@ -4,7 +4,7 @@ import secrets
 from datetime import date, datetime, timedelta, timezone
 from random import randint
 
-from fastapi import APIRouter, HTTPException, Request, Depends
+from fastapi import APIRouter, HTTPException, Request
 from psycopg2.extras import RealDictCursor
 from slowapi import Limiter
 from slowapi.util import get_remote_address
@@ -14,6 +14,14 @@ import requests
 from database import get_db_connection
 from app.core.security import get_password_hash, verify_password
 from app.core.observability import track
+from app.services.email_service import (
+    send_welcome_email, send_verification_email, send_password_reset_email,
+)
+from app.models.schemas import (
+    UserRegister, UserLogin, UserVerifyEmail,
+    PasswordResetRequest, PasswordResetVerify, PasswordResetConfirm,
+    SocialLoginRequest,
+)
 
 
 _JWT_SECRET = os.getenv("SUPABASE_JWT_SECRET", "")
@@ -106,14 +114,7 @@ def _token_email_matches(payload: dict | None, email: str) -> bool:
         return False
     token_email = (payload.get("email") or "").strip().lower()
     return bool(token_email) and token_email == email
-from app.services.email_service import (
-    send_welcome_email, send_password_reset_email,
-)
-from app.models.schemas import (
-    UserRegister, UserLogin, UserVerifyEmail,
-    PasswordResetRequest, PasswordResetVerify, PasswordResetConfirm,
-    SocialLoginRequest,
-)
+
 
 router = APIRouter()
 limiter = Limiter(key_func=get_remote_address)
@@ -149,6 +150,32 @@ def _init_password_reset_table():
 _init_password_reset_table()
 
 
+def _init_email_verification_table():
+    conn = get_db_connection()
+    if not conn:
+        return
+    try:
+        cur = conn.cursor()
+        cur.execute("""
+        CREATE TABLE IF NOT EXISTS email_verification_codes (
+            id BIGSERIAL PRIMARY KEY,
+            user_id BIGINT NOT NULL REFERENCES users(user_id) ON DELETE CASCADE,
+            code VARCHAR(10) NOT NULL,
+            expires_at TIMESTAMP NOT NULL,
+            used BOOLEAN DEFAULT FALSE,
+            created_at TIMESTAMP DEFAULT NOW()
+        )
+        """)
+        conn.commit()
+    except Exception as e:
+        print('Could not create email verification table:', e)
+    finally:
+        conn.close()
+
+
+_init_email_verification_table()
+
+
 _EMAIL_RE = re.compile(r'^[\w\.\-\+]+@[\w\-]+(\.[\w\-]+)*\.[a-zA-Z]{2,}$')
 
 
@@ -165,6 +192,51 @@ def _email_exists(cur, email: str) -> bool:
 def _get_user_by_email(cur, email: str) -> dict | None:
     cur.execute("SELECT * FROM users WHERE LOWER(email) = %s AND deleted_at IS NULL LIMIT 1", (email,))
     return cur.fetchone()
+
+
+def _insert_email_verification_code(cur, user_id: int) -> str:
+    code = _generate_code()
+    expires = datetime.utcnow() + timedelta(minutes=15)
+    cur.execute(
+        """
+        INSERT INTO email_verification_codes (user_id, code, expires_at, used)
+        VALUES (%s, %s, %s, FALSE)
+        """,
+        (user_id, code, expires),
+    )
+    return code
+
+
+def _verify_backend_email_code(cur, user_id: int, code: str) -> bool:
+    cur.execute(
+        """
+        SELECT *
+        FROM email_verification_codes
+        WHERE user_id = %s AND code = %s AND used = FALSE
+        ORDER BY created_at DESC, id DESC
+        LIMIT 1
+        """,
+        (user_id, code),
+    )
+    row = cur.fetchone()
+    if not row:
+        return False
+    expires_at = row["expires_at"]
+    if expires_at.tzinfo is not None:
+        expires_at = expires_at.replace(tzinfo=None)
+    if expires_at < datetime.utcnow():
+        return False
+    cur.execute(
+        "UPDATE email_verification_codes SET used = TRUE WHERE id = %s",
+        (row["id"],),
+    )
+    return True
+
+
+def _is_expired(expires_at: datetime) -> bool:
+    if expires_at.tzinfo is not None:
+        return expires_at < datetime.now(timezone.utc)
+    return expires_at < datetime.utcnow()
 
 
 @router.get("/check-email")
@@ -235,8 +307,18 @@ def register(request: Request, user: UserRegister):
                     raise HTTPException(status_code=409, detail="อีเมลนี้ถูกใช้งานแล้ว")
                 raise
         new_user = cur.fetchone()
+        verification_code = _insert_email_verification_code(cur, new_user["user_id"])
         conn.commit()
-        return {"message": "User created. Please check Supabase email for verification code.", "user": new_user}
+        email_sent = send_verification_email(
+            new_user["email"],
+            new_user["username"],
+            verification_code,
+        )
+        return {
+            "message": "User created. Please check your email for verification code.",
+            "user": new_user,
+            "email_sent": email_sent,
+        }
     except HTTPException:
         conn.rollback()
         raise
@@ -251,16 +333,8 @@ def register(request: Request, user: UserRegister):
 @router.post("/verify-email")
 def verify_email(req: UserVerifyEmail):
     """
-    Sync users.is_email_verified = TRUE after Supabase Auth confirms the email.
-
-    Supabase is the source of truth for email verification (it sends the OTP
-    and validates it). The Flutter client calls Supabase.auth.verifyOTP(...)
-    first; only on success does it hit this endpoint to mirror the state into
-    our DB so /login can pass the is_email_verified check.
-
-    We intentionally do not accept the legacy backend-generated OTP here:
-    accepting it would mark our DB verified while Supabase Auth still rejects
-    password login with "email not confirmed".
+    Sync users.is_email_verified = TRUE after Supabase Auth confirms the OTP
+    or after the backend-generated fallback OTP is verified.
     """
     conn = get_db_connection()
     try:
@@ -271,10 +345,18 @@ def verify_email(req: UserVerifyEmail):
         if not user:
             raise HTTPException(status_code=404, detail="Email not found")
 
+        backend_verified = False
         if not req.supabase_verified:
+            backend_verified = _verify_backend_email_code(
+                cur,
+                user["user_id"],
+                req.code,
+            )
+
+        if not req.supabase_verified and not backend_verified:
             raise HTTPException(
                 status_code=400,
-                detail="กรุณาใช้รหัสยืนยันจากอีเมล Supabase ล่าสุด",
+                detail="รหัสไม่ถูกต้องหรือหมดอายุ กรุณากดส่งรหัสใหม่",
             )
 
         cur.execute(
@@ -308,10 +390,7 @@ def verify_email(req: UserVerifyEmail):
 
 @router.post("/resend-verification-email")
 def resend_verification_email(req: PasswordResetRequest):
-    """
-    Kept for older clients, but the mobile app now resends through Supabase
-    Auth directly. Do not send a second backend OTP email.
-    """
+    """Send a backend verification OTP for users stuck before confirmation."""
     conn = get_db_connection()
     try:
         cur = conn.cursor(cursor_factory=RealDictCursor)
@@ -321,7 +400,12 @@ def resend_verification_email(req: PasswordResetRequest):
             raise HTTPException(status_code=404, detail="ไม่พบอีเมลนี้ในระบบ")
         if user['is_email_verified']:
             raise HTTPException(status_code=400, detail="อีเมลนี้ได้รับการยืนยันแล้ว")
-        return {"message": "กรุณาตรวจสอบอีเมลยืนยันจาก Supabase"}
+        code = _insert_email_verification_code(cur, user["user_id"])
+        conn.commit()
+        email_sent = send_verification_email(user["email"], user["username"], code)
+        if not email_sent:
+            raise HTTPException(status_code=503, detail="ระบบส่งอีเมลยังไม่พร้อม กรุณาลองใหม่ภายหลัง")
+        return {"message": "ส่งรหัสยืนยันใหม่แล้ว"}
     except HTTPException:
         raise
     except Exception as e:
@@ -510,7 +594,9 @@ def password_reset_request(req: PasswordResetRequest):
             (user['user_id'], code, expires, False),
         )
         conn.commit()
-        send_password_reset_email(req.email, user['username'], code)
+        email_sent = send_password_reset_email(req.email, user['username'], code)
+        if not email_sent:
+            raise HTTPException(status_code=503, detail="ระบบส่งอีเมลยังไม่พร้อม กรุณาลองใหม่ภายหลัง")
         return {"message": "รหัสยืนยันถูกส่งไปยังอีเมลแล้ว"}
     except HTTPException:
         raise
@@ -540,7 +626,7 @@ def password_reset_verify(req: PasswordResetVerify):
             raise HTTPException(status_code=401, detail="วันเดือนปีเกิดไม่ตรงกับบัญชี")
         cur.execute("SELECT * FROM password_reset_codes WHERE user_id = %s AND code = %s AND used = FALSE ORDER BY created_at DESC LIMIT 1", (user['user_id'], req.code))
         row = cur.fetchone()
-        if not row or row['expires_at'] < datetime.now(timezone.utc):
+        if not row or _is_expired(row['expires_at']):
             raise HTTPException(status_code=401, detail="รหัสไม่ถูกต้องหรือหมดอายุ")
         return {"message": "ยืนยันโค้ดสำเร็จ"}
     except HTTPException:
@@ -571,7 +657,7 @@ def password_reset_confirm(req: PasswordResetConfirm):
             raise HTTPException(status_code=401, detail="วันเดือนปีเกิดไม่ตรงกับบัญชี")
         cur.execute("SELECT * FROM password_reset_codes WHERE user_id = %s AND code = %s AND used = FALSE ORDER BY created_at DESC LIMIT 1", (user['user_id'], req.code))
         row = cur.fetchone()
-        if not row or row['expires_at'] < datetime.now(timezone.utc):
+        if not row or _is_expired(row['expires_at']):
             raise HTTPException(status_code=401, detail="รหัสไม่ถูกต้องหรือหมดอายุ")
         new_hash = get_password_hash(req.new_password)
         cur.execute("UPDATE users SET password_hash = %s WHERE user_id = %s", (new_hash, user['user_id']))

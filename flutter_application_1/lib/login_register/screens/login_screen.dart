@@ -65,6 +65,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
       final isOAuth = providers is List &&
           providers.any((p) => p != 'email' && p != 'phone');
       if (!isOAuth) return;
+      final provider = _oauthProviderFrom(user.appMetadata);
       _socialSyncing = true;
       _syncSocialBackend(
         email: user.email ?? '',
@@ -73,7 +74,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
             user.email ??
             'User',
         uid: user.id,
-        provider: providers.first as String,
+        provider: provider,
       ).whenComplete(() => _socialSyncing = false);
     });
   }
@@ -117,6 +118,20 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
         margin: isWide ? null : const EdgeInsets.all(16),
       ),
     );
+  }
+
+  String _oauthProviderFrom(Map<String, dynamic> appMetadata) {
+    final providers = appMetadata['providers'];
+    if (providers is List) {
+      for (final provider in providers) {
+        final value = provider.toString();
+        if (value != 'email' && value != 'phone') {
+          return value;
+        }
+      }
+    }
+    final provider = appMetadata['provider']?.toString();
+    return provider == null || provider.isEmpty ? 'google' : provider;
   }
 
   // ── Email / Password Login ────────────────────────────────────

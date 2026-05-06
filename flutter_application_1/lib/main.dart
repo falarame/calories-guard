@@ -187,10 +187,7 @@ class _AuthBootstrapState extends ConsumerState<AuthBootstrap> {
     final user = (session ?? auth.currentSession)?.user;
     if (user == null || user.email == null || user.email!.isEmpty) return;
 
-    final providers = user.appMetadata['providers'];
-    final provider = providers is List && providers.isNotEmpty
-        ? providers.first.toString()
-        : (user.appMetadata['provider']?.toString() ?? '');
+    final provider = _oauthProviderFrom(user.appMetadata);
     final isOAuthProvider =
         provider.isNotEmpty && provider != 'email' && provider != 'phone';
     if (!isOAuthProvider) return;
@@ -232,6 +229,19 @@ class _AuthBootstrapState extends ConsumerState<AuthBootstrap> {
           ? const GenderSelectionScreen()
           : const MainScreen(),
     );
+  }
+
+  String _oauthProviderFrom(Map<String, dynamic> appMetadata) {
+    final providers = appMetadata['providers'];
+    if (providers is List) {
+      for (final provider in providers) {
+        final value = provider.toString();
+        if (value != 'email' && value != 'phone') {
+          return value;
+        }
+      }
+    }
+    return appMetadata['provider']?.toString() ?? '';
   }
 
   @override
