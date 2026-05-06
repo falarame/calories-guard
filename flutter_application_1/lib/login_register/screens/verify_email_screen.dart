@@ -122,7 +122,8 @@ class _VerifyEmailScreenState extends ConsumerState<VerifyEmailScreen> {
               ),
               const SizedBox(height: 10),
               Text(
-                'รหัสยืนยันถูกส่งไปยัง ${widget.email} แล้ว\nโปรดตรวจสอบกล่องจดหมาย (และโฟลเดอร์สแปม)',
+                'รหัสยืนยันถูกส่งไปยัง ${widget.email} แล้ว\n'
+                'ให้ใช้รหัสจากอีเมลหัวข้อ "ยืนยันอีเมลของคุณ - Calories Guard" ฉบับล่าสุด',
                 style: TextStyle(
                     fontFamily: 'Inter',
                     fontSize: 14,
