@@ -511,6 +511,26 @@ class _AppHomeScreenState extends ConsumerState<AppHomeScreen> {
                     color: Colors.black87)),
             const Spacer(),
             GestureDetector(
+              onTap: () => _showCalcFormulaSheet(userData),
+              child: Container(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                decoration: BoxDecoration(
+                    color: const Color(0xFFF0F7E8),
+                    borderRadius: BorderRadius.circular(20)),
+                child: const Row(mainAxisSize: MainAxisSize.min, children: [
+                  Icon(Icons.calculate_outlined, size: 13, color: _green),
+                  SizedBox(width: 3),
+                  Text('สูตรคำนวณ',
+                      style: TextStyle(
+                          fontSize: 11,
+                          color: _green,
+                          fontWeight: FontWeight.w600)),
+                ]),
+              ),
+            ),
+            const SizedBox(width: 8),
+            GestureDetector(
               onTap: () => Navigator.push(context,
                   MaterialPageRoute(builder: (_) => const ProgressScreen())),
               child: Container(
@@ -686,6 +706,194 @@ class _AppHomeScreenState extends ConsumerState<AppHomeScreen> {
     ]);
   }
 
+  // ─── Formula Sheet ────────────────────────────────────────────────────────
+
+  void _showCalcFormulaSheet(dynamic userData) {
+    final gender = (userData.gender as String?) ?? 'male';
+    final age = () {
+      try {
+        final birth = DateTime.parse(userData.birthDate as String);
+        final now = DateTime.now();
+        int a = now.year - birth.year;
+        if (now.month < birth.month ||
+            (now.month == birth.month && now.day < birth.day)) a--;
+        return a;
+      } catch (_) {
+        return 0;
+      }
+    }();
+    final double weight = (userData.weight as num).toDouble();
+    final double height = (userData.height as num).toDouble();
+
+    final double bmr = gender == 'female'
+        ? (10 * weight) + (6.25 * height) - (5 * age) - 161
+        : (10 * weight) + (6.25 * height) - (5 * age) + 5;
+
+    final activityMap = {
+      'sedentary': 1.2,
+      'lightly_active': 1.375,
+      'moderately_active': 1.55,
+      'very_active': 1.725,
+      'extra_active': 1.9,
+    };
+    final activityLabelMap = {
+      'sedentary': 'นั่งทำงาน (×1.2)',
+      'lightly_active': 'เคลื่อนไหวน้อย (×1.375)',
+      'moderately_active': 'ปานกลาง (×1.55)',
+      'very_active': 'ออกกำลังกายหนัก (×1.725)',
+      'extra_active': 'หนักมาก (×1.9)',
+    };
+    final actLevel = (userData.activityLevel as String?) ?? 'sedentary';
+    final double factor = activityMap[actLevel] ?? 1.2;
+    final double tdee = bmr * factor;
+    final int targetCal = userData.targetCalories as int;
+    const green = Color(0xFF628141);
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) => DraggableScrollableSheet(
+        initialChildSize: 0.65,
+        minChildSize: 0.4,
+        maxChildSize: 0.9,
+        builder: (_, sc) => Container(
+          decoration: const BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+          ),
+          child: ListView(controller: sc, children: [
+            const SizedBox(height: 10),
+            Center(
+              child: Container(
+                width: 40,
+                height: 4,
+                decoration: BoxDecoration(
+                    color: Colors.grey.shade300,
+                    borderRadius: BorderRadius.circular(2)),
+              ),
+            ),
+            const SizedBox(height: 16),
+            const Padding(
+              padding: EdgeInsets.symmetric(horizontal: 20),
+              child: Text('สูตรคำนวณเป้าหมายของคุณ',
+                  style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold)),
+            ),
+            const SizedBox(height: 4),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 20),
+              child: Text('อิงจากสูตร Mifflin–St Jeor Equation',
+                  style: TextStyle(fontSize: 12, color: Colors.grey.shade500)),
+            ),
+            const SizedBox(height: 20),
+
+            // BMR Section
+            _formulaSection('🔥 BMR (พลังงานขั้นพื้นฐาน)', [
+              _formulaRow('เพศ', gender == 'female' ? 'หญิง' : 'ชาย'),
+              _formulaRow('น้ำหนัก', '${weight.toStringAsFixed(1)} กก.'),
+              _formulaRow('ส่วนสูง', '${height.toStringAsFixed(1)} ซม.'),
+              _formulaRow('อายุ', '$age ปี'),
+              _formulaRow(
+                  'สูตร',
+                  gender == 'female'
+                      ? '(10×W)+(6.25×H)−(5×A)−161'
+                      : '(10×W)+(6.25×H)−(5×A)+5',
+                  isFormula: true),
+              _formulaRow('BMR', '${bmr.toStringAsFixed(0)} kcal/วัน',
+                  highlight: true),
+            ]),
+
+            // TDEE Section
+            _formulaSection('⚡ TDEE (พลังงานที่ใช้จริง)', [
+              _formulaRow(
+                  'ระดับกิจกรรม', activityLabelMap[actLevel] ?? actLevel),
+              _formulaRow('สูตร', 'BMR × $factor', isFormula: true),
+              _formulaRow('TDEE', '${tdee.toStringAsFixed(0)} kcal/วัน',
+                  highlight: true),
+            ]),
+
+            // Target Section
+            _formulaSection('🎯 เป้าหมายที่แอปกำหนด', [
+              _formulaRow('เป้าแคลอรี่', '$targetCal kcal/วัน',
+                  highlight: true),
+              _formulaRow('โปรตีน', '${userData.targetProtein} g'),
+              _formulaRow('คาร์โบไฮเดรต', '${userData.targetCarbs} g'),
+              _formulaRow('ไขมัน', '${userData.targetFat} g'),
+            ]),
+
+            const SizedBox(height: 8),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+              child: Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                    color: const Color(0xFFF0F7E8),
+                    borderRadius: BorderRadius.circular(12)),
+                child: Row(children: [
+                  const Icon(Icons.info_outline, size: 14, color: green),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      'ค่าเป้าหมายสามารถปรับได้ที่หน้าแก้ไขโปรไฟล์',
+                      style:
+                          TextStyle(fontSize: 12, color: Colors.grey.shade600),
+                    ),
+                  ),
+                ]),
+              ),
+            ),
+            const SizedBox(height: 20),
+          ]),
+        ),
+      ),
+    );
+  }
+
+  Widget _formulaSection(String title, List<Widget> rows) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(20, 0, 20, 16),
+      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Text(title,
+            style: const TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.bold,
+                color: Colors.black87)),
+        const SizedBox(height: 8),
+        Container(
+          decoration: BoxDecoration(
+            color: Colors.grey.shade50,
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: Colors.grey.shade200),
+          ),
+          child: Column(children: rows),
+        ),
+      ]),
+    );
+  }
+
+  Widget _formulaRow(String label, String value,
+      {bool highlight = false, bool isFormula = false}) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 9),
+      child: Row(children: [
+        Expanded(
+          child: Text(label,
+              style: TextStyle(fontSize: 13, color: Colors.grey.shade600)),
+        ),
+        Text(value,
+            style: TextStyle(
+                fontSize: 13,
+                fontWeight: highlight ? FontWeight.bold : FontWeight.w500,
+                color: highlight
+                    ? const Color(0xFF628141)
+                    : isFormula
+                        ? Colors.blueGrey.shade700
+                        : Colors.black87,
+                fontFamily: isFormula ? 'monospace' : null)),
+      ]),
+    );
+  }
+
   // ─── Macro Row ────────────────────────────────────────────────────────────
 
   Widget _buildMacroRow(dynamic userData) {
@@ -852,102 +1060,102 @@ class _AppHomeScreenState extends ConsumerState<AppHomeScreen> {
             onTap: () async {
               await Navigator.push(
                 context,
-                MaterialPageRoute(
-                    builder: (_) => const WeightChartScreen()),
+                MaterialPageRoute(builder: (_) => const WeightChartScreen()),
               );
               if (!mounted) return;
               _fetchAllData();
             },
             child: Container(
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(20),
-              boxShadow: [
-                BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.05),
-                    blurRadius: 12,
-                    offset: const Offset(0, 3))
-              ],
-            ),
-            child:
-                Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              Row(children: [
-                Container(
-                  width: 32,
-                  height: 32,
-                  decoration: BoxDecoration(
-                      color: _green.withValues(alpha: 0.1),
-                      shape: BoxShape.circle),
-                  child: const Icon(Icons.monitor_weight_outlined,
-                      size: 16, color: _green),
-                ),
-                const SizedBox(width: 8),
-                const Text('น้ำหนัก',
-                    style: TextStyle(
-                        fontSize: 13,
-                        fontWeight: FontWeight.w600,
-                        color: Colors.black87)),
-              ]),
-              const SizedBox(height: 12),
-              RichText(
-                text: TextSpan(
-                  children: [
-                    TextSpan(
-                      text: '${userData.weight.toInt()}',
-                      style: const TextStyle(
-                          fontSize: 28,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.black87),
-                    ),
-                    const TextSpan(
-                      text: ' กก.',
-                      style: TextStyle(
-                          fontSize: 14,
-                          color: Colors.grey,
-                          fontWeight: FontWeight.w500),
-                    ),
-                  ],
-                ),
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(20),
+                boxShadow: [
+                  BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.05),
+                      blurRadius: 12,
+                      offset: const Offset(0, 3))
+                ],
               ),
-              const SizedBox(height: 4),
-              Text(
-                'เป้าหมาย: ${userData.targetWeight.toInt()} กก.',
-                style: const TextStyle(
-                    fontSize: 14,
-                    color: Colors.black87,
-                    fontWeight: FontWeight.w600),
-              ),
-              const SizedBox(height: 10),
-              Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                decoration: BoxDecoration(
-                  color: _greenLight,
-                  borderRadius: BorderRadius.circular(20),
-                ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
+              child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Icon(
-                        action == 'ลดอีก'
-                            ? Icons.arrow_downward_rounded
-                            : Icons.arrow_upward_rounded,
-                        size: 14,
-                        color: _greenDark),
-                    const SizedBox(width: 4),
+                    Row(children: [
+                      Container(
+                        width: 32,
+                        height: 32,
+                        decoration: BoxDecoration(
+                            color: _green.withValues(alpha: 0.1),
+                            shape: BoxShape.circle),
+                        child: const Icon(Icons.monitor_weight_outlined,
+                            size: 16, color: _green),
+                      ),
+                      const SizedBox(width: 8),
+                      const Text('น้ำหนัก',
+                          style: TextStyle(
+                              fontSize: 13,
+                              fontWeight: FontWeight.w600,
+                              color: Colors.black87)),
+                    ]),
+                    const SizedBox(height: 12),
+                    RichText(
+                      text: TextSpan(
+                        children: [
+                          TextSpan(
+                            text: '${userData.weight.toInt()}',
+                            style: const TextStyle(
+                                fontSize: 28,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.black87),
+                          ),
+                          const TextSpan(
+                            text: ' กก.',
+                            style: TextStyle(
+                                fontSize: 14,
+                                color: Colors.grey,
+                                fontWeight: FontWeight.w500),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 4),
                     Text(
-                      '$action ${diff.toStringAsFixed(1)} กก.',
+                      'เป้าหมาย: ${userData.targetWeight.toInt()} กก.',
                       style: const TextStyle(
-                          fontSize: 13,
-                          color: _greenDark,
-                          fontWeight: FontWeight.bold),
+                          fontSize: 14,
+                          color: Colors.black87,
+                          fontWeight: FontWeight.w600),
                     ),
-                  ],
-                ),
-              ),
-            ]),
-          ),
+                    const SizedBox(height: 10),
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 12, vertical: 6),
+                      decoration: BoxDecoration(
+                        color: _greenLight,
+                        borderRadius: BorderRadius.circular(20),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(
+                              action == 'ลดอีก'
+                                  ? Icons.arrow_downward_rounded
+                                  : Icons.arrow_upward_rounded,
+                              size: 14,
+                              color: _greenDark),
+                          const SizedBox(width: 4),
+                          Text(
+                            '$action ${diff.toStringAsFixed(1)} กก.',
+                            style: const TextStyle(
+                                fontSize: 13,
+                                color: _greenDark,
+                                fontWeight: FontWeight.bold),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ]),
+            ),
           ),
         ),
 
