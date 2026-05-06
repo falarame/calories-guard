@@ -791,71 +791,36 @@ class _RestaurantMapScreenState extends State<RestaurantMapScreen> {
                       ),
                     ),
                     const SizedBox(height: 24),
-                    Row(
-                      children: [
-                        Expanded(
-                          child: ElevatedButton.icon(
-                            onPressed: () async {
-                              final lat = restaurant['lat'];
-                              final lng = restaurant['lng'];
-                              final uri = Uri.parse(
-                                  'https://www.google.com/maps/dir/?api=1&destination=$lat,$lng&travelmode=driving');
-                              if (await canLaunchUrl(uri)) {
-                                await launchUrl(uri,
-                                    mode: LaunchMode.externalApplication);
-                              }
-                            },
-                            icon: const Icon(Icons.directions,
-                                color: Colors.white),
-                            label: const Text(
-                              'นำทาง',
-                              style: TextStyle(
-                                fontSize: 16,
-                                fontWeight: FontWeight.bold,
-                                color: Colors.white,
-                              ),
-                            ),
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: _green,
-                              padding: const EdgeInsets.symmetric(vertical: 16),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(12),
-                              ),
-                            ),
+                    SizedBox(
+                      width: double.infinity,
+                      child: ElevatedButton.icon(
+                        onPressed: () async {
+                          final placeId = restaurant['place_id'];
+                          final uri = Uri.parse(
+                              'https://www.google.com/maps/place/?q=place_id:$placeId');
+                          if (await canLaunchUrl(uri)) {
+                            await launchUrl(uri,
+                                mode: LaunchMode.externalApplication);
+                          }
+                        },
+                        icon:
+                            const Icon(Icons.map_rounded, color: Colors.white),
+                        label: const Text(
+                          'เปิดใน Google Maps',
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.white,
                           ),
                         ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: OutlinedButton.icon(
-                            onPressed: () async {
-                              final placeId = restaurant['place_id'];
-                              final uri = Uri.parse(
-                                  'https://www.google.com/maps/search/?api=1&query=${Uri.encodeComponent(restaurant['name'])}&query_place_id=$placeId');
-                              if (await canLaunchUrl(uri)) {
-                                await launchUrl(uri,
-                                    mode: LaunchMode.externalApplication);
-                              }
-                            },
-                            icon: const Icon(Icons.restaurant_menu,
-                                color: _green),
-                            label: const Text(
-                              'ดูเมนู',
-                              style: TextStyle(
-                                fontSize: 16,
-                                fontWeight: FontWeight.bold,
-                                color: _green,
-                              ),
-                            ),
-                            style: OutlinedButton.styleFrom(
-                              side: const BorderSide(color: _green, width: 2),
-                              padding: const EdgeInsets.symmetric(vertical: 16),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(12),
-                              ),
-                            ),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: _green,
+                          padding: const EdgeInsets.symmetric(vertical: 16),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
                           ),
                         ),
-                      ],
+                      ),
                     ),
                     const SizedBox(height: 16),
                   ],
