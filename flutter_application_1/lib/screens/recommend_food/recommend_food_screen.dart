@@ -507,7 +507,7 @@ class _RecommendedFoodScreenState extends ConsumerState<RecommendedFoodScreen> {
                 Container(
                   width: double.infinity,
                   padding: const EdgeInsets.symmetric(vertical: 10),
-                  color: const Color(0xFFD76A3C),
+                  color: const Color(0xFFEA580C),
                   alignment: Alignment.center,
                   child: const Text('แนะนำสำหรับคุณ',
                       style: TextStyle(
