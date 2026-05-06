@@ -6,9 +6,11 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../l10n/app_localizations.dart';
 import '../../providers/user_data_provider.dart';
 import '../../services/auth_service.dart';
+import '../../theme/app_theme.dart';
 import 'data_consent_screen.dart';
 import 'forgot_password_screen.dart';
 import 'gender_selection_screen.dart';
+import 'phone_otp_screen.dart';
 import 'register_screen.dart';
 import 'verify_email_screen.dart';
 import '../../widget/bottom_bar.dart';
@@ -39,10 +41,6 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
   late final AnimationController _animCtrl;
   late final Animation<double> _fadeAnim;
   late final Animation<Offset> _slideAnim;
-
-  // ── Colors ────────────────────────────────────────────────────
-  static const _green = Color(0xFF4C6414);
-  static const _bg = Color(0xFFF5F7F0);
 
   @override
   void initState() {
@@ -98,6 +96,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
       destination: (_) => shouldContinueOnboarding
           ? const GenderSelectionScreen()
           : const MainScreen(),
+      requireConsent: !shouldContinueOnboarding,
     );
   }
 
@@ -426,7 +425,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
 
                             const SizedBox(height: 20),
 
-                            // ── Google Sign-In Button (only) ──────────────
+                            // ── Google Sign-In Button ─────────────────────
                             _buildSocialButton(
                               label: 'Google',
                               icon: const FaIcon(FontAwesomeIcons.google,
@@ -437,6 +436,26 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
                               onTap: (_isLoading || _isGoogleLoading)
                                   ? null
                                   : _handleGoogleSignIn,
+                            ),
+
+                            const SizedBox(height: 12),
+
+                            // ── Phone OTP Button ──────────────────────────
+                            _buildSocialButton(
+                              label: 'เบอร์โทรศัพท์',
+                              icon: Icon(Icons.phone_outlined,
+                                  size: 20,
+                                  color: Colors.grey.shade600),
+                              borderColor: Colors.grey.shade300,
+                              isLoading: false,
+                              onTap: (_isLoading || _isGoogleLoading)
+                                  ? null
+                                  : () => Navigator.push(
+                                        context,
+                                        MaterialPageRoute(
+                                            builder: (_) =>
+                                                const PhoneOtpScreen()),
+                                      ),
                             ),
 
                             const SizedBox(height: 28),

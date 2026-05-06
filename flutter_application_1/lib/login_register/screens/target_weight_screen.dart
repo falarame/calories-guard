@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../providers/user_data_provider.dart';
 import '../../services/auth_service.dart';
 import '/widget/bottom_bar.dart';
+import 'data_consent_screen.dart';
 import 'target_weight_slider_screen.dart';
 import 'duration_slider_screen.dart';
 
@@ -174,10 +175,11 @@ class _TargetWeightScreenState extends ConsumerState<TargetWeightScreen> {
           duration: _selectedDurationDays,
           targetDate: targetDate);
       if (mounted) {
-        Navigator.pushAndRemoveUntil(
-            context,
-            MaterialPageRoute(builder: (context) => const MainScreen()),
-            (route) => false);
+        routeAfterAuth(
+          context,
+          ref,
+          destination: (_) => const MainScreen(),
+        );
       }
     } else {
       if (mounted) {

@@ -587,6 +587,10 @@ class _RecommendedFoodScreenState extends ConsumerState<RecommendedFoodScreen> {
 
   Widget _buildMacroNutritionPanel() {
     final userData = ref.watch(userDataProvider);
+    // Semantic macro colors — consistent with TDEE formula screen
+    const proteinColor = Color(0xFF2563EB); // blue — muscle/protein
+    const carbsColor   = Color(0xFFD97706); // amber — energy/carbs
+    const fatColor     = Color(0xFFEA580C); // orange — fat/warmth
     final macros = [
       {
         'key': 'protein',
@@ -594,7 +598,7 @@ class _RecommendedFoodScreenState extends ConsumerState<RecommendedFoodScreen> {
         'icon': Icons.egg_outlined,
         'consumed': userData.consumedProtein,
         'target': userData.targetProtein,
-        'color': const Color(0xFFE53935)
+        'color': proteinColor,
       },
       {
         'key': 'carbs',
@@ -602,7 +606,7 @@ class _RecommendedFoodScreenState extends ConsumerState<RecommendedFoodScreen> {
         'icon': Icons.grain_rounded,
         'consumed': userData.consumedCarbs,
         'target': userData.targetCarbs,
-        'color': const Color(0xFF1E88E5)
+        'color': carbsColor,
       },
       {
         'key': 'fat',
@@ -610,7 +614,7 @@ class _RecommendedFoodScreenState extends ConsumerState<RecommendedFoodScreen> {
         'icon': Icons.water_drop_outlined,
         'consumed': userData.consumedFat,
         'target': userData.targetFat,
-        'color': const Color(0xFFF59E0B)
+        'color': fatColor,
       },
     ];
     return Padding(
@@ -717,9 +721,9 @@ class _RecommendedFoodScreenState extends ConsumerState<RecommendedFoodScreen> {
     final macro = _selectedMacroFilter!;
     final labelMap = {'protein': 'โปรตีน', 'carbs': 'คาร์บ', 'fat': 'ไขมัน'};
     final colorMap = {
-      'protein': const Color(0xFFE53935),
-      'carbs': const Color(0xFF1E88E5),
-      'fat': const Color(0xFFF59E0B)
+      'protein': const Color(0xFF2563EB), // blue — muscle/protein
+      'carbs':   const Color(0xFFD97706), // amber — energy/carbs
+      'fat':     const Color(0xFFEA580C), // orange — fat/warmth
     };
     final label = labelMap[macro]!;
     final color = colorMap[macro]!;

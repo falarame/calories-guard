@@ -10,16 +10,20 @@ const _kConsentAccepted = 'settings_consent_accepted';
 // ─── State ───────────────────────────────────────────────────────────────────
 class AppSettings {
   final String language; // 'th' | 'en'
-  final String theme;    // 'light' | 'dark' | 'system'
+  final String theme; // 'light' | 'dark' | 'system'
   final bool consentAccepted;
 
   const AppSettings({
-    this.language = 'en',
+    this.language = 'th',
     this.theme = 'light',
     this.consentAccepted = false,
   });
 
-  AppSettings copyWith({String? language, String? theme, bool? consentAccepted}) =>
+  AppSettings copyWith({
+    String? language,
+    String? theme,
+    bool? consentAccepted,
+  }) =>
       AppSettings(
         language: language ?? this.language,
         theme: theme ?? this.theme,
@@ -36,7 +40,7 @@ class AppSettingsNotifier extends StateNotifier<AppSettings> {
   Future<void> _load() async {
     final prefs = await SharedPreferences.getInstance();
     state = AppSettings(
-      language: prefs.getString(_kLanguage) ?? 'en',
+      language: prefs.getString(_kLanguage) ?? 'th',
       theme: prefs.getString(_kTheme) ?? 'light',
       consentAccepted: prefs.getBool(_kConsentAccepted) ?? false,
     );

@@ -5,7 +5,15 @@ import '/providers/user_data_provider.dart';
 class TdeeFormulaScreen extends ConsumerWidget {
   const TdeeFormulaScreen({super.key});
 
-  static const _green = Color(0xFF628141);
+  // Brand / structural colors
+  static const _green = Color(0xFF628141);      // brand green — goals / final target
+  static const _stepBmr  = Color(0xFF0369A1);   // blue-700 — BMR (physiological baseline)
+  static const _stepTdee = Color(0xFF7C3AED);   // violet-700 — TDEE (activity multiplier)
+
+  // Macro semantic colors — must match recommend_food_screen & home screen
+  static const _macroProtein = Color(0xFF2563EB); // blue-600 — muscle/protein
+  static const _macroCarbs   = Color(0xFFD97706); // amber-600 — energy/carbs
+  static const _macroFat     = Color(0xFFEA580C); // orange-600 — fat/warmth
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -89,7 +97,7 @@ class TdeeFormulaScreen extends ConsumerWidget {
             _infoBanner(
                 '⚠️ ค่านี้ประมาณจากข้อมูลในเครื่อง อาจแตกต่างจากค่าจริงเล็กน้อย',
                 const Color(0xFFFFF8E1),
-                const Color(0xFFF59E0B)),
+                const Color(0xFFB45309)), // amber-700 — distinct from carbs color
 
           const SizedBox(height: 20),
 
@@ -98,7 +106,7 @@ class TdeeFormulaScreen extends ConsumerWidget {
             step: '1',
             title: 'BMR — พลังงานขั้นพื้นฐาน',
             subtitle: 'Mifflin–St Jeor Equation (Asian ×0.94)',
-            color: const Color(0xFFFF7043),
+            color: _stepBmr,
             icon: '🔥',
             children: [
               _inputRow('เพศ', gender == 'female' ? '♀ หญิง' : '♂ ชาย'),
@@ -114,8 +122,7 @@ class TdeeFormulaScreen extends ConsumerWidget {
               const SizedBox(height: 4),
               _formulaBox('× 0.94  (Asian BMR correction)'),
               const SizedBox(height: 12),
-              _resultRow('BMR', '${bmr.toStringAsFixed(0)} kcal/วัน',
-                  const Color(0xFFFF7043)),
+              _resultRow('BMR', '${bmr.toStringAsFixed(0)} kcal/วัน', _stepBmr),
             ],
           ),
 
@@ -124,7 +131,7 @@ class TdeeFormulaScreen extends ConsumerWidget {
             step: '2',
             title: 'TDEE — พลังงานที่ใช้จริงต่อวัน',
             subtitle: 'BMR × Activity Factor',
-            color: const Color(0xFF8E24AA),
+            color: _stepTdee,
             icon: '⚡',
             children: [
               _inputRow('ระดับกิจกรรม', actLabelMap[actLevel] ?? actLevel),
@@ -133,8 +140,7 @@ class TdeeFormulaScreen extends ConsumerWidget {
               _formulaBox(
                   '${bmr.toStringAsFixed(0)} × ${factor.toStringAsFixed(3)}'),
               const SizedBox(height: 12),
-              _resultRow('TDEE', '${tdee.toStringAsFixed(0)} kcal/วัน',
-                  const Color(0xFF8E24AA)),
+              _resultRow('TDEE', '${tdee.toStringAsFixed(0)} kcal/วัน', _stepTdee),
             ],
           ),
 
@@ -154,8 +160,8 @@ class TdeeFormulaScreen extends ConsumerWidget {
                       ? '+${calAdjust.toStringAsFixed(0)} kcal/วัน'
                       : '${calAdjust.toStringAsFixed(0)} kcal/วัน',
                   valueColor: calAdjust < 0
-                      ? const Color(0xFFE53935)
-                      : const Color(0xFF1E88E5),
+                      ? const Color(0xFFEA580C)   // orange — deficit (lose weight)
+                      : const Color(0xFF2563EB),  // blue — surplus (build muscle)
                 ),
               ],
               const Divider(height: 20),
@@ -174,14 +180,11 @@ class TdeeFormulaScreen extends ConsumerWidget {
               _bigResultRow('🔥 แคลอรี่', '$targetCal kcal/วัน', _green),
               const SizedBox(height: 8),
               Row(children: [
-                _macroResultChip(
-                    '🥩 โปรตีน', '$targetProtein g', const Color(0xFFE53935)),
+                _macroResultChip('🥩 โปรตีน', '$targetProtein g', _macroProtein),
                 const SizedBox(width: 8),
-                _macroResultChip(
-                    '🍚 คาร์บ', '$targetCarbs g', const Color(0xFF1E88E5)),
+                _macroResultChip('🍚 คาร์บ', '$targetCarbs g', _macroCarbs),
                 const SizedBox(width: 8),
-                _macroResultChip(
-                    '🥑 ไขมัน', '$targetFat g', const Color(0xFFF59E0B)),
+                _macroResultChip('🥑 ไขมัน', '$targetFat g', _macroFat),
               ]),
             ],
           ),
@@ -382,16 +385,16 @@ class TdeeFormulaScreen extends ConsumerWidget {
       ClipRRect(
         borderRadius: BorderRadius.circular(6),
         child: Row(children: [
-          _ratioBar(p.toDouble(), const Color(0xFFE53935)),
-          _ratioBar(c.toDouble(), const Color(0xFF1E88E5)),
-          _ratioBar(f.toDouble(), const Color(0xFFF59E0B)),
+          _ratioBar(p.toDouble(), _macroProtein),
+          _ratioBar(c.toDouble(), _macroCarbs),
+          _ratioBar(f.toDouble(), _macroFat),
         ]),
       ),
       const SizedBox(height: 6),
       Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
-        _ratioLabel('🥩 โปรตีน $p%', const Color(0xFFE53935)),
-        _ratioLabel('🍚 คาร์บ $c%', const Color(0xFF1E88E5)),
-        _ratioLabel('🥑 ไขมัน $f%', const Color(0xFFF59E0B)),
+        _ratioLabel('🥩 โปรตีน $p%', _macroProtein),
+        _ratioLabel('🍚 คาร์บ $c%', _macroCarbs),
+        _ratioLabel('🥑 ไขมัน $f%', _macroFat),
       ]),
     ]);
   }

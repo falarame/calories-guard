@@ -353,6 +353,18 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     );
   }
 
+  // Semantic color constants for stats
+  static const _colorWeightInfo = Color(0xFF3B82F6); // blue — neutral fact
+  static const _colorGoalTarget = Color(0xFF628141); // brand green — aspiration
+
+  Color _daysColor(String daysLeftText) {
+    final days = int.tryParse(daysLeftText) ?? 0;
+    if (days <= 0) return const Color(0xFF6B7280);   // gray — deadline passed
+    if (days <= 14) return const Color(0xFFE85D04);  // orange — urgent
+    if (days <= 30) return const Color(0xFFD97706);  // amber — approaching
+    return const Color(0xFF628141);                  // brand green — on track
+  }
+
   Widget _buildStatsRow(dynamic userData, String daysLeftText) {
     return Container(
       decoration: BoxDecoration(
@@ -368,17 +380,17 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
       child: Row(children: [
         Expanded(
           child: _statItem('${userData.weight.toInt()} กก.', 'น้ำหนักปัจจุบัน',
-              Icons.monitor_weight_outlined, const Color(0xFF27AE60)),
+              Icons.monitor_weight_outlined, _colorWeightInfo),
         ),
         Container(width: 1, height: 60, color: const Color(0xFFEEEEEE)),
         Expanded(
           child: _statItem('${userData.targetWeight.toInt()} กก.', 'เป้าหมาย',
-              Icons.flag_outlined, const Color(0xFFE74C3C)),
+              Icons.flag_outlined, _colorGoalTarget),
         ),
         Container(width: 1, height: 60, color: const Color(0xFFEEEEEE)),
         Expanded(
           child: _statItem('$daysLeftText วัน', 'วันที่เหลือ',
-              Icons.calendar_today_outlined, const Color(0xFF3498DB)),
+              Icons.calendar_today_outlined, _daysColor(daysLeftText)),
         ),
       ]),
     );

@@ -224,6 +224,23 @@ const Map<String, Map<String, String>> _catalogue = {
     'record.meal.dinner': 'Dinner',
     'record.meal.snack': 'Snack',
 
+    // phone OTP
+    'phone.title': 'Sign in with Phone',
+    'phone.subtitle': 'Enter your phone number to receive a verification code',
+    'phone.label': 'Phone number',
+    'phone.hint': '+66 81 234 5678',
+    'phone.cta': 'Send OTP',
+    'phone.otp.title': 'Enter verification code',
+    'phone.otp.subtitle': 'A 6-digit code was sent to {phone}',
+    'phone.otp.hint': '6-digit code',
+    'phone.otp.cta': 'Verify',
+    'phone.otp.resend': 'Resend code',
+    'phone.otp.resend_in': 'Resend in {sec}s',
+    'phone.error.invalid': 'Invalid phone number format',
+    'phone.error.send_failed': 'Failed to send OTP. Please try again.',
+    'phone.error.verify_failed': 'Incorrect or expired code',
+    'phone.or_use': 'Or sign in with email',
+
     // api errors
     'error.network': "Can't reach the server. Please try again.",
     'error.timeout': 'The server took too long to respond. Please try again.',
@@ -393,6 +410,23 @@ const Map<String, Map<String, String>> _catalogue = {
     'record.meal.lunch': 'มื้อกลางวัน',
     'record.meal.dinner': 'มื้อเย็น',
     'record.meal.snack': 'ของว่าง',
+
+    // phone OTP
+    'phone.title': 'เข้าสู่ระบบด้วยเบอร์โทร',
+    'phone.subtitle': 'กรอกเบอร์โทรเพื่อรับรหัสยืนยัน',
+    'phone.label': 'เบอร์โทรศัพท์',
+    'phone.hint': '+66 81 234 5678',
+    'phone.cta': 'ส่ง OTP',
+    'phone.otp.title': 'กรอกรหัสยืนยัน',
+    'phone.otp.subtitle': 'รหัส 6 หลักถูกส่งไปที่ {phone}',
+    'phone.otp.hint': 'รหัส 6 หลัก',
+    'phone.otp.cta': 'ยืนยัน',
+    'phone.otp.resend': 'ส่งรหัสใหม่',
+    'phone.otp.resend_in': 'ส่งใหม่ใน {sec} วินาที',
+    'phone.error.invalid': 'รูปแบบเบอร์โทรไม่ถูกต้อง',
+    'phone.error.send_failed': 'ส่ง OTP ไม่สำเร็จ กรุณาลองใหม่',
+    'phone.error.verify_failed': 'รหัสไม่ถูกต้องหรือหมดอายุแล้ว',
+    'phone.or_use': 'หรือเข้าสู่ระบบด้วยอีเมล',
 
     // api errors (mirrors api_client.dart)
     'error.network': 'เชื่อมต่อเซิร์ฟเวอร์ไม่ได้ กรุณาลองใหม่',

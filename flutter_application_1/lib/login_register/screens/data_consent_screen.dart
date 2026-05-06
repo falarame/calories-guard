@@ -57,7 +57,7 @@ class _DataConsentScreenState extends ConsumerState<DataConsentScreen> {
             width: 200,
             height: 8,
             child: LinearProgressIndicator(
-              value: 0.125,
+              value: 1.0,
               backgroundColor: Theme.of(context).dividerColor,
               color: palette.brand,
             ),
@@ -180,12 +180,13 @@ void routeAfterAuth(
   BuildContext context,
   WidgetRef ref, {
   required WidgetBuilder destination,
+  bool requireConsent = true,
 }) {
   final accepted = ref.read(appSettingsProvider).consentAccepted;
+  final shouldShowConsent = requireConsent && !accepted;
   final route = MaterialPageRoute(
-    builder: accepted
-        ? destination
-        : (ctx) => DataConsentScreen(next: destination),
+    builder:
+        shouldShowConsent ? (ctx) => DataConsentScreen(next: destination) : destination,
   );
   Navigator.pushAndRemoveUntil(context, route, (_) => false);
 }
