@@ -101,12 +101,16 @@ jobs:
           echo "::error::prod /health never returned ok"; exit 1
 
       - name: Notify Slack
-        if: success() && secrets.PROD_DEPLOY_SLACK_URL != ''
+        if: success()
         env:
           SLACK: ${{ secrets.PROD_DEPLOY_SLACK_URL }}
           SHA: ${{ github.sha }}
           ACTOR: ${{ github.actor }}
         run: |
+          if [ -z "$SLACK" ]; then
+            echo "::notice::PROD_DEPLOY_SLACK_URL not set; skipping Slack notification"
+            exit 0
+          fi
           curl --silent --fail -X POST -H 'Content-Type: application/json' \
             --data "{\"text\":\":rocket: prod deployed \`$SHA\` by *$ACTOR*\"}" \
             "$SLACK"
