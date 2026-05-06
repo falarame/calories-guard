@@ -709,33 +709,14 @@ class _AppHomeScreenState extends ConsumerState<AppHomeScreen> {
   // ─── Formula Sheet ────────────────────────────────────────────────────────
 
   void _showCalcFormulaSheet(dynamic userData) {
-    final gender = (userData.gender as String?) ?? 'male';
-    final age = () {
-      try {
-        final birth = DateTime.parse(userData.birthDate as String);
-        final now = DateTime.now();
-        int a = now.year - birth.year;
-        if (now.month < birth.month ||
-            (now.month == birth.month && now.day < birth.day)) a--;
-        return a;
-      } catch (_) {
-        return 0;
-      }
-    }();
+    final String gender = (userData.gender as String?) ?? 'male';
+    final int age = (userData.age as int?) ?? 0;
     final double weight = (userData.weight as num).toDouble();
     final double height = (userData.height as num).toDouble();
+    final double bmr = (userData.bmr as num).toDouble();
+    final double tdee = (userData.tdee as num).toDouble();
+    final int targetCal = (userData.targetCalories as num).toInt();
 
-    final double bmr = gender == 'female'
-        ? (10 * weight) + (6.25 * height) - (5 * age) - 161
-        : (10 * weight) + (6.25 * height) - (5 * age) + 5;
-
-    final activityMap = {
-      'sedentary': 1.2,
-      'lightly_active': 1.375,
-      'moderately_active': 1.55,
-      'very_active': 1.725,
-      'extra_active': 1.9,
-    };
     final activityLabelMap = {
       'sedentary': 'นั่งทำงาน (×1.2)',
       'lightly_active': 'เคลื่อนไหวน้อย (×1.375)',
@@ -744,9 +725,7 @@ class _AppHomeScreenState extends ConsumerState<AppHomeScreen> {
       'extra_active': 'หนักมาก (×1.9)',
     };
     final actLevel = (userData.activityLevel as String?) ?? 'sedentary';
-    final double factor = activityMap[actLevel] ?? 1.2;
-    final double tdee = bmr * factor;
-    final int targetCal = userData.targetCalories as int;
+    final double factor = tdee > 0 && bmr > 0 ? tdee / bmr : 1.2;
     const green = Color(0xFF628141);
 
     showModalBottomSheet(
