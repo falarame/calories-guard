@@ -1,3 +1,4 @@
+import logging
 from datetime import date, datetime, timedelta
 from typing import Optional
 
@@ -15,6 +16,7 @@ from app.services.nutrition_service import (
 from app.services.nutrition_safety_service import evaluate_and_persist_calorie_safety
 
 router = APIRouter()
+_log = logging.getLogger(__name__)
 
 
 @router.post("/meals/{user_id}")
@@ -28,6 +30,8 @@ def add_meal(user_id: int, log: DailyLogUpdate, current_user: dict = Depends(get
 
 def _add_meal_impl(user_id: int, log: DailyLogUpdate):
     conn = get_db_connection()
+    if not conn:
+        raise HTTPException(status_code=503, detail="Database unavailable")
     try:
         cur = conn.cursor(cursor_factory=RealDictCursor)
         meal_type_db = _meal_type_to_enum(log.meal_type)
@@ -46,7 +50,13 @@ def _add_meal_impl(user_id: int, log: DailyLogUpdate):
             VALUES (%s, %s, %s, %s)
             RETURNING meal_id
         """, (user_id, meal_type_db, meal_ts, total_cal))
-        meal_id = cur.fetchone()['meal_id']
+        meal_row = cur.fetchone()
+        if not meal_row or meal_row.get("meal_id") is None:
+            raise HTTPException(
+                status_code=500,
+                detail="Meal insert did not return meal_id (database error)",
+            )
+        meal_id = meal_row["meal_id"]
 
         total_beverage_ml = 0
         for item in log.items:
@@ -153,8 +163,11 @@ def _add_meal_impl(user_id: int, log: DailyLogUpdate):
             "message": "Meal recorded successfully",
             "nutrition_safety": nutrition_safety,
         }
+    except HTTPException:
+        raise
     except Exception as e:
         conn.rollback()
+        _log.exception("meals.add_meal failed user_id=%s", user_id)
         note_failure("meals.add_meal", e, user_id=user_id)
         raise HTTPException(status_code=500, detail=str(e))
     finally:

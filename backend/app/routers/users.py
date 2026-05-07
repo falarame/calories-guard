@@ -490,14 +490,22 @@ def get_tama_points(user_id: int):
     conn = None
     try:
         conn = get_db_connection()
-        with conn.cursor() as cur:
+        with conn.cursor(cursor_factory=RealDictCursor) as cur:
             cur.execute(
-                "SELECT tama_points, tier_level, claimed_badges FROM cleangoal.user_gamification WHERE user_id = %s",
+                """
+                SELECT tama_points, tier_level, claimed_badges
+                FROM cleangoal.user_gamification
+                WHERE user_id = %s
+                """,
                 (user_id,),
             )
             row = cur.fetchone()
         if row:
-            return {"tama_points": row[0], "tier_level": row[1], "claimed_badges": row[2] or []}
+            return {
+                "tama_points": int(row.get("tama_points") or 0),
+                "tier_level": int(row.get("tier_level") or 0),
+                "claimed_badges": row.get("claimed_badges") or [],
+            }
         return {"tama_points": 0, "tier_level": 0, "claimed_badges": []}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))

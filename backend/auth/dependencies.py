@@ -7,6 +7,7 @@ Provides:
 """
 
 import os
+import logging
 from typing import Optional
 
 from fastapi import Depends, HTTPException, status
@@ -14,8 +15,11 @@ from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from jose import jwt, JWTError
 from dotenv import load_dotenv
 import requests
+from psycopg2.extras import RealDictCursor
 
 from database import get_db_connection
+
+_log = logging.getLogger(__name__)
 
 # โหลด env
 load_dotenv(dotenv_path=os.path.join(os.path.dirname(__file__), '..', '..', '.env'))
@@ -66,7 +70,7 @@ def _decode_token(token: str) -> dict:
             options={"verify_aud": False},
         )
         return payload
-    except JWTError as e:
+    except JWTError:
         payload = _fetch_supabase_user_payload(token)
         if payload:
             return payload
@@ -106,15 +110,25 @@ def _lookup_user_by_email(email: str | None) -> dict | None:
     if not conn:
         return None
     try:
-        cur = conn.cursor()
+        cur = conn.cursor(cursor_factory=RealDictCursor)
         cur.execute(
-            "SELECT user_id, role_id FROM users WHERE LOWER(email) = LOWER(%s) LIMIT 1",
+            """
+            SELECT user_id, role_id
+            FROM cleangoal.users
+            WHERE LOWER(email) = LOWER(%s) AND deleted_at IS NULL
+            LIMIT 1
+            """,
             (email,),
         )
         row = cur.fetchone()
         if not row:
             return None
-        return {"user_id": int(row[0]), "role_id": int(row[1] or 2)}
+        uid = row.get("user_id")
+        rid = row.get("role_id")
+        if uid is None:
+            _log.warning("users row for email lookup missing user_id")
+            return None
+        return {"user_id": int(uid), "role_id": int(rid or 2)}
     finally:
         conn.close()
 
