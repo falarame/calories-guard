@@ -265,6 +265,18 @@ def get_daily_summary(user_id: int, date_record: date, current_user: dict = Depe
                 "total_fat": float(r["total_fat"] or 0),
             })
         summary["meal_items"] = meal_items
+
+        cur.execute("""
+            SELECT COALESCE(SUM(calories_burned), 0)::float AS burned
+            FROM exercise_logs
+            WHERE user_id = %s AND date_record = %s
+        """, (user_id, date_record))
+        burn_row = cur.fetchone()
+        burned = float(burn_row["burned"] or 0) if burn_row else 0.0
+        summary["total_calories_burned"] = round(burned, 1)
+        burned_int = int(round(burned))
+        summary["net_calories_intake"] = max(0, int(total_cal_val) - burned_int)
+
         return summary
     finally:
         if conn:
@@ -443,12 +455,32 @@ def get_daily_log_by_date(user_id: int, date_query: date, current_user: dict = D
                     # สำหรับ beverage: ปริมาณน้ำ (ml) ต่อ 1 serving
                     "water_ml_per_serving": serving_qty if food_type == "beverage" else 0.0,
                 })
+        cur.execute("""
+            SELECT log_id, activity_name, duration_minutes, calories_burned, intensity, note
+            FROM exercise_logs
+            WHERE user_id = %s AND date_record = %s
+            ORDER BY log_id ASC
+        """, (user_id, date_query))
+        exercise_rows = cur.fetchall()
+        exercises = [
+            {
+                "log_id": r["log_id"],
+                "activity_name": r["activity_name"],
+                "duration_minutes": int(r["duration_minutes"] or 0),
+                "calories_burned": float(r["calories_burned"] or 0),
+                "intensity": r["intensity"] or "moderate",
+                "note": r["note"],
+            }
+            for r in exercise_rows
+        ]
+
         return {
             "calories": total_cal,
             "protein": int(macro["total_protein"]) if macro else 0,
             "carbs": int(macro["total_carbs"]) if macro else 0,
             "fat": int(macro["total_fat"]) if macro else 0,
             "meals": meals_map,
+            "exercises": exercises,
         }
     finally:
         if conn:

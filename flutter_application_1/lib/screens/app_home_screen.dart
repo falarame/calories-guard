@@ -268,10 +268,10 @@ class _AppHomeScreenState extends ConsumerState<AppHomeScreen> {
     return d.year == now.year && d.month == now.month && d.day == now.day;
   }
 
-  String _getAdvice(int currentCal, int targetCal, bool isOver) {
-    if (currentCal == 0) return "เริ่มบันทึกมื้อแรกของวันกันเลย!";
+  String _getAdvice(int ringCal, int targetCal, bool isOver) {
+    if (ringCal == 0) return "เริ่มบันทึกมื้อแรกของวันกันเลย!";
     if (isOver) return "พลังงานเกินเป้าหมาย ลองเดินย่อยดูนะ";
-    final pct = currentCal / targetCal;
+    final pct = ringCal / targetCal;
     if (pct >= 0.9) return "ใกล้ถึงเป้าแล้ว มื้อหน้าเลือกทานเบาๆ นะ";
     if (pct >= 0.5) return "กำลังดี! รักษาวินัยต่อไปได้เลย";
     return "วันนี้ยังเหลืออีกเยอะ ทานให้ครบนะ";
@@ -286,17 +286,19 @@ class _AppHomeScreenState extends ConsumerState<AppHomeScreen> {
     final int targetCal = userData.targetCalories.toInt() > 0
         ? userData.targetCalories.toInt()
         : 1500;
-    final int currentCal = userData.consumedCalories;
+    final int grossIntake = userData.consumedCalories;
+    final int burned = userData.dailyCaloriesBurned;
+    final int ringCal = userData.netCaloriesIntake;
     final double progress =
-        (targetCal > 0) ? (currentCal / targetCal).clamp(0.0, 1.0) : 0.0;
-    final bool isOver = currentCal > targetCal;
+        (targetCal > 0) ? (ringCal / targetCal).clamp(0.0, 1.0) : 0.0;
+    final bool isOver = ringCal > targetCal;
 
     if (isOver && !_hasWarnedCalories) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-            content: Text('⚠️ แจ้งเตือน: แคลอรี่เกินเป้าหมายแล้ว!'),
+            content: Text('⚠️ แจ้งเตือน: พลังงานสุทธิเกินเป้าหมายแล้ว!'),
             backgroundColor: Colors.redAccent));
-        NotificationHelper.showCalorieAlert(currentCal, targetCal);
+        NotificationHelper.showCalorieAlert(ringCal, targetCal);
         setState(() => _hasWarnedCalories = true);
       });
     }
@@ -341,13 +343,19 @@ class _AppHomeScreenState extends ConsumerState<AppHomeScreen> {
                         _buildDateHeader(),
                         const SizedBox(height: 16),
                         _buildCalorieCard(
-                            currentCal, targetCal, progress, isOver, userData),
+                            ringCal,
+                            grossIntake,
+                            burned,
+                            targetCal,
+                            progress,
+                            isOver,
+                            userData),
                         const SizedBox(height: 12),
                         _buildMacroRow(userData),
                         const SizedBox(height: 12),
                         _buildWeightBMIRow(userData, bmi, bmiStatus),
                         const SizedBox(height: 16),
-                        _buildRestaurantButton(targetCal - currentCal),
+                        _buildRestaurantButton(targetCal - ringCal),
                         const SizedBox(height: 12),
                         _buildTamagotchiBanner(),
                         const SizedBox(height: 12),
@@ -466,10 +474,16 @@ class _AppHomeScreenState extends ConsumerState<AppHomeScreen> {
 
   // ─── Calorie Card ─────────────────────────────────────────────────────────
 
-  Widget _buildCalorieCard(int currentCal, int targetCal, double progress,
-      bool isOver, dynamic userData) {
+  Widget _buildCalorieCard(
+      int ringCal,
+      int grossIntake,
+      int burned,
+      int targetCal,
+      double progress,
+      bool isOver,
+      dynamic userData) {
     final ringColor = isOver ? Colors.red : _green;
-    final advice = _getAdvice(currentCal, targetCal, isOver);
+    final advice = _getAdvice(ringCal, targetCal, isOver);
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -491,7 +505,7 @@ class _AppHomeScreenState extends ConsumerState<AppHomeScreen> {
             const Icon(Icons.local_fire_department_rounded,
                 color: _green, size: 20),
             const SizedBox(width: 8),
-            const Text('แคลอรี่ที่ทานวันนี้',
+            const Text('พลังงานสุทธิวันนี้',
                 style: TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.bold,
@@ -540,6 +554,15 @@ class _AppHomeScreenState extends ConsumerState<AppHomeScreen> {
             ),
           ]),
 
+          if (burned > 0)
+            Padding(
+              padding: const EdgeInsets.only(top: 6),
+              child: Text(
+                'กิน ${NutritionApprox.kcal(grossIntake.toDouble())} · เผา ${NutritionApprox.kcal(burned.toDouble())}',
+                style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
+              ),
+            ),
+
           const SizedBox(height: 20),
 
           // Ring + Numbers side by side
@@ -571,14 +594,14 @@ class _AppHomeScreenState extends ConsumerState<AppHomeScreen> {
                 ),
                 Column(mainAxisSize: MainAxisSize.min, children: [
                   Text(
-                    NutritionApprox.tildeRound(currentCal.toDouble()),
+                    NutritionApprox.tildeRound(ringCal.toDouble()),
                     style: TextStyle(
                         fontSize: 26,
                         fontWeight: FontWeight.bold,
                         color: isOver ? Colors.red : Colors.black87,
                         height: 1),
                   ),
-                  Text('kcal',
+                  Text('kcal สุทธิ',
                       style: TextStyle(
                           fontSize: 11,
                           color: Colors.grey.shade500,

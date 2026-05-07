@@ -1,3 +1,5 @@
+import 'dart:math' show max;
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 /// รายการอาหารต่อมื้อสำหรับหน้า Home (จาก /daily_summary meal_items)
@@ -79,6 +81,9 @@ class UserData {
   final int consumedCarbs;
   final int consumedFat;
 
+  /// แคลที่เผาผลาญจากกิจกรรมวันนั้น (จาก /daily_summary total_calories_burned)
+  final int dailyCaloriesBurned;
+
   // --- 4. ส่วนชื่อเมนูอาหาร (Food Menu Names) ---
   final Map<String, String> dailyMeals;
 
@@ -123,6 +128,7 @@ class UserData {
     this.consumedProtein = 0,
     this.consumedCarbs = 0,
     this.consumedFat = 0,
+    this.dailyCaloriesBurned = 0,
     this.dailyMeals = const {},
     this.dailyMealItems = const {},
     this.storedTargetCalories,
@@ -276,6 +282,10 @@ class UserData {
     return (targetCalories * _fatRatio / 9).round();
   }
 
+  /// แคลสุทธิสำหรับเป้า/วงแหวน: max(0, กิน − เผา)
+  int get netCaloriesIntake =>
+      max(0, consumedCalories - dailyCaloriesBurned);
+
   // --- CopyWith ---
   UserData copyWith({
     int? userId,
@@ -295,6 +305,7 @@ class UserData {
     int? consumedProtein,
     int? consumedCarbs,
     int? consumedFat,
+    int? dailyCaloriesBurned,
     Map<String, String>? dailyMeals,
     Map<String, List<HomeLoggedFoodItem>>? dailyMealItems,
     int? storedTargetCalories,
@@ -329,6 +340,7 @@ class UserData {
       consumedProtein: consumedProtein ?? this.consumedProtein,
       consumedCarbs: consumedCarbs ?? this.consumedCarbs,
       consumedFat: consumedFat ?? this.consumedFat,
+      dailyCaloriesBurned: dailyCaloriesBurned ?? this.dailyCaloriesBurned,
       dailyMeals: dailyMeals ?? this.dailyMeals,
       dailyMealItems: dailyMealItems ?? this.dailyMealItems,
       storedTargetCalories: storedTargetCalories ?? this.storedTargetCalories,
@@ -448,7 +460,9 @@ class UserDataNotifier extends StateNotifier<UserData> {
       consumedProtein: (data['total_protein'] as num?)?.toInt() ?? 0,
       consumedCarbs: (data['total_carbs'] as num?)?.toInt() ?? 0,
       consumedFat: (data['total_fat'] as num?)?.toInt() ?? 0,
-      dailyMeals: meals, // ✅ อัปเดต Map จาก API
+      dailyCaloriesBurned:
+          (data['total_calories_burned'] as num?)?.round() ?? 0,
+      dailyMeals: meals,
       dailyMealItems: mealItems,
     );
   }
@@ -459,6 +473,7 @@ class UserDataNotifier extends StateNotifier<UserData> {
       consumedProtein: 0,
       consumedCarbs: 0,
       consumedFat: 0,
+      dailyCaloriesBurned: 0,
       dailyMeals: {}, // ✅ Reset เป็น Map ว่าง
       dailyMealItems: {},
     );

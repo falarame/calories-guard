@@ -80,16 +80,39 @@ class MealSlot {
 }
 
 class Activity {
+  final int? logId;
   final String name;
   final String emoji;
   final int durationMin;
   final double caloriesBurned;
   Activity({
+    this.logId,
     required this.name,
     required this.emoji,
     required this.durationMin,
     required this.caloriesBurned,
   });
+}
+
+/// Emoji เวลาโหลดกิจกรรมจาก API (ไม่มีฟิลด์ emoji ใน DB)
+const Map<String, String> _kActivityEmojiByName = {
+  'เดิน': '🚶',
+  'วิ่ง': '🏃',
+  'ปั่นจักรยาน': '🚴',
+  'ว่ายน้ำ': '🏊',
+  'เต้น Zumba': '💃',
+  'โยคะ': '🧘',
+  'ยกน้ำหนัก': '🏋️',
+  'ฟุตบอล': '⚽',
+  'บาสเกตบอล': '🏀',
+  'กระโดดเชือก': '🪢',
+  'HIIT': '🔥',
+  'เดินขึ้นบันได': '🪜',
+};
+
+String _emojiForStoredActivity(String name) {
+  if (name.startsWith('Samsung Health')) return '⌚';
+  return _kActivityEmojiByName[name] ?? '🏃';
 }
 
 // ─────────────────────────────────────────────
@@ -241,23 +264,23 @@ class _FoodLogScreenState extends ConsumerState<FoodLogScreen>
       if (res.statusCode == 200) {
         final data = jsonDecode(res.body);
 
-        // โหลดข้อมูลมื้ออาหาร
-        if (data['meals'] != null) {
-          final mealsData = data['meals'] as Map<String, dynamic>;
+        setState(() {
+          // Clear ข้อมูลเก่า
+          for (var meal in _meals) {
+            meal.foods.clear();
+          }
+          _activities.clear();
 
-          setState(() {
-            // Clear ข้อมูลเก่า
-            for (var meal in _meals) {
-              meal.foods.clear();
-            }
+          // โหลดข้อมูลมื้ออาหาร
+          if (data['meals'] != null) {
+            final mealsData = data['meals'] as Map<String, dynamic>;
 
-            // โหลดข้อมูลแต่ละมื้อ
             for (var mealType in ['breakfast', 'lunch', 'dinner', 'snack']) {
               if (mealsData[mealType] != null && mealsData[mealType] is List) {
                 final items = mealsData[mealType] as List;
                 final targetMeal = _meals.firstWhere(
                   (m) => m.id == mealType,
-                  orElse: () => _meals.last, // fallback to snack
+                  orElse: () => _meals.last,
                 );
 
                 for (var item in items) {
@@ -276,14 +299,121 @@ class _FoodLogScreenState extends ConsumerState<FoodLogScreen>
                 }
               }
             }
-          });
-        }
+          }
+
+          final exRaw = data['exercises'];
+          if (exRaw is List) {
+            for (final raw in exRaw) {
+              if (raw is! Map) continue;
+              final m = Map<String, dynamic>.from(raw);
+              final n = m['activity_name']?.toString() ?? '';
+              _activities.add(Activity(
+                logId: (m['log_id'] as num?)?.toInt(),
+                name: n,
+                emoji: _emojiForStoredActivity(n),
+                durationMin: (m['duration_minutes'] as num?)?.toInt() ?? 0,
+                caloriesBurned:
+                    (m['calories_burned'] as num?)?.toDouble() ?? 0,
+              ));
+            }
+          }
+        });
       }
     } catch (e) {
       debugPrint('Error fetching daily log: $e');
     } finally {
       if (mounted) setState(() => _isLoadingData = false);
       _applyPendingFood();
+    }
+  }
+
+  Future<void> _persistNewActivity(Activity act) async {
+    final userId = ref.read(userDataProvider).userId;
+    if (userId == 0) return;
+    final dateStr = DateFormat('yyyy-MM-dd').format(_selectedDate);
+    try {
+      final res = await ApiClient().post('/exercise_logs/$userId', body: {
+        'date_record': dateStr,
+        'activity_name': act.name,
+        'duration_minutes': act.durationMin,
+        'calories_burned': act.caloriesBurned,
+        'intensity': 'moderate',
+      });
+      if (!_isHttpSuccess(res.statusCode)) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+            content: Text(_apiErrorMessage(res)),
+            backgroundColor: Colors.red,
+          ));
+        }
+        return;
+      }
+      ref.read(dailyFoodRevisionProvider.notifier).state++;
+      await _fetchDailyLog();
+    } catch (e, st) {
+      ErrorReporter.report('record.persist_exercise', e, st);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+          content: Text('บันทึกกิจกรรมไม่สำเร็จ'),
+          backgroundColor: Colors.red,
+        ));
+      }
+    }
+  }
+
+  Future<bool> _deleteExerciseLog(int logId) async {
+    final userId = ref.read(userDataProvider).userId;
+    if (userId == 0) return false;
+    try {
+      final res = await ApiClient().delete('/exercise_logs/$userId/$logId');
+      if (!_isHttpSuccess(res.statusCode)) return false;
+      ref.read(dailyFoodRevisionProvider.notifier).state++;
+      await _fetchDailyLog();
+      return true;
+    } catch (e, st) {
+      ErrorReporter.report('record.delete_exercise', e, st);
+      return false;
+    }
+  }
+
+  Future<void> _onActivityDismissed(Activity a, int idx) async {
+    if (a.logId != null) {
+      final ok = await _deleteExerciseLog(a.logId!);
+      if (!ok && mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+          content: Text('ลบกิจกรรมไม่สำเร็จ'),
+          backgroundColor: Colors.red,
+        ));
+        await _fetchDailyLog();
+      }
+    } else if (mounted) {
+      setState(() {
+        if (idx >= 0 && idx < _activities.length) {
+          _activities.removeAt(idx);
+        }
+      });
+    }
+  }
+
+  Future<void> _persistSamsungBurn(double calories) async {
+    if (calories <= 0) return;
+    final userId = ref.read(userDataProvider).userId;
+    if (userId == 0) return;
+    final dateStr = DateFormat('yyyy-MM-dd').format(_selectedDate);
+    try {
+      final res = await ApiClient().post('/exercise_logs/$userId', body: {
+        'date_record': dateStr,
+        'activity_name': 'Samsung Health — กิจกรรมรวม',
+        'duration_minutes': 0,
+        'calories_burned': calories,
+        'intensity': 'moderate',
+      });
+      if (_isHttpSuccess(res.statusCode)) {
+        ref.read(dailyFoodRevisionProvider.notifier).state++;
+        await _fetchDailyLog();
+      }
+    } catch (e, st) {
+      ErrorReporter.report('record.persist_samsung_exercise', e, st);
     }
   }
 
@@ -941,7 +1071,7 @@ class _FoodLogScreenState extends ConsumerState<FoodLogScreen>
           ..._activities.asMap().entries.map((e) {
             final a = e.value;
             return Dismissible(
-              key: Key('act_${e.key}'),
+              key: ValueKey('act_${a.logId ?? e.key}'),
               direction: DismissDirection.endToStart,
               background: Container(
                 color: Colors.red.shade50,
@@ -949,7 +1079,9 @@ class _FoodLogScreenState extends ConsumerState<FoodLogScreen>
                 padding: const EdgeInsets.only(right: 16),
                 child: const Icon(Icons.delete_outline, color: Colors.red),
               ),
-              onDismissed: (_) => setState(() => _activities.removeAt(e.key)),
+              onDismissed: (_) {
+                unawaited(_onActivityDismissed(a, e.key));
+              },
               child: Padding(
                 padding:
                     const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
@@ -1132,16 +1264,10 @@ class _FoodLogScreenState extends ConsumerState<FoodLogScreen>
       if (!mounted) return;
 
       if (calories > 0 || steps > 0) {
-        final act = Activity(
-          name: 'Samsung Health — กิจกรรมรวม',
-          emoji: '⌚',
-          durationMin: 0,
-          caloriesBurned: calories,
-        );
-        setState(() {
-          _activities.removeWhere((a) => a.name.startsWith('Samsung Health'));
-          if (calories > 0) _activities.add(act);
-        });
+        if (calories > 0) {
+          await _persistSamsungBurn(calories.toDouble());
+        }
+        if (!mounted) return;
 
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(
           content: Text(
@@ -1188,8 +1314,12 @@ class _FoodLogScreenState extends ConsumerState<FoodLogScreen>
       backgroundColor: Colors.white,
       shape: const RoundedRectangleBorder(
           borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
-      builder: (ctx) => _AddActivitySheet(
-        onActivityAdded: (act) => setState(() => _activities.add(act)),
+      builder: (_) => _AddActivitySheet(
+        onActivityAdded: (act) async {
+          await _persistNewActivity(act);
+          if (!mounted) return;
+          Navigator.of(context).pop();
+        },
       ),
     );
   }
@@ -2402,7 +2532,7 @@ class _AddFoodSheetState extends ConsumerState<_AddFoodSheet>
 //  _AddActivitySheet — Bottom sheet สำหรับเพิ่มกิจกรรม
 // ═══════════════════════════════════════════════════════════
 class _AddActivitySheet extends StatefulWidget {
-  final void Function(Activity) onActivityAdded;
+  final Future<void> Function(Activity) onActivityAdded;
   const _AddActivitySheet({required this.onActivityAdded});
 
   @override
@@ -2672,7 +2802,7 @@ class _AddActivitySheetState extends State<_AddActivitySheet> {
             child: ElevatedButton(
               onPressed: (_selectedPreset == null && !_isCustom)
                   ? null
-                  : () {
+                  : () async {
                       final name = _isCustom
                           ? _customNameCtrl.text.trim().isEmpty
                               ? 'กิจกรรมที่กำหนดเอง'
@@ -2682,13 +2812,12 @@ class _AddActivitySheetState extends State<_AddActivitySheet> {
                           ? '🏋️'
                           : _selectedPreset!['emoji'] as String;
 
-                      widget.onActivityAdded(Activity(
+                      await widget.onActivityAdded(Activity(
                         name: name,
                         emoji: emoji,
                         durationMin: _duration,
                         caloriesBurned: _caloriesBurned,
                       ));
-                      Navigator.pop(context);
                     },
               style: ElevatedButton.styleFrom(
                   backgroundColor: _orange,

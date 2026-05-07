@@ -153,6 +153,17 @@ class WaterLogUpdate(BaseModel):
     date_record: date | None = None
 
 
+class ExerciseLogCreate(BaseModel):
+    """Persisted activity row; replaces Samsung aggregate row when name starts with Samsung Health."""
+
+    date_record: date
+    activity_name: str
+    duration_minutes: int = 0
+    calories_burned: float = 0
+    intensity: str = "moderate"
+    note: str | None = None
+
+
 class AllergyUpdate(BaseModel):
     flag_ids: List[int]
 
