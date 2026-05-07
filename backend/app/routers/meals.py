@@ -53,25 +53,35 @@ def _add_meal_impl(user_id: int, log: DailyLogUpdate):
             # ตรวจว่าเป็นเครื่องดื่มไม่มีแอลกอฮอล์
             if item.food_id:
                 cur.execute("""
-                    SELECT volume_ml, is_alcoholic
-                    FROM beverages
-                    WHERE food_id = %s AND (is_alcoholic = FALSE OR is_alcoholic IS NULL)
+                    SELECT
+                        COALESCE(
+                            b.volume_ml,
+                            CASE WHEN lower(u.name) LIKE '%ml%' THEN f.serving_quantity ELSE NULL END
+                        ) AS volume_ml,
+                        COALESCE(b.is_alcoholic, FALSE) AS is_alcoholic
+                    FROM foods f
+                    LEFT JOIN beverages b ON b.food_id = f.food_id
+                    LEFT JOIN units u ON u.unit_id = f.serving_unit_id
+                    WHERE f.food_id = %s
+                      AND f.food_type = 'beverage'
+                      AND COALESCE(b.is_alcoholic, FALSE) = FALSE
                 """, (item.food_id,))
                 bev = cur.fetchone()
                 if bev and bev['volume_ml']:
-                    total_beverage_ml += bev['volume_ml'] * item.amount
+                    total_beverage_ml += float(bev['volume_ml']) * float(item.amount)
 
         # แปลง ml เป็นแก้ว (1 แก้ว = 250ml) แล้ว upsert water_logs
         if total_beverage_ml > 0:
-            extra_glasses = round(total_beverage_ml / 250, 2)
+            extra_glasses = max(1, round(total_beverage_ml / 250))  # int, min 1
+            extra_ml = int(total_beverage_ml)
             cur.execute("""
                 INSERT INTO water_logs (user_id, date_record, glasses, amount_ml)
                 VALUES (%s, %s, %s, %s)
                 ON CONFLICT (user_id, date_record)
                 DO UPDATE SET
-                    glasses    = water_logs.glasses + EXCLUDED.glasses,
-                    amount_ml  = water_logs.amount_ml + EXCLUDED.amount_ml
-            """, (user_id, log.date, extra_glasses, total_beverage_ml))
+                    glasses   = LEAST(water_logs.glasses + EXCLUDED.glasses, 30),
+                    amount_ml = water_logs.amount_ml + EXCLUDED.amount_ml
+            """, (user_id, log.date, extra_glasses, extra_ml))
 
         conn.commit()
 
