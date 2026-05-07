@@ -182,7 +182,8 @@ def get_daily_summary(user_id: int, date_record: date, current_user: dict = Depe
                    COALESCE(SUM(di.amount * di.fat_per_unit), 0) AS total_fat
             FROM meals m
             JOIN detail_items di ON di.meal_id = m.meal_id
-            WHERE m.user_id = %s AND DATE(m.meal_time) = %s
+            WHERE m.user_id = %s
+              AND (m.meal_time AT TIME ZONE 'Asia/Bangkok')::date = %s
         """, (user_id, date_record))
         macro = cur.fetchone()
         computed_cal = float(macro['total_cal']) if macro else 0
@@ -202,7 +203,8 @@ def get_daily_summary(user_id: int, date_record: date, current_user: dict = Depe
             SELECT m.meal_type, STRING_AGG(di.food_name, ', ') AS menu_names
             FROM meals m
             JOIN detail_items di ON di.meal_id = m.meal_id
-            WHERE m.user_id = %s AND DATE(m.meal_time) = %s
+            WHERE m.user_id = %s
+              AND (m.meal_time AT TIME ZONE 'Asia/Bangkok')::date = %s
             GROUP BY m.meal_type
         """, (user_id, date_record))
         menu_rows = cur.fetchall()
@@ -236,7 +238,9 @@ def get_meal_detail(user_id: int, date_record: date, meal_type: str, current_use
             FROM meals m
             JOIN detail_items di ON di.meal_id = m.meal_id
             LEFT JOIN foods f ON f.food_id = di.food_id
-            WHERE m.user_id = %s AND DATE(m.meal_time) = %s AND m.meal_type::text = %s
+            WHERE m.user_id = %s
+              AND (m.meal_time AT TIME ZONE 'Asia/Bangkok')::date = %s
+              AND m.meal_type::text = %s
             ORDER BY di.meal_id
         """, (user_id, date_record, meal_type))
         items = [dict(r) for r in cur.fetchall()]
@@ -298,15 +302,17 @@ def get_weekly_logs(user_id: int, current_user: dict = Depends(get_current_user)
         sunday = monday + timedelta(days=6)
 
         cur.execute("""
-            SELECT DATE(m.meal_time) AS d,
+            SELECT (m.meal_time AT TIME ZONE 'Asia/Bangkok')::date AS d,
                    COALESCE(SUM(di.amount * di.cal_per_unit), 0) AS total_cal,
                    COALESCE(SUM(di.amount * di.protein_per_unit), 0) AS total_protein,
                    COALESCE(SUM(di.amount * di.carbs_per_unit), 0) AS total_carbs,
                    COALESCE(SUM(di.amount * di.fat_per_unit), 0) AS total_fat
             FROM meals m
             JOIN detail_items di ON di.meal_id = m.meal_id
-            WHERE m.user_id = %s AND DATE(m.meal_time) >= %s AND DATE(m.meal_time) <= %s
-            GROUP BY DATE(m.meal_time)
+            WHERE m.user_id = %s
+              AND (m.meal_time AT TIME ZONE 'Asia/Bangkok')::date >= %s
+              AND (m.meal_time AT TIME ZONE 'Asia/Bangkok')::date <= %s
+            GROUP BY (m.meal_time AT TIME ZONE 'Asia/Bangkok')::date
         """, (user_id, monday, sunday))
         macro_rows = {row["d"]: row for row in cur.fetchall()}
 
@@ -340,7 +346,8 @@ def get_daily_log_by_date(user_id: int, date_query: date, current_user: dict = D
                    COALESCE(SUM(di.amount * di.fat_per_unit), 0) AS total_fat
             FROM meals m
             JOIN detail_items di ON di.meal_id = m.meal_id
-            WHERE m.user_id = %s AND DATE(m.meal_time) = %s
+            WHERE m.user_id = %s
+              AND (m.meal_time AT TIME ZONE 'Asia/Bangkok')::date = %s
         """, (user_id, date_query))
         macro = cur.fetchone()
         total_cal = int(macro['total_cal']) if macro else 0
@@ -355,7 +362,8 @@ def get_daily_log_by_date(user_id: int, date_query: date, current_user: dict = D
             JOIN detail_items di ON di.meal_id = m.meal_id
             LEFT JOIN units u ON u.unit_id = di.unit_id
             LEFT JOIN foods f ON f.food_id = di.food_id
-            WHERE m.user_id = %s AND DATE(m.meal_time) = %s
+            WHERE m.user_id = %s
+              AND (m.meal_time AT TIME ZONE 'Asia/Bangkok')::date = %s
             ORDER BY m.meal_type, di.item_id
         """, (user_id, date_query))
         items = cur.fetchall()
@@ -400,14 +408,17 @@ def clear_meal_type(user_id: int, date_record: date, meal_type: str, current_use
         meal_type_db = _meal_type_to_enum(meal_type)
         cur.execute("""
             DELETE FROM meals
-            WHERE user_id = %s AND DATE(meal_time) = %s AND meal_type = %s
+            WHERE user_id = %s
+              AND (meal_time AT TIME ZONE 'Asia/Bangkok')::date = %s
+              AND meal_type = %s
         """, (user_id, date_record, meal_type_db))
 
         cur.execute("""
             SELECT COALESCE(SUM(di.amount * di.cal_per_unit), 0) AS total_cal
             FROM meals m
             JOIN detail_items di ON di.meal_id = m.meal_id
-            WHERE m.user_id = %s AND DATE(m.meal_time) = %s
+            WHERE m.user_id = %s
+              AND (m.meal_time AT TIME ZONE 'Asia/Bangkok')::date = %s
         """, (user_id, date_record))
         row = cur.fetchone()
         new_cal = float(row['total_cal']) if row else 0

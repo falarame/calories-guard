@@ -1108,28 +1108,39 @@ class _FoodLogScreenState extends ConsumerState<FoodLogScreen>
     );
   }
 
-  /// อัปเดต userDataProvider ด้วยผลรวมจาก local state
-  /// เรียกหลัง save สำเร็จ เพื่อให้ home screen แสดงข้อมูลทันที
-  void _syncProviderFromLocalState() {
-    final totalCal = _meals.fold<double>(0, (s, m) => s + m.totalCalories);
-    final totalProt = _meals.fold<double>(0, (s, m) => s + m.totalProtein);
-    final totalCarbs = _meals.fold<double>(0, (s, m) => s + m.totalCarbs);
-    final totalFat = _meals.fold<double>(0, (s, m) => s + m.totalFat);
+  bool _isHttpSuccess(int statusCode) => statusCode >= 200 && statusCode < 300;
 
-    final mealsMap = <String, String>{};
-    for (final m in _meals) {
-      if (m.foods.isNotEmpty) {
-        mealsMap[m.id] = m.foods.map((f) => f.name).join(', ');
+  String _apiErrorMessage(dynamic response) {
+    try {
+      final decoded = jsonDecode(utf8.decode(response.bodyBytes));
+      if (decoded is Map<String, dynamic>) {
+        final detail = decoded['detail'] ?? decoded['message'];
+        if (detail != null) return detail.toString();
       }
+    } catch (_) {
+      // Fall back to the status code below.
+    }
+    return 'HTTP ${response.statusCode}';
+  }
+
+  Future<void> _syncProviderFromServerSummary({
+    required int userId,
+    required String dateStr,
+  }) async {
+    final summaryRes = await ApiClient().get(
+      '/daily_summary/$userId',
+      queryParams: {'date_record': dateStr},
+    );
+    if (!_isHttpSuccess(summaryRes.statusCode)) {
+      throw Exception('โหลดข้อมูลที่บันทึกจากฐานข้อมูลไม่สำเร็จ: '
+          '${_apiErrorMessage(summaryRes)}');
     }
 
-    ref.read(userDataProvider.notifier).updateDailyFood(
-          cal: totalCal.toInt(),
-          protein: totalProt.toInt(),
-          carbs: totalCarbs.toInt(),
-          fat: totalFat.toInt(),
-          dailyMeals: mealsMap,
-        );
+    final summaryData = jsonDecode(utf8.decode(summaryRes.bodyBytes));
+    if (summaryData is! Map<String, dynamic>) {
+      throw Exception('รูปแบบข้อมูลสรุปจากฐานข้อมูลไม่ถูกต้อง');
+    }
+    ref.read(userDataProvider.notifier).setDailySummaryFromApi(summaryData);
   }
 
   Future<void> _saveSingleMeal(MealSlot meal) async {
@@ -1165,6 +1176,10 @@ class _FoodLogScreenState extends ConsumerState<FoodLogScreen>
         '/meals/clear/$userId?date_record=$dateStr&meal_type=$mealType',
       );
       debugPrint('🗑️ DELETE Response: ${delRes.statusCode}');
+      if (!_isHttpSuccess(delRes.statusCode)) {
+        throw Exception(
+            'ลบข้อมูลมื้อเดิมไม่สำเร็จ: ${_apiErrorMessage(delRes)}');
+      }
 
       // 2. บันทึกข้อมูลใหม่ทั้งมื้อ (ถ้ามีอาหาร)
       if (meal.foods.isNotEmpty) {
@@ -1191,20 +1206,23 @@ class _FoodLogScreenState extends ConsumerState<FoodLogScreen>
           },
         );
         debugPrint('💾 POST Response: ${postRes.statusCode}');
-        if (postRes.statusCode >= 200 && postRes.statusCode < 300) {
-          final decoded = jsonDecode(utf8.decode(postRes.bodyBytes));
-          final safety = decoded is Map<String, dynamic>
-              ? decoded['nutrition_safety']
-              : null;
-          if (safety is List) {
-            nutritionSafetyWarnings.addAll(
-              safety.whereType<Map>().map((item) {
-                return item.map(
-                  (key, value) => MapEntry(key.toString(), value),
-                );
-              }),
-            );
-          }
+        if (!_isHttpSuccess(postRes.statusCode)) {
+          throw Exception('บันทึกอาหารลงฐานข้อมูลไม่สำเร็จ: '
+              '${_apiErrorMessage(postRes)}');
+        }
+
+        final decoded = jsonDecode(utf8.decode(postRes.bodyBytes));
+        final safety = decoded is Map<String, dynamic>
+            ? decoded['nutrition_safety']
+            : null;
+        if (safety is List) {
+          nutritionSafetyWarnings.addAll(
+            safety.whereType<Map>().map((item) {
+              return item.map(
+                (key, value) => MapEntry(key.toString(), value),
+              );
+            }),
+          );
         }
       } else {
         debugPrint(
@@ -1214,7 +1232,7 @@ class _FoodLogScreenState extends ConsumerState<FoodLogScreen>
 
       // ── Sync provider ทันทีหลัง save เพื่อให้ home screen อัปเดตเลย ──────
       if (mounted) {
-        _syncProviderFromLocalState();
+        await _syncProviderFromServerSummary(userId: userId, dateStr: dateStr);
         ref.read(homeViewDateProvider.notifier).state = DateTime(
           _selectedDate.year,
           _selectedDate.month,
@@ -1254,6 +1272,13 @@ class _FoodLogScreenState extends ConsumerState<FoodLogScreen>
       }
     } catch (e) {
       debugPrint('❌ Error saving meal: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text('บันทึกอาหารไม่สำเร็จ\n$e'),
+          backgroundColor: Colors.redAccent,
+          duration: const Duration(seconds: 5),
+        ));
+      }
     } finally {
       if (mounted) setState(() => _isSaving = false);
     }
