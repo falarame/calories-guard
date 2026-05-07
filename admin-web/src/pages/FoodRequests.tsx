@@ -4,6 +4,50 @@ import { api, normalizeImageUrl } from '../api/client'
 import { useAuth } from '../context/AuthContext'
 import type { TempFood } from '../types'
 
+const FOOD_TYPE_CONFIG: Record<string, { categories: string[]; units: { value: string; label: string }[]; defaultUnit: string }> = {
+  dish: {
+    categories: ['อาหารไทย', 'อาหารตะวันตก', 'เส้น/ก๋วยเตี๋ยว', 'ข้าวและโจ๊ก', 'ซุป/แกง', 'อาหารนานาชาติ'],
+    units: [
+      { value: 'serving', label: 'serving' },
+      { value: 'plate', label: 'จาน (plate)' },
+      { value: 'bowl', label: 'ชาม/ถ้วย (bowl)' },
+      { value: 'set', label: 'ชุด (set)' },
+      { value: 'box', label: 'กล่อง (box)' },
+    ],
+    defaultUnit: 'serving',
+  },
+  raw_ingredient: {
+    categories: ['เนื้อสัตว์', 'ผัก', 'เครื่องปรุง', 'ธัญพืช/แป้ง', 'อาหารทะเล', 'ไข่และนม'],
+    units: [
+      { value: 'g', label: 'กรัม (g)' },
+      { value: 'kg', label: 'กิโลกรัม (kg)' },
+      { value: 'piece', label: 'ชิ้น (piece)' },
+    ],
+    defaultUnit: 'g',
+  },
+  snack: {
+    categories: ['ผลไม้', 'ขนมหวาน', 'ขนมขบเคี้ยว', 'ของว่าง'],
+    units: [
+      { value: 'piece', label: 'ชิ้น/อัน (piece)' },
+      { value: 'g', label: 'กรัม (g)' },
+      { value: 'bag', label: 'ถุง (bag)' },
+      { value: 'box', label: 'กล่อง (box)' },
+    ],
+    defaultUnit: 'piece',
+  },
+  beverage: {
+    categories: ['เครื่องดื่มร้อน', 'เครื่องดื่มเย็น', 'น้ำผลไม้', 'เครื่องดื่มแอลกอฮอล์', 'น้ำเปล่า/โซดา', 'นมและโยเกิร์ต'],
+    units: [
+      { value: 'ml', label: 'มิลลิลิตร (ml)' },
+      { value: 'glass', label: 'แก้ว (glass)' },
+      { value: 'can', label: 'กระป๋อง (can)' },
+      { value: 'bottle', label: 'ขวด (bottle)' },
+      { value: 'cup', label: 'ถ้วย (cup)' },
+    ],
+    defaultUnit: 'ml',
+  },
+}
+
 function NutritionInput({ label, val, set }: { label: string; val: string; set: (v: string) => void }) {
   return (
     <div>
@@ -53,6 +97,13 @@ function ApproveModal({
   const [fiberG, setFiberG]             = useState('0')
   const [servingQty, setServingQty]     = useState('1')
   const [servingUnit, setServingUnit]   = useState('serving')
+
+  const typeConfig = FOOD_TYPE_CONFIG[foodType] ?? FOOD_TYPE_CONFIG.dish
+
+  useEffect(() => {
+    setFoodCategory('')
+    setServingUnit(FOOD_TYPE_CONFIG[foodType]?.defaultUnit ?? 'serving')
+  }, [foodType])
 
   useEffect(() => {
     api.getSimilarFoods(item.food_name)
@@ -180,12 +231,7 @@ function ApproveModal({
                 <select value={foodCategory} onChange={e => setFoodCategory(e.target.value)}
                   className="w-full px-3 py-2 rounded-lg border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-[#628141]/30">
                   <option value="">— ไม่ระบุ —</option>
-                  <option>อาหารไทย</option>
-                  <option>อาหารตะวันตก</option>
-                  <option>เส้น/ก๋วยเตี๋ยว</option>
-                  <option>ผัก/วัตถุดิบ</option>
-                  <option>ผลไม้/ของว่าง</option>
-                  <option>เครื่องดื่ม</option>
+                  {typeConfig.categories.map(c => <option key={c} value={c}>{c}</option>)}
                 </select>
               </div>
               <div>
@@ -197,14 +243,7 @@ function ApproveModal({
                 <label className="block text-xs font-medium text-gray-600 mb-1">หน่วย</label>
                 <select value={servingUnit} onChange={e => setServingUnit(e.target.value)}
                   className="w-full px-3 py-2 rounded-lg border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-[#628141]/30">
-                  <option value="serving">serving</option>
-                  <option value="g">g</option>
-                  <option value="ml">ml</option>
-                  <option value="plate">จาน (plate)</option>
-                  <option value="bowl">ชาม/ถ้วย (bowl)</option>
-                  <option value="piece">ชิ้น/อัน (piece)</option>
-                  <option value="glass">แก้ว (glass)</option>
-                  <option value="set">ชุด (set)</option>
+                  {typeConfig.units.map(u => <option key={u.value} value={u.value}>{u.label}</option>)}
                 </select>
               </div>
             </div>

@@ -3,9 +3,54 @@ import { Plus, Pencil, Search, X, Loader2, ImageOff, Upload, Trash2 } from 'luci
 import { api, normalizeImageUrl } from '../api/client'
 import type { Food, FoodFormData } from '../types'
 
+const FOOD_TYPE_CONFIG: Record<string, { categories: string[]; units: { value: string; label: string }[]; defaultUnit: string }> = {
+  dish: {
+    categories: ['อาหารไทย', 'อาหารตะวันตก', 'เส้น/ก๋วยเตี๋ยว', 'ข้าวและโจ๊ก', 'ซุป/แกง', 'อาหารนานาชาติ'],
+    units: [
+      { value: 'serving', label: 'serving' },
+      { value: 'plate', label: 'จาน (plate)' },
+      { value: 'bowl', label: 'ชาม/ถ้วย (bowl)' },
+      { value: 'set', label: 'ชุด (set)' },
+      { value: 'box', label: 'กล่อง (box)' },
+    ],
+    defaultUnit: 'serving',
+  },
+  raw_ingredient: {
+    categories: ['เนื้อสัตว์', 'ผัก', 'เครื่องปรุง', 'ธัญพืช/แป้ง', 'อาหารทะเล', 'ไข่และนม'],
+    units: [
+      { value: 'g', label: 'กรัม (g)' },
+      { value: 'kg', label: 'กิโลกรัม (kg)' },
+      { value: 'piece', label: 'ชิ้น (piece)' },
+    ],
+    defaultUnit: 'g',
+  },
+  snack: {
+    categories: ['ผลไม้', 'ขนมหวาน', 'ขนมขบเคี้ยว', 'ของว่าง'],
+    units: [
+      { value: 'piece', label: 'ชิ้น/อัน (piece)' },
+      { value: 'g', label: 'กรัม (g)' },
+      { value: 'bag', label: 'ถุง (bag)' },
+      { value: 'box', label: 'กล่อง (box)' },
+    ],
+    defaultUnit: 'piece',
+  },
+  beverage: {
+    categories: ['เครื่องดื่มร้อน', 'เครื่องดื่มเย็น', 'น้ำผลไม้', 'เครื่องดื่มแอลกอฮอล์', 'น้ำเปล่า/โซดา', 'นมและโยเกิร์ต'],
+    units: [
+      { value: 'ml', label: 'มิลลิลิตร (ml)' },
+      { value: 'glass', label: 'แก้ว (glass)' },
+      { value: 'can', label: 'กระป๋อง (can)' },
+      { value: 'bottle', label: 'ขวด (bottle)' },
+      { value: 'cup', label: 'ถ้วย (cup)' },
+    ],
+    defaultUnit: 'ml',
+  },
+}
+
 const EMPTY_FORM: FoodFormData = {
   food_name: '', calories: '', protein: '', carbs: '', fat: '',
   sodium: '', sugar: '', cholesterol: '', fiber_g: '', image_url: '',
+  food_type: 'dish', food_category: '', serving_quantity: '1', serving_unit: 'serving',
 }
 
 function FoodField({ label, k, type = 'text', placeholder = '', value, onChange }: {
@@ -49,9 +94,20 @@ function FoodModal({
           cholesterol: food.cholesterol != null ? String(food.cholesterol) : '',
           fiber_g: food.fiber_g != null ? String(food.fiber_g) : '',
           image_url: food.image_url ?? '',
+          food_type: 'dish', food_category: '', serving_quantity: '1', serving_unit: 'serving',
         }
       : EMPTY_FORM
   )
+
+  const typeConfig = FOOD_TYPE_CONFIG[form.food_type] ?? FOOD_TYPE_CONFIG.dish
+
+  useEffect(() => {
+    setForm(f => ({
+      ...f,
+      food_category: '',
+      serving_unit: FOOD_TYPE_CONFIG[f.food_type]?.defaultUnit ?? 'serving',
+    }))
+  }, [form.food_type])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [uploading, setUploading] = useState(false)
@@ -96,9 +152,13 @@ function FoodModal({
         cholesterol: form.cholesterol !== '' ? parseFloat(form.cholesterol) : null,
         fiber_g: form.fiber_g !== '' ? parseFloat(form.fiber_g) : null,
         image_url: form.image_url.trim() || null,
+        food_type: form.food_type || undefined,
+        food_category: form.food_category || undefined,
+        serving_quantity: parseFloat(form.serving_quantity) || undefined,
+        serving_unit: form.serving_unit || undefined,
       }
       if (food) {
-        await api.updateFood(food.food_id, payload)
+        await api.patchFood(food.food_id, payload)
       } else {
         await api.createFood(payload)
       }
@@ -125,6 +185,44 @@ function FoodModal({
             <div className="px-4 py-3 bg-red-50 text-red-700 border border-red-200 rounded-xl text-sm">{error}</div>
           )}
           <FoodField label="ชื่ออาหาร *" placeholder="เช่น ข้าวผัดกะเพรา" {...fieldProps('food_name')} />
+
+          {/* ประเภทและหน่วย */}
+          <div>
+            <p className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-2">ประเภทและหน่วย</p>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">ประเภทอาหาร</label>
+                <select value={form.food_type} onChange={e => set('food_type', e.target.value)}
+                  className="w-full px-3 py-2 rounded-lg border border-gray-200 focus:outline-none focus:ring-2 focus:ring-[#628141]/30 focus:border-[#628141] text-sm transition">
+                  <option value="dish">อาหารจาน (dish)</option>
+                  <option value="raw_ingredient">วัตถุดิบ (raw_ingredient)</option>
+                  <option value="snack">ขนม/อาหารว่าง (snack)</option>
+                  <option value="beverage">เครื่องดื่ม (beverage)</option>
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">หมวดหมู่</label>
+                <select value={form.food_category} onChange={e => set('food_category', e.target.value)}
+                  className="w-full px-3 py-2 rounded-lg border border-gray-200 focus:outline-none focus:ring-2 focus:ring-[#628141]/30 focus:border-[#628141] text-sm transition">
+                  <option value="">— ไม่ระบุ —</option>
+                  {typeConfig.categories.map(c => <option key={c} value={c}>{c}</option>)}
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">ปริมาณ/ครั้ง</label>
+                <input type="number" value={form.serving_quantity} onChange={e => set('serving_quantity', e.target.value)}
+                  className="w-full px-3 py-2 rounded-lg border border-gray-200 focus:outline-none focus:ring-2 focus:ring-[#628141]/30 focus:border-[#628141] text-sm transition" />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">หน่วย</label>
+                <select value={form.serving_unit} onChange={e => set('serving_unit', e.target.value)}
+                  className="w-full px-3 py-2 rounded-lg border border-gray-200 focus:outline-none focus:ring-2 focus:ring-[#628141]/30 focus:border-[#628141] text-sm transition">
+                  {typeConfig.units.map(u => <option key={u.value} value={u.value}>{u.label}</option>)}
+                </select>
+              </div>
+            </div>
+          </div>
+
           <div className="grid grid-cols-2 gap-3">
             <FoodField label="แคลอรี่ (kcal) *" type="number" placeholder="350" {...fieldProps('calories')} />
             <FoodField label="โปรตีน (g)" type="number" placeholder="22" {...fieldProps('protein')} />

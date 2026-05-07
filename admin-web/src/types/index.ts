@@ -32,6 +32,10 @@ export interface FoodFormData {
   cholesterol: string
   fiber_g: string
   image_url: string
+  food_type: string
+  food_category: string
+  serving_quantity: string
+  serving_unit: string
 }
 
 export interface TempFood {
