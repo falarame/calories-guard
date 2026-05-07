@@ -652,6 +652,7 @@ class _FoodLogScreenState extends ConsumerState<FoodLogScreen>
           _selectedDate.month,
           _selectedDate.day,
         );
+        ref.read(dailyFoodRevisionProvider.notifier).state++;
         _fetchDailyLog();
       },
     );
@@ -1051,6 +1052,7 @@ class _FoodLogScreenState extends ConsumerState<FoodLogScreen>
           if (!saved && mounted) {
             setState(() => meal.foods.remove(food));
           }
+          return saved;
         },
       ),
     );
@@ -1185,6 +1187,8 @@ class _FoodLogScreenState extends ConsumerState<FoodLogScreen>
   Future<void> _syncProviderFromServerSummary({
     required int userId,
     required String dateStr,
+    String? expectedMealType,
+    List<LoggedFood> expectedFoods = const [],
   }) async {
     final summaryRes = await ApiClient().get(
       '/daily_summary/$userId',
@@ -1198,6 +1202,19 @@ class _FoodLogScreenState extends ConsumerState<FoodLogScreen>
     final summaryData = jsonDecode(utf8.decode(summaryRes.bodyBytes));
     if (summaryData is! Map<String, dynamic>) {
       throw Exception('รูปแบบข้อมูลสรุปจากฐานข้อมูลไม่ถูกต้อง');
+    }
+    if (expectedMealType != null && expectedFoods.isNotEmpty) {
+      final meals = summaryData['meals'];
+      final syncedMeal =
+          meals is Map ? meals[expectedMealType]?.toString() ?? '' : '';
+      final expectedNames = expectedFoods.map((f) => f.name.trim()).where(
+            (name) => name.isNotEmpty,
+          );
+      final hasExpectedNames = expectedNames.every(syncedMeal.contains);
+      if (!hasExpectedNames) {
+        throw Exception('บันทึกแล้วแต่ฐานข้อมูลยังไม่คืนข้อมูลมื้อนี้ '
+            'กรุณาลองใหม่อีกครั้ง');
+      }
     }
     ref.read(userDataProvider.notifier).setDailySummaryFromApi(summaryData);
   }
@@ -1213,6 +1230,7 @@ class _FoodLogScreenState extends ConsumerState<FoodLogScreen>
     if (userId == 0) return false;
 
     setState(() => _isSaving = true);
+    final messenger = ScaffoldMessenger.of(context);
 
     debugPrint('🔵 START SAVE: ${meal.id} with ${meal.foods.length} items');
     for (var f in meal.foods) {
@@ -1288,13 +1306,23 @@ class _FoodLogScreenState extends ConsumerState<FoodLogScreen>
 
       // ── Sync provider ทันทีหลัง save เพื่อให้ home screen อัปเดตเลย ──────
       if (mounted) {
-        await _syncProviderFromServerSummary(userId: userId, dateStr: dateStr);
+        await _syncProviderFromServerSummary(
+          userId: userId,
+          dateStr: dateStr,
+          expectedMealType: mealType,
+          expectedFoods: meal.foods,
+        );
         ref.read(homeViewDateProvider.notifier).state = DateTime(
           _selectedDate.year,
           _selectedDate.month,
           _selectedDate.day,
         );
         ref.read(dailyFoodRevisionProvider.notifier).state++;
+        messenger.showSnackBar(const SnackBar(
+          content: Text('บันทึกอาหารและซิงค์หน้าหลักแล้ว'),
+          backgroundColor: _green,
+          duration: Duration(seconds: 2),
+        ));
       }
 
       // ── Calorie notification trigger ──────────────────────
@@ -1331,7 +1359,7 @@ class _FoodLogScreenState extends ConsumerState<FoodLogScreen>
     } catch (e) {
       debugPrint('❌ Error saving meal: $e');
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        messenger.showSnackBar(SnackBar(
           content: Text('บันทึกอาหารไม่สำเร็จ\n$e'),
           backgroundColor: Colors.redAccent,
           duration: const Duration(seconds: 5),
@@ -1373,7 +1401,7 @@ class _FoodLogScreenState extends ConsumerState<FoodLogScreen>
 // ═══════════════════════════════════════════════════════════
 class _AddFoodSheet extends ConsumerStatefulWidget {
   final MealSlot meal;
-  final void Function(LoggedFood) onFoodAdded;
+  final Future<bool> Function(LoggedFood) onFoodAdded;
   const _AddFoodSheet({required this.meal, required this.onFoodAdded});
 
   @override
@@ -1388,6 +1416,7 @@ class _AddFoodSheetState extends ConsumerState<_AddFoodSheet>
   List<Map<String, dynamic>> _dbResults = [];
   bool _dbLoading = false;
   bool _showQuickAdd = false; // แสดง quick-add เมื่อค้นหาไม่เจอและกดปุ่ม
+  bool _isAddingFood = false;
   final _searchCtrl = TextEditingController();
 
   final _qNameCtrl = TextEditingController();
@@ -1607,26 +1636,39 @@ class _AddFoodSheetState extends ConsumerState<_AddFoodSheet>
                           borderRadius: BorderRadius.circular(14)),
                       elevation: 0,
                     ),
-                    onPressed: () {
-                      widget.onFoodAdded(LoggedFood(
-                        name: foodName,
-                        calories: cal,
-                        protein: protein,
-                        carbs: carbs,
-                        fat: fat,
-                        amount: amount.toDouble(),
-                        unitName: 'serving',
-                        foodId: food['food_id'] as int?,
-                        waterMl: waterMlPerServing,
-                      ));
-                      Navigator.pop(ctx);
-                      Navigator.pop(context);
-                    },
-                    child: const Text('เพิ่ม',
-                        style: TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.w700,
-                            color: Colors.white)),
+                    onPressed: _isAddingFood
+                        ? null
+                        : () async {
+                            setState(() => _isAddingFood = true);
+                            final saved = await widget.onFoodAdded(LoggedFood(
+                              name: foodName,
+                              calories: cal,
+                              protein: protein,
+                              carbs: carbs,
+                              fat: fat,
+                              amount: amount.toDouble(),
+                              unitName: 'serving',
+                              foodId: food['food_id'] as int?,
+                              waterMl: waterMlPerServing,
+                            ));
+                            if (!mounted) return;
+                            setState(() => _isAddingFood = false);
+                            if (!saved) return;
+                            if (ctx.mounted) Navigator.pop(ctx);
+                            if (context.mounted) Navigator.pop(context);
+                          },
+                    child: _isAddingFood
+                        ? const SizedBox(
+                            width: 20,
+                            height: 20,
+                            child: CircularProgressIndicator(
+                                color: Colors.white, strokeWidth: 2.5),
+                          )
+                        : const Text('เพิ่ม',
+                            style: TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.w700,
+                                color: Colors.white)),
                   ),
                 ),
               ),
@@ -2256,9 +2298,9 @@ class _AddFoodSheetState extends ConsumerState<_AddFoodSheet>
       return;
     }
 
-    widget.onFoodAdded(food);
+    final saved = await widget.onFoodAdded(food);
     setState(() => _qSending = false);
-    if (mounted) Navigator.pop(context);
+    if (mounted && saved) Navigator.pop(context);
   }
 }
 
