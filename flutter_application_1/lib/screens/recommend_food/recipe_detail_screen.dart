@@ -5,6 +5,7 @@ import 'package:flutter_application_1/services/api_client.dart';
 import '/providers/user_data_provider.dart';
 import '/providers/pending_food_provider.dart';
 import '/services/error_reporter.dart';
+import '../../utils/nutrition_approx.dart';
 
 // ─────────────────────────────────────────────
 //  RecipeDetailScreen
@@ -545,7 +546,7 @@ class _RecipeDetailScreenState extends ConsumerState<RecipeDetailScreen> {
                   color: Colors.white.withValues(alpha: 0.15),
                   borderRadius: BorderRadius.circular(14)),
               child: Column(children: [
-                Text('${r['calories']?.toStringAsFixed(0) ?? '0'}',
+                Text(NutritionApprox.tildeDynamic(r['calories']),
                     style: const TextStyle(
                         fontFamily: 'Inter',
                         fontSize: 28,
@@ -595,7 +596,7 @@ class _RecipeDetailScreenState extends ConsumerState<RecipeDetailScreen> {
           color: Colors.white.withValues(alpha: 0.1),
           borderRadius: BorderRadius.circular(10)),
       child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
-        Text('${val?.toStringAsFixed(0) ?? '0'}',
+        Text(NutritionApprox.tildeDynamic(val),
             style: const TextStyle(
                 fontFamily: 'Inter',
                 fontSize: 14,
@@ -618,7 +619,7 @@ class _RecipeDetailScreenState extends ConsumerState<RecipeDetailScreen> {
         Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
           Text(label,
               style: const TextStyle(fontSize: 10, color: Colors.white70)),
-          Text('${val?.toStringAsFixed(0) ?? '0'} $unit',
+          Text('${NutritionApprox.tildeDynamic(val)} $unit',
               style: const TextStyle(
                   fontFamily: 'Inter',
                   fontSize: 13,
@@ -746,7 +747,7 @@ class _RecipeDetailScreenState extends ConsumerState<RecipeDetailScreen> {
               )
             else
               Column(crossAxisAlignment: CrossAxisAlignment.end, children: [
-                Text(qty != null ? '$qty' : '-',
+                Text(qty != null ? NutritionApprox.tildeDynamic(qty) : '-',
                     style: const TextStyle(
                         fontFamily: 'Inter',
                         fontSize: 14,
@@ -1215,7 +1216,8 @@ class _RecipeDetailScreenState extends ConsumerState<RecipeDetailScreen> {
   //  ADD TO MEAL BAR
   // ────────────────────────────────────────────
   Widget _buildAddMealBar(Map<String, dynamic> r) {
-    final cal = r['calories']?.toStringAsFixed(0) ?? '0';
+    final calLine =
+        '${NutritionApprox.kcal((r['calories'] as num?)?.toDouble() ?? 0)} / จาน';
     final name = r['display_name']?.toString() ??
         r['recipe_name']?.toString() ??
         r['food_name']?.toString() ??
@@ -1243,7 +1245,7 @@ class _RecipeDetailScreenState extends ConsumerState<RecipeDetailScreen> {
         ),
         child: Row(children: [
           Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            Text('$cal kcal / จาน',
+            Text(calLine,
                 style: const TextStyle(
                     fontFamily: 'Inter',
                     fontSize: 15,

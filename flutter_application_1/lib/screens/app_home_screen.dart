@@ -11,6 +11,7 @@ import '../../services/lifecycle_service.dart';
 import '../../services/error_reporter.dart';
 import '../../utils/bmi_utils.dart';
 import '../../constants/constants.dart';
+import '../../utils/nutrition_approx.dart';
 import '/screens/restaurant_map_screen.dart';
 import '/screens/bmi/bmi_detail_screen.dart';
 import '/screens/tamagotchi/tamagotchi_screen.dart';
@@ -570,7 +571,7 @@ class _AppHomeScreenState extends ConsumerState<AppHomeScreen> {
                 ),
                 Column(mainAxisSize: MainAxisSize.min, children: [
                   Text(
-                    '$currentCal',
+                    NutritionApprox.tildeRound(currentCal.toDouble()),
                     style: TextStyle(
                         fontSize: 26,
                         fontWeight: FontWeight.bold,
@@ -597,7 +598,7 @@ class _AppHomeScreenState extends ConsumerState<AppHomeScreen> {
                         userData.hasBackendTargetCalories
                             ? 'เป้าหมาย'
                             : 'เป้าหมาย (ประมาณ)',
-                        '$targetCal kcal',
+                        NutritionApprox.kcal(targetCal.toDouble()),
                         _green,
                         Icons.flag_outlined,
                         helperText: userData.targetSourceLabel),
@@ -766,12 +767,12 @@ class _AppHomeScreenState extends ConsumerState<AppHomeScreen> {
                     color: Colors.grey.shade500,
                     fontWeight: FontWeight.w500)),
             const SizedBox(height: 2),
-            Text('$current g',
+            Text('${NutritionApprox.tildeRound(current.toDouble())} g',
                 style: TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.bold,
                     color: isOver ? const Color(0xFFD32F2F) : Colors.black87)),
-            Text('/ $target g${isEstimated ? ' ประมาณ' : ''}',
+            Text('/ ${NutritionApprox.tildeRound(target.toDouble())} g${isEstimated ? ' ประมาณ' : ''}',
                 style: TextStyle(
                     fontSize: 12,
                     color: Colors.grey.shade700,
@@ -1228,8 +1229,11 @@ class _AppHomeScreenState extends ConsumerState<AppHomeScreen> {
                 final p = food.totalProtein.round();
                 final c = food.totalCarbs.round();
                 final fVal = food.totalFat.round();
-                final macroLine =
-                    '$cal kcal • P:${p}g C:${c}g F:${fVal}g';
+                final macroLine = NutritionApprox.mealMacroLine(
+                    cal.toDouble(),
+                    p.toDouble(),
+                    c.toDouble(),
+                    fVal.toDouble());
                 return InkWell(
                   onTap: () =>
                       ref.read(navIndexProvider.notifier).state = 1,

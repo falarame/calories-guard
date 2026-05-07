@@ -12,6 +12,7 @@ import '../../services/health_service.dart';
 import '../../services/notification_helper.dart';
 import '../../widget/ai_meal_estimate_sheet.dart';
 import '../../services/error_reporter.dart';
+import '../../utils/nutrition_approx.dart';
 import '../recommend_food/recipe_detail_screen.dart';
 
 String _foodDisplayName(Map<String, dynamic> food) =>
@@ -570,14 +571,16 @@ class _FoodLogScreenState extends ConsumerState<FoodLogScreen>
             ]),
             const Spacer(),
             Column(crossAxisAlignment: CrossAxisAlignment.end, children: [
-              Text('${meal.totalCalories.toInt()} kcal',
+              Text(NutritionApprox.kcal(meal.totalCalories),
                   style: const TextStyle(
                       fontFamily: 'Inter',
                       fontSize: 14,
                       fontWeight: FontWeight.w700,
                       color: _green)),
               Text(
-                  'P:${meal.totalProtein.toInt()}g  C:${meal.totalCarbs.toInt()}g  F:${meal.totalFat.toInt()}g',
+                  'P:${NutritionApprox.tildeRound(meal.totalProtein)}g  '
+                  'C:${NutritionApprox.tildeRound(meal.totalCarbs)}g  '
+                  'F:${NutritionApprox.tildeRound(meal.totalFat)}g',
                   style: TextStyle(fontSize: 10, color: Colors.grey.shade400)),
             ]),
           ]),
@@ -743,13 +746,15 @@ class _FoodLogScreenState extends ConsumerState<FoodLogScreen>
                 ],
               ]),
               Text(
-                  '${food.amount % 1 == 0 ? food.amount.toInt() : food.amount} ${food.unitName}  •  '
-                  'P:${food.totalProtein.toInt()}g  C:${food.totalCarbs.toInt()}g  F:${food.totalFat.toInt()}g',
+                  '${food.amount % 1 == 0 ? NutritionApprox.tildeRound(food.amount) : NutritionApprox.tildeFixed(food.amount, 1)} ${food.unitName}  •  '
+                  'P:${NutritionApprox.tildeRound(food.totalProtein)}g  '
+                  'C:${NutritionApprox.tildeRound(food.totalCarbs)}g  '
+                  'F:${NutritionApprox.tildeRound(food.totalFat)}g',
                   style: TextStyle(fontSize: 11, color: Colors.grey.shade400)),
             ],
           ),
         )),
-        Text('${food.totalCalories.toInt()} kcal',
+        Text(NutritionApprox.kcal(food.totalCalories),
             style: const TextStyle(
                 fontSize: 13,
                 fontWeight: FontWeight.w700,
@@ -925,7 +930,8 @@ class _FoodLogScreenState extends ConsumerState<FoodLogScreen>
                       fontFamily: 'Inter',
                       fontSize: 15,
                       fontWeight: FontWeight.w700)),
-              Text('เผาผลาญรวม ${_totalCalBurned.toInt()} kcal',
+              Text(
+                  'เผาผลาญรวม ${NutritionApprox.kcal(_totalCalBurned)}',
                   style: TextStyle(fontSize: 11, color: Colors.grey.shade500)),
             ]),
           ]),
@@ -962,7 +968,7 @@ class _FoodLogScreenState extends ConsumerState<FoodLogScreen>
                               fontSize: 11, color: Colors.grey.shade500)),
                     ],
                   )),
-                  Text('-${a.caloriesBurned.toInt()} kcal',
+                  Text('- ${NutritionApprox.kcal(a.caloriesBurned)}',
                       style: const TextStyle(
                           fontSize: 13,
                           fontWeight: FontWeight.w700,
@@ -1140,9 +1146,9 @@ class _FoodLogScreenState extends ConsumerState<FoodLogScreen>
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(
           content: Text(
             summary.usesTotalCaloriesFallback
-                ? 'ซิงค์สำเร็จ! เผาผลาญ ${calories.toInt()} kcal | ก้าว $steps ก้าว\n'
+                ? 'ซิงค์สำเร็จ! เผาผลาญ ${NutritionApprox.kcal(calories.toDouble())} | ก้าว $steps ก้าว\n'
                     'ใช้ข้อมูลพลังงานจาก Samsung Health ผ่าน Health Connect'
-                : 'ซิงค์สำเร็จ! เผาผลาญ ${calories.toInt()} kcal | ก้าว $steps ก้าว',
+                : 'ซิงค์สำเร็จ! เผาผลาญ ${NutritionApprox.kcal(calories.toDouble())} | ก้าว $steps ก้าว',
           ),
           backgroundColor: const Color(0xFF628141),
           duration:
@@ -1777,9 +1783,10 @@ class _AddFoodSheetState extends ConsumerState<_AddFoodSheet>
       );
 
   Widget _nutriCol(String label, String value, String unit, Color color) {
+    final displayValue = value.startsWith('~') ? value : '~$value';
     return Expanded(
       child: Column(children: [
-        Text(value,
+        Text(displayValue,
             style: TextStyle(
                 fontSize: 18,
                 fontWeight: FontWeight.w800,
@@ -2161,10 +2168,12 @@ class _AddFoodSheetState extends ConsumerState<_AddFoodSheet>
                               mainAxisSize: MainAxisSize.min,
                               children: [
                                 Text(
-                                    '${f['calories']?.toStringAsFixed(0) ?? 0} kcal  •  '
-                                    'P:${f['protein']?.toStringAsFixed(0) ?? 0}g  '
-                                    'C:${f['carbs']?.toStringAsFixed(0) ?? 0}g  '
-                                    'F:${f['fat']?.toStringAsFixed(0) ?? 0}g',
+                                    NutritionApprox.mealMacroLine(
+                                      (f['calories'] as num?)?.toDouble() ?? 0,
+                                      (f['protein'] as num?)?.toDouble() ?? 0,
+                                      (f['carbs'] as num?)?.toDouble() ?? 0,
+                                      (f['fat'] as num?)?.toDouble() ?? 0,
+                                    ),
                                     style: TextStyle(
                                         fontSize: 11,
                                         color: Colors.grey.shade500)),
@@ -2486,7 +2495,7 @@ class _AddActivitySheetState extends State<_AddActivitySheet> {
               Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                 const Text('คาดว่าจะเผาผลาญ',
                     style: TextStyle(color: Colors.white70, fontSize: 11)),
-                Text('${_caloriesBurned.toStringAsFixed(0)} kcal',
+                Text(NutritionApprox.kcal(_caloriesBurned),
                     style: const TextStyle(
                         color: Colors.white,
                         fontFamily: 'Inter',
@@ -2686,7 +2695,7 @@ class _AddActivitySheetState extends State<_AddActivitySheet> {
                   shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(16))),
               child: Text(
-                  'บันทึกกิจกรรม (${_caloriesBurned.toStringAsFixed(0)} kcal)',
+                  'บันทึกกิจกรรม (${NutritionApprox.kcal(_caloriesBurned)})',
                   style: const TextStyle(
                       color: Colors.white,
                       fontFamily: 'Inter',
