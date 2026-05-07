@@ -1,5 +1,5 @@
 param(
-    [string]$RootEnvPath = "..\.env",
+    [string]$RootEnvPath = "..\backend\.env",
     [string]$ApiBaseUrl = "https://api.caloriesguard.com"
 )
 
@@ -30,8 +30,11 @@ if ($ApiBaseUrl -and !$ApiBaseUrl.StartsWith("http://") -and !$ApiBaseUrl.Starts
     $ApiBaseUrl = "https://$ApiBaseUrl"
 }
 
+$google = if ($values.ContainsKey("GOOGLE_WEB_CLIENT_ID")) { $values["GOOGLE_WEB_CLIENT_ID"] } else { "" }
+if ([string]::IsNullOrWhiteSpace($google)) { $google = "" }
+
 & (Join-Path $scriptRoot "build-debug.ps1") `
     -ApiBaseUrl $ApiBaseUrl `
     -SupabaseUrl $values["SUPABASE_URL"] `
     -SupabaseAnonKey $values["SUPABASE_ANON_KEY"] `
-    -GoogleWebClientId $values["GOOGLE_WEB_CLIENT_ID"]
+    -GoogleWebClientId $google

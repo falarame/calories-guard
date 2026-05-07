@@ -2,7 +2,8 @@ param(
     [string]$ApiBaseUrl = "https://api.caloriesguard.com",
     [string]$SupabaseUrl,
     [string]$SupabaseAnonKey,
-    [string]$GoogleWebClientId
+    [string]$GoogleWebClientId = "",
+    [string]$AppEnv = "development"
 )
 
 $ErrorActionPreference = "Stop"
@@ -13,10 +14,6 @@ if ([string]::IsNullOrWhiteSpace($SupabaseUrl)) {
 
 if ([string]::IsNullOrWhiteSpace($SupabaseAnonKey)) {
     throw "Missing -SupabaseAnonKey"
-}
-
-if ([string]::IsNullOrWhiteSpace($GoogleWebClientId)) {
-    throw "Missing -GoogleWebClientId"
 }
 
 $projectRoot = Split-Path -Parent $PSScriptRoot
@@ -35,8 +32,11 @@ $args = @(
     "--dart-define=API_BASE_URL=$ApiBaseUrl",
     "--dart-define=SUPABASE_URL=$SupabaseUrl",
     "--dart-define=SUPABASE_ANON_KEY=$SupabaseAnonKey",
-    "--dart-define=GOOGLE_WEB_CLIENT_ID=$GoogleWebClientId"
+    "--dart-define=APP_ENV=$AppEnv"
 )
+if (-not [string]::IsNullOrWhiteSpace($GoogleWebClientId)) {
+    $args += "--dart-define=GOOGLE_WEB_CLIENT_ID=$GoogleWebClientId"
+}
 
 & flutter @args
 $exitCode = $LASTEXITCODE
