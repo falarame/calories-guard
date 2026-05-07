@@ -9,6 +9,7 @@ build/
 **/android/app/src/main/res/values/secrets.xml
 **/android/local.properties
 **/android/**/GeneratedPluginRegistrant.java
+app-debug.apk
 
 # Generated plugin registrant files (all platforms)
 **/ios/Runner/GeneratedPluginRegistrant.h
