@@ -120,6 +120,24 @@ def send_food_request_notification(food_name: str, tf_id: int, submitted_by: str
     if not ADMIN_NOTIFY_EMAIL:
         print("[Email] ADMIN_NOTIFY_EMAIL not set, skipping food request notification")
         return False
+
+    recipients = [e.strip() for e in ADMIN_NOTIFY_EMAIL.split(",") if e.strip()]
+    if not recipients:
+        return False
+
+    if ADMIN_URL:
+        button_html = (
+            '<div style="margin-top: 20px; text-align: center;">'
+            '<a href="' + ADMIN_URL + '" target="_blank"'
+            ' style="display: inline-block; background: #628141; color: white;'
+            ' text-decoration: none; padding: 12px 28px; border-radius: 8px;'
+            ' font-size: 15px; font-weight: bold;">'
+            'ไปหน้า Admin Panel'
+            '</a></div>'
+        )
+    else:
+        button_html = ""
+
     subject = f"[CaloriesGuard] มีคำขอเพิ่มเมนูใหม่: {food_name}"
     html = f"""
     <html>
@@ -141,16 +159,7 @@ def send_food_request_notification(food_name: str, tf_id: int, submitted_by: str
             <td style="padding: 8px 0;">{submitted_by}</td>
           </tr>
         </table>
-        {"" if not ADMIN_URL else f"""
-        <div style="margin-top: 20px; text-align: center;">
-          <a href="{ADMIN_URL}" target="_blank"
-             style="display: inline-block; background: #628141; color: white;
-                    text-decoration: none; padding: 12px 28px; border-radius: 8px;
-                    font-size: 15px; font-weight: bold;">
-            ไปหน้า Admin Panel
-          </a>
-        </div>
-        """}
+        {button_html}
         <p style="margin-top: 16px; font-size: 12px; color: #aaa;">
           Calories Guard Admin Notification
         </p>
@@ -158,7 +167,6 @@ def send_food_request_notification(food_name: str, tf_id: int, submitted_by: str
     </body>
     </html>
     """
-    recipients = [e.strip() for e in ADMIN_NOTIFY_EMAIL.split(",") if e.strip()]
     results = [send_email(email, subject, html) for email in recipients]
     return any(results)
 
