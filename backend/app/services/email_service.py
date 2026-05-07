@@ -116,7 +116,7 @@ def send_verification_email(email: str, username: str, code: str) -> bool:
 
 
 def send_food_request_notification(food_name: str, tf_id: int, submitted_by: str = "ผู้ใช้") -> bool:
-    from app.core.config import ADMIN_NOTIFY_EMAIL
+    from app.core.config import ADMIN_NOTIFY_EMAIL, ADMIN_URL
     if not ADMIN_NOTIFY_EMAIL:
         print("[Email] ADMIN_NOTIFY_EMAIL not set, skipping food request notification")
         return False
@@ -141,10 +141,16 @@ def send_food_request_notification(food_name: str, tf_id: int, submitted_by: str
             <td style="padding: 8px 0;">{submitted_by}</td>
           </tr>
         </table>
-        <div style="margin-top: 20px; padding: 12px; background: #f0f7e8;
-                    border-radius: 8px; font-size: 13px; color: #555;">
-          กรุณาเข้าสู่ระบบ Admin เพื่อตรวจสอบและอนุมัติเมนูนี้
+        {"" if not ADMIN_URL else f"""
+        <div style="margin-top: 20px; text-align: center;">
+          <a href="{ADMIN_URL}" target="_blank"
+             style="display: inline-block; background: #628141; color: white;
+                    text-decoration: none; padding: 12px 28px; border-radius: 8px;
+                    font-size: 15px; font-weight: bold;">
+            ไปหน้า Admin Panel
+          </a>
         </div>
+        """}
         <p style="margin-top: 16px; font-size: 12px; color: #aaa;">
           Calories Guard Admin Notification
         </p>

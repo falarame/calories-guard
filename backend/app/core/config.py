@@ -94,6 +94,7 @@ if _HAS_PSETTINGS:
 
         # Admin notifications
         admin_notify_email: str = ""
+        admin_url: str = ""
 
         # Sentry (optional)
         sentry_dsn: str = ""
@@ -114,6 +115,7 @@ if _HAS_PSETTINGS:
     FROM_EMAIL = settings.from_email or settings.smtp_username
     FROM_NAME = settings.from_name
     ADMIN_NOTIFY_EMAIL = settings.admin_notify_email
+    ADMIN_URL = settings.admin_url
     SENTRY_DSN = settings.sentry_dsn
     APP_ENV = settings.app_env
     AI_ENABLED = settings.ai_enabled
@@ -129,6 +131,7 @@ else:
     FROM_EMAIL = os.getenv("FROM_EMAIL", SMTP_USERNAME)
     FROM_NAME = os.getenv("FROM_NAME", "Calories Guard")
     ADMIN_NOTIFY_EMAIL = os.getenv("ADMIN_NOTIFY_EMAIL", "")
+    ADMIN_URL = os.getenv("ADMIN_URL", "")
     SENTRY_DSN = os.getenv("SENTRY_DSN", "")
     APP_ENV = os.getenv("APP_ENV", "development")
     AI_ENABLED = os.getenv("AI_ENABLED", "true").strip().lower() not in {"0", "false", "no", "off"}
