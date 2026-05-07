@@ -643,7 +643,14 @@ class _FoodLogScreenState extends ConsumerState<FoodLogScreen>
       userId: userId,
       mealType: mealType,
       date: _selectedDate,
-      onSaved: () => _fetchDailyLog(),
+      onSaved: () {
+        ref.read(homeViewDateProvider.notifier).state = DateTime(
+          _selectedDate.year,
+          _selectedDate.month,
+          _selectedDate.day,
+        );
+        _fetchDailyLog();
+      },
     );
   }
 
