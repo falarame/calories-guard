@@ -1,5 +1,53 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+/// รายการอาหารต่อมื้อสำหรับหน้า Home (จาก /daily_summary meal_items)
+class HomeLoggedFoodItem {
+  final String foodName;
+  final String imageUrl;
+  final double totalCal;
+  final double totalProtein;
+  final double totalCarbs;
+  final double totalFat;
+
+  const HomeLoggedFoodItem({
+    required this.foodName,
+    this.imageUrl = '',
+    this.totalCal = 0,
+    this.totalProtein = 0,
+    this.totalCarbs = 0,
+    this.totalFat = 0,
+  });
+
+  static HomeLoggedFoodItem? tryParse(dynamic raw) {
+    if (raw is! Map) return null;
+    final m = Map<String, dynamic>.from(raw);
+    return HomeLoggedFoodItem(
+      foodName: m['food_name']?.toString() ?? '',
+      imageUrl: m['image_url']?.toString() ?? '',
+      totalCal: (m['total_cal'] as num?)?.toDouble() ?? 0,
+      totalProtein: (m['total_protein'] as num?)?.toDouble() ?? 0,
+      totalCarbs: (m['total_carbs'] as num?)?.toDouble() ?? 0,
+      totalFat: (m['total_fat'] as num?)?.toDouble() ?? 0,
+    );
+  }
+
+  static Map<String, List<HomeLoggedFoodItem>> parseMealItemsMap(dynamic raw) {
+    final out = <String, List<HomeLoggedFoodItem>>{};
+    if (raw is! Map) return out;
+    raw.forEach((key, value) {
+      final k = key.toString();
+      if (value is! List) return;
+      final list = <HomeLoggedFoodItem>[];
+      for (final e in value) {
+        final item = tryParse(e);
+        if (item != null && item.foodName.trim().isNotEmpty) list.add(item);
+      }
+      if (list.isNotEmpty) out[k] = list;
+    });
+    return out;
+  }
+}
+
 // Enum สำหรับเป้าหมาย
 enum GoalOption {
   loseWeight,
@@ -33,6 +81,9 @@ class UserData {
 
   // --- 4. ส่วนชื่อเมนูอาหาร (Food Menu Names) ---
   final Map<String, String> dailyMeals;
+
+  /// รายการอาหารต่อมื้อ (ชื่อ, รูป, แคล/แมโครต่อมื้อ) จาก API meal_items
+  final Map<String, List<HomeLoggedFoodItem>> dailyMealItems;
 
   // --- 4b. จาก DB: target_calories, target_protein/carbs/fat, streak, total_login ---
   final int? storedTargetCalories;
@@ -73,6 +124,7 @@ class UserData {
     this.consumedCarbs = 0,
     this.consumedFat = 0,
     this.dailyMeals = const {},
+    this.dailyMealItems = const {},
     this.storedTargetCalories,
     this.storedTargetProtein,
     this.storedTargetCarbs,
@@ -244,6 +296,7 @@ class UserData {
     int? consumedCarbs,
     int? consumedFat,
     Map<String, String>? dailyMeals,
+    Map<String, List<HomeLoggedFoodItem>>? dailyMealItems,
     int? storedTargetCalories,
     int? storedTargetProtein,
     int? storedTargetCarbs,
@@ -277,6 +330,7 @@ class UserData {
       consumedCarbs: consumedCarbs ?? this.consumedCarbs,
       consumedFat: consumedFat ?? this.consumedFat,
       dailyMeals: dailyMeals ?? this.dailyMeals,
+      dailyMealItems: dailyMealItems ?? this.dailyMealItems,
       storedTargetCalories: storedTargetCalories ?? this.storedTargetCalories,
       storedTargetProtein: storedTargetProtein ?? this.storedTargetProtein,
       storedTargetCarbs: storedTargetCarbs ?? this.storedTargetCarbs,
@@ -355,6 +409,7 @@ class UserDataNotifier extends StateNotifier<UserData> {
     required int fat,
     // รับเป็น Map แทนที่จะเป็น String แยก
     Map<String, String>? dailyMeals,
+    Map<String, List<HomeLoggedFoodItem>>? dailyMealItems,
   }) {
     state = state.copyWith(
       consumedCalories: cal,
@@ -362,6 +417,7 @@ class UserDataNotifier extends StateNotifier<UserData> {
       consumedCarbs: carbs,
       consumedFat: fat,
       dailyMeals: dailyMeals ?? state.dailyMeals, // ✅ บันทึก Map
+      dailyMealItems: dailyMealItems ?? state.dailyMealItems,
     );
   }
 
@@ -376,12 +432,16 @@ class UserDataNotifier extends StateNotifier<UserData> {
       );
     }
 
+    final mealItems =
+        HomeLoggedFoodItem.parseMealItemsMap(data['meal_items']);
+
     state = state.copyWith(
       consumedCalories: (data['total_calories_intake'] as num?)?.toInt() ?? 0,
       consumedProtein: (data['total_protein'] as num?)?.toInt() ?? 0,
       consumedCarbs: (data['total_carbs'] as num?)?.toInt() ?? 0,
       consumedFat: (data['total_fat'] as num?)?.toInt() ?? 0,
       dailyMeals: meals, // ✅ อัปเดต Map จาก API
+      dailyMealItems: mealItems,
     );
   }
 
@@ -392,6 +452,7 @@ class UserDataNotifier extends StateNotifier<UserData> {
       consumedCarbs: 0,
       consumedFat: 0,
       dailyMeals: {}, // ✅ Reset เป็น Map ว่าง
+      dailyMealItems: {},
     );
   }
 

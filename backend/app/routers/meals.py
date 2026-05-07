@@ -229,6 +229,42 @@ def get_daily_summary(user_id: int, date_record: date, current_user: dict = Depe
         """, (user_id, date_record))
         menu_rows = cur.fetchall()
         summary['meals'] = {row['meal_type']: (row['menu_names'] or '') for row in menu_rows}
+
+        # Rich rows for home / PWA: per-item image + logged totals (amount × per-unit macros)
+        cur.execute("""
+            SELECT m.meal_type::text AS meal_type,
+                   di.food_name,
+                   COALESCE(f.image_url,
+                       (SELECT image_url FROM foods f2
+                        WHERE LOWER(f2.food_name) = LOWER(di.food_name)
+                          AND f2.deleted_at IS NULL
+                        LIMIT 1),
+                       '') AS image_url,
+                   ROUND((COALESCE(di.amount, 1) * COALESCE(di.cal_per_unit, 0))::numeric, 1) AS total_cal,
+                   ROUND((COALESCE(di.amount, 1) * COALESCE(di.protein_per_unit, 0))::numeric, 1) AS total_protein,
+                   ROUND((COALESCE(di.amount, 1) * COALESCE(di.carbs_per_unit, 0))::numeric, 1) AS total_carbs,
+                   ROUND((COALESCE(di.amount, 1) * COALESCE(di.fat_per_unit, 0))::numeric, 1) AS total_fat
+            FROM meals m
+            JOIN detail_items di ON di.meal_id = m.meal_id
+            LEFT JOIN foods f ON f.food_id = di.food_id
+            WHERE m.user_id = %s
+              AND (m.meal_time AT TIME ZONE 'Asia/Bangkok')::date = %s
+            ORDER BY m.meal_type, di.item_id
+        """, (user_id, date_record))
+        meal_items: dict[str, list[dict]] = {}
+        for r in cur.fetchall():
+            mt = r["meal_type"]
+            if not isinstance(mt, str):
+                mt = str(mt)
+            meal_items.setdefault(mt, []).append({
+                "food_name": r.get("food_name") or "",
+                "image_url": (r.get("image_url") or "").strip(),
+                "total_cal": float(r["total_cal"] or 0),
+                "total_protein": float(r["total_protein"] or 0),
+                "total_carbs": float(r["total_carbs"] or 0),
+                "total_fat": float(r["total_fat"] or 0),
+            })
+        summary["meal_items"] = meal_items
         return summary
     finally:
         if conn:

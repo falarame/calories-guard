@@ -9,6 +9,7 @@ import '../../services/notification_helper.dart';
 import '../../services/lifecycle_service.dart';
 import '../../services/error_reporter.dart';
 import '../../utils/bmi_utils.dart';
+import '../../constants/constants.dart';
 import '/screens/restaurant_map_screen.dart';
 import '/screens/bmi/bmi_detail_screen.dart';
 import '/screens/tamagotchi/tamagotchi_screen.dart';
@@ -129,21 +130,9 @@ class _AppHomeScreenState extends ConsumerState<AppHomeScreen> {
         queryParams: {'date_record': dateStr},
       );
       if (response.statusCode == 200) {
-        final summaryData = json.decode(utf8.decode(response.bodyBytes));
-        Map<String, String> mealsMap = {};
-        final rawMeals = summaryData['meals'];
-        if (rawMeals is Map) {
-          mealsMap = rawMeals.map(
-            (k, v) => MapEntry(k.toString(), v?.toString() ?? ''),
-          );
-        }
-        ref.read(userDataProvider.notifier).updateDailyFood(
-              cal: (summaryData['total_calories_intake'] as num?)?.toInt() ?? 0,
-              protein: (summaryData['total_protein'] as num?)?.toInt() ?? 0,
-              carbs: (summaryData['total_carbs'] as num?)?.toInt() ?? 0,
-              fat: (summaryData['total_fat'] as num?)?.toInt() ?? 0,
-              dailyMeals: mealsMap,
-            );
+        final summaryData =
+            json.decode(utf8.decode(response.bodyBytes)) as Map<String, dynamic>;
+        ref.read(userDataProvider.notifier).setDailySummaryFromApi(summaryData);
       }
     } catch (e) {
       debugPrint("Error fetching daily summary: $e");
@@ -1082,8 +1071,8 @@ class _AppHomeScreenState extends ConsumerState<AppHomeScreen> {
 
   // ─── Meals Section ────────────────────────────────────────────────────────
 
-  Widget _buildMealsSection(dynamic userData) {
-    final meals = userData.dailyMeals as Map<String, String>;
+  Widget _buildMealsSection(UserData userData) {
+    final meals = userData.dailyMeals;
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -1139,18 +1128,38 @@ class _AppHomeScreenState extends ConsumerState<AppHomeScreen> {
         else
           Column(
             children: _getSortedMealKeys(meals).map((key) {
+              final richItems = userData.dailyMealItems[key];
               return _buildMealCard(
-                  key, _formatMealLabel(key), meals[key] ?? '-');
+                key,
+                _formatMealLabel(key),
+                meals[key] ?? '-',
+                richItems,
+              );
             }).toList(),
           ),
       ]),
     );
   }
 
-  Widget _buildMealCard(String mealType, String mealLabel, String menuText) {
-    final bool hasMenu =
-        menuText.isNotEmpty && menuText != '-' && menuText != '';
-    final List<String> items = hasMenu
+  String _resolvedFoodImageUrl(String? url) {
+    final u = url?.trim() ?? '';
+    if (u.isEmpty) return '';
+    if (u.startsWith('http://') || u.startsWith('https://')) return u;
+    final base = AppConstants.baseUrl.replaceAll(RegExp(r'/$'), '');
+    final path = u.startsWith('/') ? u : '/$u';
+    return '$base$path';
+  }
+
+  Widget _buildMealCard(
+    String mealType,
+    String mealLabel,
+    String menuText,
+    List<HomeLoggedFoodItem>? richItems,
+  ) {
+    final bool hasRich = richItems != null && richItems.isNotEmpty;
+    final bool hasMenu = hasRich ||
+        (menuText.isNotEmpty && menuText != '-' && menuText != '');
+    final List<String> items = !hasRich && hasMenu
         ? menuText
             .split(RegExp(r',\s*'))
             .map((s) => s.trim())
@@ -1190,7 +1199,9 @@ class _AppHomeScreenState extends ConsumerState<AppHomeScreen> {
                   fontWeight: FontWeight.w600,
                   color: Colors.black87)),
           subtitle: Text(
-            hasMenu ? '${items.length} รายการ' : 'ยังไม่มีรายการ',
+            hasMenu
+                ? '${hasRich ? richItems.length : items.length} รายการ'
+                : 'ยังไม่มีรายการ',
             style: TextStyle(
                 fontSize: 12,
                 color: hasMenu ? Colors.grey.shade600 : Colors.grey.shade400),
@@ -1203,32 +1214,108 @@ class _AppHomeScreenState extends ConsumerState<AppHomeScreen> {
                   onPressed: () =>
                       ref.read(navIndexProvider.notifier).state = 1,
                 ),
-          children: items.isEmpty
-              ? const []
-              : [
-                  for (final name in items)
-                    InkWell(
-                      onTap: () =>
-                          ref.read(navIndexProvider.notifier).state = 1,
-                      borderRadius: BorderRadius.circular(8),
-                      child: Padding(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 8, vertical: 8),
-                        child: Row(children: [
-                          const Icon(Icons.fiber_manual_record,
-                              size: 8, color: _green),
-                          const SizedBox(width: 10),
-                          Expanded(
-                            child: Text(name,
-                                style: const TextStyle(
-                                    fontSize: 13, color: Colors.black87)),
+          children: [
+            if (hasRich)
+              ...richItems.map((food) {
+                final imgUrl = _resolvedFoodImageUrl(food.imageUrl);
+                final cal = food.totalCal.round();
+                final p = food.totalProtein.round();
+                final c = food.totalCarbs.round();
+                final fVal = food.totalFat.round();
+                final macroLine =
+                    '$cal kcal • P:${p}g C:${c}g F:${fVal}g';
+                return InkWell(
+                  onTap: () =>
+                      ref.read(navIndexProvider.notifier).state = 1,
+                  borderRadius: BorderRadius.circular(8),
+                  child: Padding(
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.center,
+                      children: [
+                        ClipRRect(
+                          borderRadius: BorderRadius.circular(8),
+                          child: SizedBox(
+                            width: 52,
+                            height: 52,
+                            child: imgUrl.isNotEmpty
+                                ? Image.network(
+                                    imgUrl,
+                                    fit: BoxFit.cover,
+                                    errorBuilder: (_, __, ___) => Container(
+                                      color: _greenLight,
+                                      child: Icon(Icons.restaurant,
+                                          color: _green.withValues(alpha: 0.6),
+                                          size: 26),
+                                    ),
+                                  )
+                                : Container(
+                                    color: _greenLight,
+                                    alignment: Alignment.center,
+                                    child: Icon(Icons.restaurant_outlined,
+                                        color:
+                                            _green.withValues(alpha: 0.65),
+                                        size: 26),
+                                  ),
                           ),
-                          Icon(Icons.chevron_right_rounded,
-                              color: Colors.grey.shade400, size: 18),
-                        ]),
-                      ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                food.foodName,
+                                style: const TextStyle(
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w600,
+                                  color: Colors.black87,
+                                ),
+                              ),
+                              const SizedBox(height: 4),
+                              Text(
+                                macroLine,
+                                style: TextStyle(
+                                  fontSize: 11,
+                                  color: Colors.grey.shade600,
+                                  height: 1.2,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        Icon(Icons.chevron_right_rounded,
+                            color: Colors.grey.shade400, size: 18),
+                      ],
                     ),
-                ],
+                  ),
+                );
+              })
+            else if (items.isNotEmpty)
+              for (final name in items)
+                InkWell(
+                  onTap: () =>
+                      ref.read(navIndexProvider.notifier).state = 1,
+                  borderRadius: BorderRadius.circular(8),
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 8, vertical: 8),
+                    child: Row(children: [
+                      const Icon(Icons.fiber_manual_record,
+                          size: 8, color: _green),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: Text(name,
+                            style: const TextStyle(
+                                fontSize: 13, color: Colors.black87)),
+                      ),
+                      Icon(Icons.chevron_right_rounded,
+                          color: Colors.grey.shade400, size: 18),
+                    ]),
+                  ),
+                ),
+          ],
         ),
       ),
     );
