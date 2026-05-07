@@ -391,8 +391,25 @@ def admin_approve_temp_food(tf_id: int, req: TempFoodApprove, current_user: dict
             ),
         )
         new_food = cur.fetchone()
+        new_food_id = new_food["food_id"] if new_food else None
+
+        # ย้อนหลัง: อัปเดต detail_items ของ user คนนั้นที่ log อาหารนี้ไว้ก่อนหน้า
+        if new_food_id and tf.get("user_id"):
+            cur.execute(
+                """
+                UPDATE detail_items di
+                   SET food_id = %s
+                  FROM meals m
+                 WHERE di.meal_id = m.meal_id
+                   AND m.user_id  = %s
+                   AND di.food_name = %s
+                   AND di.food_id IS NULL
+                """,
+                (new_food_id, tf["user_id"], tf["food_name"]),
+            )
+
         conn.commit()
-        return {"message": "Approved and added to foods", "food_id": new_food["food_id"] if new_food else None}
+        return {"message": "Approved and added to foods", "food_id": new_food_id}
     except HTTPException:
         raise
     except Exception as e:
