@@ -1,5 +1,6 @@
 import json
 import logging
+import threading
 
 from fastapi import APIRouter, HTTPException, Depends
 from psycopg2.extras import RealDictCursor, Json
@@ -90,6 +91,14 @@ def create_food(food: FoodCreate, current_user: dict = Depends(get_current_admin
             conn.close()
 
 
+def _notify_admin_food_request(food_name: str, tf_id: int, submitted_by: str) -> None:
+    try:
+        from app.services.email_service import send_food_request_notification
+        send_food_request_notification(food_name, tf_id, submitted_by)
+    except Exception as e:
+        logger.warning(f"[Email] food request notification failed: {e}")
+
+
 @router.post("/foods/auto-add")
 def user_auto_add_food(req: FoodAutoAdd):
     conn = get_db_connection()
@@ -106,6 +115,12 @@ def user_auto_add_food(req: FoodAutoAdd):
         )
         new_tf_id = cur.fetchone()["tf_id"]
         conn.commit()
+        # แจ้ง admin ทางอีเมล (non-blocking)
+        threading.Thread(
+            target=_notify_admin_food_request,
+            args=(req.food_name, new_tf_id, str(req.user_id or "ไม่ระบุ")),
+            daemon=True,
+        ).start()
         return {"message": "บันทึกเมนูด่วนสำเร็จ รอ admin ตรวจสอบ", "tf_id": new_tf_id}
     except Exception as e:
         conn.rollback()

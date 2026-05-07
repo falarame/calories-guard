@@ -115,6 +115,46 @@ def send_verification_email(email: str, username: str, code: str) -> bool:
     return send_email(email, subject, html)
 
 
+def send_food_request_notification(food_name: str, tf_id: int, submitted_by: str = "ผู้ใช้") -> bool:
+    from app.core.config import ADMIN_NOTIFY_EMAIL
+    if not ADMIN_NOTIFY_EMAIL:
+        print("[Email] ADMIN_NOTIFY_EMAIL not set, skipping food request notification")
+        return False
+    subject = f"[CaloriesGuard] มีคำขอเพิ่มเมนูใหม่: {food_name}"
+    html = f"""
+    <html>
+    <body style="font-family: sans-serif; padding: 20px; background: #f9f9f9;">
+      <div style="max-width: 480px; margin: auto; background: white; border-radius: 12px;
+                  padding: 24px; box-shadow: 0 2px 8px rgba(0,0,0,0.08);">
+        <h2 style="color: #628141; margin-top: 0;">🍽️ คำขอเพิ่มเมนูใหม่</h2>
+        <table style="width:100%; border-collapse: collapse; font-size: 14px;">
+          <tr>
+            <td style="padding: 8px 0; color: #666;">ชื่อเมนู</td>
+            <td style="padding: 8px 0; font-weight: bold;">{food_name}</td>
+          </tr>
+          <tr>
+            <td style="padding: 8px 0; color: #666;">Request ID</td>
+            <td style="padding: 8px 0;"># {tf_id}</td>
+          </tr>
+          <tr>
+            <td style="padding: 8px 0; color: #666;">ส่งโดย</td>
+            <td style="padding: 8px 0;">{submitted_by}</td>
+          </tr>
+        </table>
+        <div style="margin-top: 20px; padding: 12px; background: #f0f7e8;
+                    border-radius: 8px; font-size: 13px; color: #555;">
+          กรุณาเข้าสู่ระบบ Admin เพื่อตรวจสอบและอนุมัติเมนูนี้
+        </div>
+        <p style="margin-top: 16px; font-size: 12px; color: #aaa;">
+          Calories Guard Admin Notification
+        </p>
+      </div>
+    </body>
+    </html>
+    """
+    return send_email(ADMIN_NOTIFY_EMAIL, subject, html)
+
+
 def send_password_reset_email(email: str, username: str, code: str) -> bool:
     subject = "รีเซ็ตรหัสผ่าน - Calories Guard"
     html = f"""
