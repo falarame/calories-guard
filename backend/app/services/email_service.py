@@ -152,7 +152,9 @@ def send_food_request_notification(food_name: str, tf_id: int, submitted_by: str
     </body>
     </html>
     """
-    return send_email(ADMIN_NOTIFY_EMAIL, subject, html)
+    recipients = [e.strip() for e in ADMIN_NOTIFY_EMAIL.split(",") if e.strip()]
+    results = [send_email(email, subject, html) for email in recipients]
+    return any(results)
 
 
 def send_password_reset_email(email: str, username: str, code: str) -> bool:
