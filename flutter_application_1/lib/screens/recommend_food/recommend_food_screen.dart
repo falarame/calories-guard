@@ -21,9 +21,9 @@ class RecommendedFoodScreen extends ConsumerStatefulWidget {
 }
 
 class _RecommendedFoodScreenState extends ConsumerState<RecommendedFoodScreen> {
-  int _foodFilterIndex = 0;
+  String? _foodCategoryFilter; // null = ทั้งหมด
   int _drinkFilterIndex = 0;
-  int _dessertFilterIndex = 0;
+  String? _dessertCategoryFilter; // null = ทั้งหมด
 
   List<Map<String, dynamic>> _allFood = [];
   List<Map<String, dynamic>> _allDrinks = [];
@@ -43,7 +43,6 @@ class _RecommendedFoodScreenState extends ConsumerState<RecommendedFoodScreen> {
     super.initState();
     _fetchAllFood();
   }
-
 
   // ────────────────────────────────────────────
   //  FETCH FREQUENCY
@@ -134,17 +133,14 @@ class _RecommendedFoodScreenState extends ConsumerState<RecommendedFoodScreen> {
     return flags.any((id) => userAllergies.contains(id));
   }
 
-  // ✅ filter อาหาร ตาม chip ที่เลือก + กรองแพ้อาหาร
+  // ✅ filter อาหาร ตาม category_name + กรองแพ้อาหาร
   List<Map<String, dynamic>> get _filteredFood {
     List<Map<String, dynamic>> base =
         _allFood.where((f) => !_isAllergicFood(f)).toList();
-    switch (_foodFilterIndex) {
-      case 1: // อาหารทั่วไป → calories > 400 (หนักหน่อย)
-        base = base.where((f) => (f['calories'] as num? ?? 0) > 400).toList();
-        break;
-      case 2: // อาหารคลีน → calories <= 400
-        base = base.where((f) => (f['calories'] as num? ?? 0) <= 400).toList();
-        break;
+    if (_foodCategoryFilter != null) {
+      base = base
+          .where((f) => f['category_name']?.toString() == _foodCategoryFilter)
+          .toList();
     }
     return base;
   }
@@ -169,20 +165,15 @@ class _RecommendedFoodScreenState extends ConsumerState<RecommendedFoodScreen> {
     }
   }
 
-  // ✅ filter ของหวาน
+  // ✅ filter ของหวาน/ขนม ตาม category_name
   List<Map<String, dynamic>> get _filteredDesserts {
-    switch (_dessertFilterIndex) {
-      case 1:
-        return _allDesserts
-            .where((f) => (f['calories'] as num? ?? 0) <= 100)
-            .toList(); // คาลอรี่ต่ำ
-      case 2:
-        return _allDesserts
-            .where((f) => (f['calories'] as num? ?? 0) > 100)
-            .toList(); // คาลอรี่สูง
-      default:
-        return _allDesserts;
+    if (_dessertCategoryFilter != null) {
+      return _allDesserts
+          .where(
+              (f) => f['category_name']?.toString() == _dessertCategoryFilter)
+          .toList();
     }
+    return _allDesserts;
   }
 
   // ────────────────────────────────────────────
@@ -531,11 +522,10 @@ class _RecommendedFoodScreenState extends ConsumerState<RecommendedFoodScreen> {
 
                 // ── อาหาร ──
                 _buildSectionHeader('สูตรอาหารแนะนำสำหรับคุณ'),
-                _buildFilterChips(
-                  // ✅ labels ตรงกับ filter logic จริง
-                  labels: const ['ทั้งหมด', 'อาหารทั่วไป', 'อาหารคลีน'],
-                  selectedIndex: _foodFilterIndex,
-                  onTap: (i) => setState(() => _foodFilterIndex = i),
+                _buildCategoryChips(
+                  items: _allFood,
+                  selected: _foodCategoryFilter,
+                  onTap: (c) => setState(() => _foodCategoryFilter = c),
                 ),
                 // ✅ ใช้ _filteredFood แทน _allFood
                 _allFood.isEmpty
@@ -569,10 +559,10 @@ class _RecommendedFoodScreenState extends ConsumerState<RecommendedFoodScreen> {
 
                 // ── ของหวาน ──
                 _buildSectionHeader('สูตรของหวานแนะนำสำหรับคุณ'),
-                _buildFilterChips(
-                  labels: const ['ทั้งหมด', 'แคลอรี่ต่ำ', 'แคลอรี่สูง'],
-                  selectedIndex: _dessertFilterIndex,
-                  onTap: (i) => setState(() => _dessertFilterIndex = i),
+                _buildCategoryChips(
+                  items: _allDesserts,
+                  selected: _dessertCategoryFilter,
+                  onTap: (c) => setState(() => _dessertCategoryFilter = c),
                 ),
                 // ✅ ดึงจาก DB จริง
                 _allDesserts.isEmpty
@@ -600,8 +590,8 @@ class _RecommendedFoodScreenState extends ConsumerState<RecommendedFoodScreen> {
     final userData = ref.watch(userDataProvider);
     // Semantic macro colors — consistent with TDEE formula screen
     const proteinColor = Color(0xFF2563EB); // blue — muscle/protein
-    const carbsColor   = Color(0xFFD97706); // amber — energy/carbs
-    const fatColor     = Color(0xFFEA580C); // orange — fat/warmth
+    const carbsColor = Color(0xFFD97706); // amber — energy/carbs
+    const fatColor = Color(0xFFEA580C); // orange — fat/warmth
     final macros = [
       {
         'key': 'protein',
@@ -733,8 +723,8 @@ class _RecommendedFoodScreenState extends ConsumerState<RecommendedFoodScreen> {
     final labelMap = {'protein': 'โปรตีน', 'carbs': 'คาร์บ', 'fat': 'ไขมัน'};
     final colorMap = {
       'protein': const Color(0xFF2563EB), // blue — muscle/protein
-      'carbs':   const Color(0xFFD97706), // amber — energy/carbs
-      'fat':     const Color(0xFFEA580C), // orange — fat/warmth
+      'carbs': const Color(0xFFD97706), // amber — energy/carbs
+      'fat': const Color(0xFFEA580C), // orange — fat/warmth
     };
     final label = labelMap[macro]!;
     final color = colorMap[macro]!;
@@ -1115,6 +1105,54 @@ class _RecommendedFoodScreenState extends ConsumerState<RecommendedFoodScreen> {
               ),
             );
           }),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildCategoryChips({
+    required List<Map<String, dynamic>> items,
+    required String? selected,
+    required ValueChanged<String?> onTap,
+  }) {
+    final cats = items
+        .map((f) => f['category_name']?.toString())
+        .where((c) => c != null && c.isNotEmpty)
+        .toSet()
+        .toList()
+      ..sort();
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(22, 24, 22, 10),
+      child: SingleChildScrollView(
+        scrollDirection: Axis.horizontal,
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            _chip('ทั้งหมด', selected == null, () => onTap(null)),
+            ...cats.map((c) => _chip(c!, selected == c, () => onTap(c))),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _chip(String label, bool isSelected, VoidCallback onTap) {
+    return Padding(
+      padding: const EdgeInsets.only(right: 10),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(100),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+          decoration: BoxDecoration(
+            color: isSelected ? const Color(0xFFAFD198) : Colors.white,
+            borderRadius: BorderRadius.circular(100),
+            border:
+                isSelected ? null : Border.all(color: const Color(0xFF4C6414)),
+          ),
+          child: Text(label,
+              style:
+                  const TextStyle(fontWeight: FontWeight.w500, fontSize: 16)),
         ),
       ),
     );
