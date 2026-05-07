@@ -41,6 +41,7 @@ def _add_meal_impl(user_id: int, log: DailyLogUpdate):
         """, (user_id, meal_type_db, meal_ts, total_cal))
         meal_id = cur.fetchone()['meal_id']
 
+        total_beverage_ml = 0
         for item in log.items:
             cur.execute("""
                 INSERT INTO detail_items (meal_id, food_id, food_name, amount, unit_id,
@@ -48,6 +49,29 @@ def _add_meal_impl(user_id: int, log: DailyLogUpdate):
                 VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
             """, (meal_id, item.food_id, item.food_name, item.amount, item.unit_id,
                   item.cal_per_unit, item.protein_per_unit, item.carbs_per_unit, item.fat_per_unit))
+
+            # ตรวจว่าเป็นเครื่องดื่มไม่มีแอลกอฮอล์
+            if item.food_id:
+                cur.execute("""
+                    SELECT volume_ml, is_alcoholic
+                    FROM beverages
+                    WHERE food_id = %s AND (is_alcoholic = FALSE OR is_alcoholic IS NULL)
+                """, (item.food_id,))
+                bev = cur.fetchone()
+                if bev and bev['volume_ml']:
+                    total_beverage_ml += bev['volume_ml'] * item.amount
+
+        # แปลง ml เป็นแก้ว (1 แก้ว = 250ml) แล้ว upsert water_logs
+        if total_beverage_ml > 0:
+            extra_glasses = round(total_beverage_ml / 250, 2)
+            cur.execute("""
+                INSERT INTO water_logs (user_id, date_record, glasses, amount_ml)
+                VALUES (%s, %s, %s, %s)
+                ON CONFLICT (user_id, date_record)
+                DO UPDATE SET
+                    glasses    = water_logs.glasses + EXCLUDED.glasses,
+                    amount_ml  = water_logs.amount_ml + EXCLUDED.amount_ml
+            """, (user_id, log.date, extra_glasses, total_beverage_ml))
 
         conn.commit()
 
