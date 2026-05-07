@@ -190,28 +190,6 @@ function ApproveModal({
             />
           </div>
 
-          {/* โภชนาการหลัก */}
-          <div>
-            <p className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-2">โภชนาการหลัก (จาก User)</p>
-            <div className="grid grid-cols-2 gap-3">
-              <NutritionInput label="แคลอรี่ (kcal)" val={calories} set={setCalories} />
-              <NutritionInput label="โปรตีน (g)"     val={protein}  set={setProtein} />
-              <NutritionInput label="คาร์บ (g)"      val={carbs}    set={setCarbs} />
-              <NutritionInput label="ไขมัน (g)"      val={fat}      set={setFat} />
-            </div>
-          </div>
-
-          {/* โภชนาการเพิ่มเติม */}
-          <div>
-            <p className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-2">โภชนาการเพิ่มเติม (กรอกเพิ่มถ้ารู้)</p>
-            <div className="grid grid-cols-2 gap-3">
-              <NutritionInput label="โซเดียม (mg)"   val={sodium}      set={setSodium} />
-              <NutritionInput label="น้ำตาล (g)"       val={sugar}       set={setSugar} />
-              <NutritionInput label="โคเลสเตอรอล (mg)" val={cholesterol} set={setCholesterol} />
-              <NutritionInput label="ไฟเบอร์ (g)"      val={fiberG}      set={setFiberG} />
-            </div>
-          </div>
-
           {/* ประเภทและหน่วยบริโภค */}
           <div>
             <p className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-2">ประเภทและหน่วย</p>
@@ -246,6 +224,28 @@ function ApproveModal({
                   {typeConfig.units.map(u => <option key={u.value} value={u.value}>{u.label}</option>)}
                 </select>
               </div>
+            </div>
+          </div>
+
+          {/* โภชนาการหลัก */}
+          <div>
+            <p className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-2">โภชนาการหลัก (จาก User)</p>
+            <div className="grid grid-cols-2 gap-3">
+              <NutritionInput label="แคลอรี่ (kcal)" val={calories} set={setCalories} />
+              <NutritionInput label="โปรตีน (g)"     val={protein}  set={setProtein} />
+              <NutritionInput label="คาร์บ (g)"      val={carbs}    set={setCarbs} />
+              <NutritionInput label="ไขมัน (g)"      val={fat}      set={setFat} />
+            </div>
+          </div>
+
+          {/* โภชนาการเพิ่มเติม */}
+          <div>
+            <p className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-2">โภชนาการเพิ่มเติม (กรอกเพิ่มถ้ารู้)</p>
+            <div className="grid grid-cols-2 gap-3">
+              <NutritionInput label="โซเดียม (mg)"   val={sodium}      set={setSodium} />
+              <NutritionInput label="น้ำตาล (g)"       val={sugar}       set={setSugar} />
+              <NutritionInput label="โคเลสเตอรอล (mg)" val={cholesterol} set={setCholesterol} />
+              <NutritionInput label="ไฟเบอร์ (g)"      val={fiberG}      set={setFiberG} />
             </div>
           </div>
 
