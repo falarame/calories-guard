@@ -6,6 +6,7 @@ run_migrations.py
 
 import os
 import sys
+from pathlib import Path
 import psycopg2
 from dotenv import load_dotenv
 
@@ -16,6 +17,13 @@ load_dotenv(dotenv_path=os.path.join(os.path.dirname(__file__), '.env'))
 DB_MODE = os.getenv("DB_MODE", "local").lower()
 
 def _build_config():
+    database_url = os.getenv("DIRECT_DATABASE_URL") or os.getenv("DATABASE_URL")
+    if database_url:
+        return {
+            "dsn": database_url,
+            "label": "connection-string",
+        }
+
     if DB_MODE == "supabase":
         return {
             "host":     os.getenv("SUPABASE_HOST"),
@@ -47,37 +55,114 @@ TARGET_MIGRATIONS = [
     "v12_add_consent_and_detail_macros.sql",
     "v13_create_temp_and_verified_food.sql",
     "add_target_macros_to_users.sql",
+    "v14_a_critical_fixes.sql",
+    "v14_b_integrity.sql",
+    "v14_c_deduplicate.sql",
+    "v14_d_seed_units.sql",
+    "v14_e_timestamptz.sql",
+    "v14_f_drop_unused.sql",
+    "v15_a_drop_public_leftovers.sql",
+    "v15_b_function_search_path.sql",
+    "v15_c_rls_policies.sql",
+    "v15_d_storage_bucket_tighten.sql",
+    "v15_e_users_soft_delete.sql",
+    "v16_a_recipes_ai_fields.sql",
+    "v17_recipe_consistency.sql",
+    "v18_dishes_3nf_integrity.sql",
+    "v19_detail_items_unit_fk.sql",
+    "v20_regional_names_and_user_region.sql",
+    "v21_drop_foods_legacy_columns.sql",
+    "v22_drop_unused_tables.sql",
+    "v24_audit_columns_and_sync_triggers.sql",
+    "v25_restore_ingredients_relations.sql",
+    "v26_food_versioning_and_log_snapshots.sql",
+    "v27_seed_beverages_table.sql",
 ]
 
 
 def ensure_schema_migrations(cur):
-    """สร้า��ตาราง schema_migrations ถ้ายังไม่มี"""
+    """Create the migration tracking table if it does not exist.
+
+    Supabase live already uses `version`; older local scripts used `name`.
+    New databases should use `version`.
+    """
     cur.execute("""
         CREATE TABLE IF NOT EXISTS cleangoal.schema_migrations (
-            name        VARCHAR(255) PRIMARY KEY,
-            applied_at  TIMESTAMP NOT NULL DEFAULT NOW()
+            version     VARCHAR(255) PRIMARY KEY,
+            applied_at  TIMESTAMPTZ NOT NULL DEFAULT NOW()
         )
     """)
 
 
+def get_migration_column(cur):
+    cur.execute("""
+        SELECT column_name
+        FROM information_schema.columns
+        WHERE table_schema = 'cleangoal'
+          AND table_name = 'schema_migrations'
+          AND column_name IN ('version', 'name')
+        ORDER BY CASE column_name WHEN 'version' THEN 0 ELSE 1 END
+        LIMIT 1
+    """)
+    row = cur.fetchone()
+    if not row:
+        raise RuntimeError("cleangoal.schema_migrations has no version/name column")
+    return row[0]
+
+
 def get_applied_migrations(cur):
-    """ดึงรายชื่อ migration ที่รันไปแ��้ว"""
-    cur.execute("SELECT name FROM cleangoal.schema_migrations")
-    return {row[0] for row in cur.fetchall()}
+    """Return applied migration aliases.
+
+    Historical rows are mixed: v8-v13 were stored as `file.sql`; v14+ were
+    stored as `file` without extension. Keep both aliases so the runner is
+    idempotent across existing Supabase and local databases.
+    """
+    column = get_migration_column(cur)
+    cur.execute(f"SELECT {column} FROM cleangoal.schema_migrations")
+    applied = set()
+    for row in cur.fetchall():
+        value = row[0]
+        applied.add(value)
+        stem = Path(value).stem
+        applied.add(stem)
+        applied.add(f"{stem}.sql")
+    return applied
+
+
+def record_migration(cur, filename):
+    column = get_migration_column(cur)
+    version = Path(filename).stem
+    cur.execute(
+        f"INSERT INTO cleangoal.schema_migrations ({column}) VALUES (%s) "
+        f"ON CONFLICT ({column}) DO NOTHING",
+        (version,),
+    )
 
 
 def run_migrations():
     mode_label = "Supabase" if DB_MODE == "supabase" else "Local"
     config = _build_config()
+    connection_label = config.pop("label", None)
 
     print("=" * 60)
     print(f"Calories Guard — DB Migration Runner ({mode_label})")
     print("=" * 60)
-    print(f"DB: {config.get('user')}@{config.get('host')}:{config.get('port')}/{config.get('database')}")
+    if "dsn" in config:
+        print(f"DB: {connection_label}")
+    else:
+        host = config.get("host") or ""
+        redacted_host = f"{host[:8]}..." if host else "missing"
+        print(f"DB: {config.get('user')}@{redacted_host}:{config.get('port')}/{config.get('database')}")
     print()
 
     try:
-        conn = psycopg2.connect(**config)
+        if "dsn" in config:
+            conn = psycopg2.connect(config["dsn"])
+            with conn.cursor() as cur:
+                cur.execute("SET search_path TO cleangoal, public")
+            conn.commit()
+        else:
+            conn = psycopg2.connect(**config)
         conn.autocommit = False
         cur = conn.cursor()
         print("Connected to database\n")
@@ -114,10 +199,7 @@ def run_migrations():
                     sql = f.read()
 
                 cur.execute(sql)
-                cur.execute(
-                    "INSERT INTO cleangoal.schema_migrations (name) VALUES (%s)",
-                    (filename,)
-                )
+                record_migration(cur, filename)
                 conn.commit()
                 print(f"        OK")
                 success += 1
@@ -126,9 +208,7 @@ def run_migrations():
                 conn.rollback()
                 print(f"        FAILED: {e}")
                 failed += 1
-                answer = input("        Continue with next migration? (y/n): ").strip().lower()
-                if answer != "y":
-                    break
+                break
 
         print()
         print("=" * 60)

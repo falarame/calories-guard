@@ -1,5 +1,5 @@
 param(
-    [string]$DeviceId = "emulator-5554",
+    [string]$DeviceId = "",
     [string]$RootEnvPath = "..\.env",
     [string]$ApiBaseUrl = "https://api.caloriesguard.com"
 )
@@ -36,6 +36,20 @@ if ($ApiBaseUrl -and !$ApiBaseUrl.StartsWith("http://") -and !$ApiBaseUrl.Starts
 Set-Location $projectRoot
 $env:DEBUG = ""
 adb forward --remove-all
+
+if ([string]::IsNullOrWhiteSpace($DeviceId)) {
+    $devices = flutter devices --machine | ConvertFrom-Json
+    $androidDevice = $devices | Where-Object {
+        $_.targetPlatform -like "android*" -or $_.id -like "emulator-*"
+    } | Select-Object -First 1
+
+    if ($null -eq $androidDevice) {
+        throw "No Android device/emulator found. Start an emulator or pass -DeviceId explicitly."
+    }
+
+    $DeviceId = $androidDevice.id
+    Write-Host "Using Android device: $DeviceId"
+}
 
 & flutter run `
     -d $DeviceId `

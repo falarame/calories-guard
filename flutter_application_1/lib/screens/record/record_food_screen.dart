@@ -658,6 +658,8 @@ class _FoodLogScreenState extends ConsumerState<FoodLogScreen>
   }
 
   Widget _buildFoodItem(LoggedFood food, MealSlot meal, int index) {
+    final canOpenRecipe =
+        food.foodId != null && food.foodId != 0 && !food.isPending;
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       child: Row(children: [
@@ -672,14 +674,14 @@ class _FoodLogScreenState extends ConsumerState<FoodLogScreen>
         Expanded(
             child: GestureDetector(
           behavior: HitTestBehavior.opaque,
-          onTap: (food.foodId == null || food.foodId == 0 || food.isPending)
-              ? null
-              : () => Navigator.push(
+          onTap: canOpenRecipe
+              ? () => Navigator.push(
                     context,
                     MaterialPageRoute(
                       builder: (_) => RecipeDetailScreen(foodId: food.foodId!),
                     ),
-                  ),
+                  )
+              : null,
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -733,6 +735,46 @@ class _FoodLogScreenState extends ConsumerState<FoodLogScreen>
                 fontWeight: FontWeight.w700,
                 color: _green,
                 fontFamily: 'Inter')),
+        const SizedBox(width: 8),
+        Tooltip(
+          message:
+              canOpenRecipe ? 'เปิดวิธีการทำ' : 'ยังไม่มีวิธีทำสำหรับรายการนี้',
+          child: InkWell(
+            borderRadius: BorderRadius.circular(14),
+            onTap: canOpenRecipe
+                ? () => Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) =>
+                            RecipeDetailScreen(foodId: food.foodId!),
+                      ),
+                    )
+                : null,
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
+              decoration: BoxDecoration(
+                color: canOpenRecipe
+                    ? const Color(0xFFE8EFCF)
+                    : Colors.grey.shade100,
+                borderRadius: BorderRadius.circular(14),
+              ),
+              child: Row(mainAxisSize: MainAxisSize.min, children: [
+                Icon(Icons.menu_book_outlined,
+                    size: 14,
+                    color: canOpenRecipe ? _green : Colors.grey.shade400),
+                const SizedBox(width: 3),
+                Text(
+                  'วิธีทำ',
+                  style: TextStyle(
+                    fontSize: 11,
+                    fontWeight: FontWeight.w700,
+                    color: canOpenRecipe ? _green : Colors.grey.shade400,
+                  ),
+                ),
+              ]),
+            ),
+          ),
+        ),
         const SizedBox(width: 8),
         GestureDetector(
           onTap: () async {
@@ -1252,6 +1294,7 @@ class _FoodLogScreenState extends ConsumerState<FoodLogScreen>
           _selectedDate.month,
           _selectedDate.day,
         );
+        ref.read(dailyFoodRevisionProvider.notifier).state++;
       }
 
       // ── Calorie notification trigger ──────────────────────

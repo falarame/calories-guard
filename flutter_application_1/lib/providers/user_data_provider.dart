@@ -478,3 +478,7 @@ final macroFilterProvider = StateProvider<String?>((ref) => null);
 
 /// วันที่ที่หน้า Home แสดง (null = วันนี้). หลังบันทึกอาหารย้อนหลังจะเซ็ตเป็นวันนั้นเพื่อให้กลับมาโชว์วันนั้น
 final homeViewDateProvider = StateProvider<DateTime?>((ref) => null);
+
+/// Incremented after meal data is persisted so Home can refresh from backend
+/// even when it is kept alive inside the IndexedStack.
+final dailyFoodRevisionProvider = StateProvider<int>((ref) => 0);

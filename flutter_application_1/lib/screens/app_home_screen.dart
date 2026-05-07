@@ -45,6 +45,18 @@ class _AppHomeScreenState extends ConsumerState<AppHomeScreen> {
           _fetchDailyData(_viewDate);
         }
       });
+      ref.listenManual(homeViewDateProvider, (prev, next) {
+        if (next != null && mounted) {
+          ref.read(homeViewDateProvider.notifier).state = null;
+          setState(() => _viewDate = DateTime(next.year, next.month, next.day));
+          _fetchDailyData(_viewDate);
+        }
+      });
+      ref.listenManual(dailyFoodRevisionProvider, (prev, next) {
+        if (mounted && next != prev) {
+          _fetchDailyData(_viewDate);
+        }
+      });
     });
   }
 
@@ -271,17 +283,6 @@ class _AppHomeScreenState extends ConsumerState<AppHomeScreen> {
   @override
   Widget build(BuildContext context) {
     final userData = ref.watch(userDataProvider);
-
-    // homeViewDateProvider: หน้าอื่นส่งวันที่มาให้ home แสดง
-    ref.listen<DateTime?>(homeViewDateProvider, (prev, next) {
-      if (next != null && mounted) {
-        ref.read(homeViewDateProvider.notifier).state = null;
-        setState(() => _viewDate = DateTime(next.year, next.month, next.day));
-        _fetchDailyData(_viewDate).then((_) {
-          if (mounted) setState(() {});
-        });
-      }
-    });
 
     final int targetCal = userData.targetCalories.toInt() > 0
         ? userData.targetCalories.toInt()
