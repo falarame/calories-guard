@@ -9,7 +9,6 @@ import '../../services/auth_service.dart';
 import 'data_consent_screen.dart';
 import 'forgot_password_screen.dart';
 import 'gender_selection_screen.dart';
-import 'phone_otp_screen.dart';
 import 'register_screen.dart';
 import 'verify_email_screen.dart';
 import '../../widget/bottom_bar.dart';
@@ -438,25 +437,6 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
                               onTap: (_isLoading || _isGoogleLoading)
                                   ? null
                                   : _handleGoogleSignIn,
-                            ),
-
-                            const SizedBox(height: 12),
-
-                            // ── Phone OTP Button ──────────────────────────
-                            _buildSocialButton(
-                              label: 'เบอร์โทรศัพท์',
-                              icon: Icon(Icons.phone_outlined,
-                                  size: 20, color: Colors.grey.shade600),
-                              borderColor: Colors.grey.shade300,
-                              isLoading: false,
-                              onTap: (_isLoading || _isGoogleLoading)
-                                  ? null
-                                  : () => Navigator.push(
-                                        context,
-                                        MaterialPageRoute(
-                                            builder: (_) =>
-                                                const PhoneOtpScreen()),
-                                      ),
                             ),
 
                             const SizedBox(height: 28),

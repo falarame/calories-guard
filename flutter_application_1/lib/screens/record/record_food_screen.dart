@@ -6,6 +6,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import 'package:flutter_application_1/services/api_client.dart';
 import '/providers/user_data_provider.dart';
+import '/services/daily_summary_enrichment.dart';
 import '/providers/pending_food_provider.dart';
 import '../../services/health_service.dart';
 import '../../services/notification_helper.dart';
@@ -1241,7 +1242,13 @@ class _FoodLogScreenState extends ConsumerState<FoodLogScreen>
         );
       }
     }
-    ref.read(userDataProvider.notifier).setDailySummaryFromApi(summaryData);
+    final enriched = await ensureDailySummaryMealItems(
+      userId: userId,
+      dateStr: dateStr,
+      summaryData: summaryData,
+      detailTimeout: _mealSummaryTimeout,
+    );
+    ref.read(userDataProvider.notifier).setDailySummaryFromApi(enriched);
   }
 
   void _publishLocalDailySummary() {

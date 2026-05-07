@@ -5,6 +5,7 @@ import 'dart:convert';
 import '/screens/profile/subprofile_screen/progress_screen.dart';
 import '/screens/profile/subprofile_screen/tdee_formula_screen.dart';
 import '../../services/api_client.dart';
+import '../../services/daily_summary_enrichment.dart';
 import '../../services/notification_helper.dart';
 import '../../services/lifecycle_service.dart';
 import '../../services/error_reporter.dart';
@@ -130,8 +131,13 @@ class _AppHomeScreenState extends ConsumerState<AppHomeScreen> {
         queryParams: {'date_record': dateStr},
       );
       if (response.statusCode == 200) {
-        final summaryData =
+        var summaryData =
             json.decode(utf8.decode(response.bodyBytes)) as Map<String, dynamic>;
+        summaryData = await ensureDailySummaryMealItems(
+          userId: userId,
+          dateStr: dateStr,
+          summaryData: summaryData,
+        );
         ref.read(userDataProvider.notifier).setDailySummaryFromApi(summaryData);
       }
     } catch (e) {

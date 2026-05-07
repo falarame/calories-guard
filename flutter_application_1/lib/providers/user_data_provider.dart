@@ -428,12 +428,20 @@ class UserDataNotifier extends StateNotifier<UserData> {
     final rawMeals = data['meals'];
     if (rawMeals is Map) {
       meals = rawMeals.map(
-        (k, v) => MapEntry(k.toString(), v?.toString() ?? ''),
+        (k, v) =>
+            MapEntry(k.toString().trim().toLowerCase(), v?.toString() ?? ''),
       );
     }
 
-    final mealItems =
-        HomeLoggedFoodItem.parseMealItemsMap(data['meal_items']);
+    dynamic mealItemsRaw = data['meal_items'];
+    if (mealItemsRaw is Map) {
+      mealItemsRaw = {
+        for (final e in mealItemsRaw.entries)
+          e.key.toString().trim().toLowerCase(): e.value
+      };
+    }
+
+    final mealItems = HomeLoggedFoodItem.parseMealItemsMap(mealItemsRaw);
 
     state = state.copyWith(
       consumedCalories: (data['total_calories_intake'] as num?)?.toInt() ?? 0,
