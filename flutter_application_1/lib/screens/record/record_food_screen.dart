@@ -1213,7 +1213,14 @@ class _FoodLogScreenState extends ConsumerState<FoodLogScreen>
       debugPrint('✅ SAVE COMPLETE');
 
       // ── Sync provider ทันทีหลัง save เพื่อให้ home screen อัปเดตเลย ──────
-      if (mounted) _syncProviderFromLocalState();
+      if (mounted) {
+        _syncProviderFromLocalState();
+        ref.read(homeViewDateProvider.notifier).state = DateTime(
+          _selectedDate.year,
+          _selectedDate.month,
+          _selectedDate.day,
+        );
+      }
 
       // ── Calorie notification trigger ──────────────────────
       final targetCalDouble = ref.read(userDataProvider).targetCalories;

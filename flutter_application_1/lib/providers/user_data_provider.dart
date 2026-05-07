@@ -354,14 +354,14 @@ class UserDataNotifier extends StateNotifier<UserData> {
     required int carbs,
     required int fat,
     // รับเป็น Map แทนที่จะเป็น String แยก
-    Map<String, String> dailyMeals = const {},
+    Map<String, String>? dailyMeals,
   }) {
     state = state.copyWith(
       consumedCalories: cal,
       consumedProtein: protein,
       consumedCarbs: carbs,
       consumedFat: fat,
-      dailyMeals: dailyMeals, // ✅ บันทึก Map
+      dailyMeals: dailyMeals ?? state.dailyMeals, // ✅ บันทึก Map
     );
   }
 

@@ -432,6 +432,24 @@ void main() {
       expect(s.consumedFat, 60);
       expect(s.dailyMeals['breakfast'], 'ข้าวต้ม');
     });
+
+    test('updateDailyFood without dailyMeals keeps existing meal list', () {
+      final c = makeContainer();
+      c.read(userDataProvider.notifier).updateDailyFood(
+          cal: 500,
+          protein: 25,
+          carbs: 60,
+          fat: 12,
+          dailyMeals: {'breakfast': 'ข้าวต้ม'});
+
+      c
+          .read(userDataProvider.notifier)
+          .updateDailyFood(cal: 650, protein: 30, carbs: 75, fat: 16);
+
+      final s = c.read(userDataProvider);
+      expect(s.consumedCalories, 650);
+      expect(s.dailyMeals['breakfast'], 'ข้าวต้ม');
+    });
   });
 
   group('[UserDataNotifier] setDailySummaryFromApi', () {
