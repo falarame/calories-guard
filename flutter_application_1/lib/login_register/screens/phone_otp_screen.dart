@@ -6,7 +6,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../l10n/app_localizations.dart';
-import '../../providers/settings_provider.dart';
 import '../../providers/user_data_provider.dart';
 import '../../services/auth_service.dart';
 import '../../theme/app_theme.dart';
@@ -117,7 +116,8 @@ class _PhoneOtpScreenState extends ConsumerState<PhoneOtpScreen> {
       if (!mounted) return;
       final user = res.user;
       if (user == null) {
-        _showError(AppLocalizations.of(context).tr('phone.error.verify_failed'));
+        _showError(
+            AppLocalizations.of(context).tr('phone.error.verify_failed'));
         return;
       }
       await _syncBackend(user);
@@ -129,7 +129,8 @@ class _PhoneOtpScreenState extends ConsumerState<PhoneOtpScreen> {
       }
     } catch (_) {
       if (mounted) {
-        _showError(AppLocalizations.of(context).tr('phone.error.verify_failed'));
+        _showError(
+            AppLocalizations.of(context).tr('phone.error.verify_failed'));
       }
     } finally {
       if (mounted) setState(() => _verifying = false);
@@ -163,8 +164,9 @@ class _PhoneOtpScreenState extends ConsumerState<PhoneOtpScreen> {
       routeAfterAuth(
         context,
         ref,
-        destination: (_) =>
-            needsOnboarding ? const GenderSelectionScreen() : const MainScreen(),
+        destination: (_) => needsOnboarding
+            ? const GenderSelectionScreen()
+            : const MainScreen(),
         requireConsent: !needsOnboarding,
       );
     } else {
@@ -243,20 +245,28 @@ class _PhoneOtpScreenState extends ConsumerState<PhoneOtpScreen> {
       const SizedBox(height: 20),
       Text(l10n.tr('phone.title'),
           style: const TextStyle(
-              fontSize: 26, fontWeight: FontWeight.bold, color: Color(0xFF1A2E0F))),
+              fontSize: 26,
+              fontWeight: FontWeight.bold,
+              color: Color(0xFF1A2E0F))),
       const SizedBox(height: 8),
       Text(l10n.tr('phone.subtitle'),
-          style: TextStyle(fontSize: 14, color: Colors.grey.shade500, height: 1.5)),
+          style: TextStyle(
+              fontSize: 14, color: Colors.grey.shade500, height: 1.5)),
       const SizedBox(height: 32),
       Text(l10n.tr('phone.label'),
-          style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Color(0xFF1A2E0F))),
+          style: const TextStyle(
+              fontSize: 13,
+              fontWeight: FontWeight.w600,
+              color: Color(0xFF1A2E0F))),
       const SizedBox(height: 8),
       _buildInput(
         controller: _phoneCtrl,
         hint: l10n.tr('phone.hint'),
         icon: Icons.phone_outlined,
         keyboardType: TextInputType.phone,
-        inputFormatters: [FilteringTextInputFormatter.allow(RegExp(r'[+\d\s]'))],
+        inputFormatters: [
+          FilteringTextInputFormatter.allow(RegExp(r'[+\d\s]'))
+        ],
       ),
       const SizedBox(height: 28),
       SizedBox(
@@ -269,14 +279,18 @@ class _PhoneOtpScreenState extends ConsumerState<PhoneOtpScreen> {
             foregroundColor: Colors.white,
             disabledBackgroundColor: Colors.grey.shade300,
             elevation: 0,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+            shape:
+                RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
           ),
           child: _sending
               ? const SizedBox(
-                  width: 22, height: 22,
-                  child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2.5))
+                  width: 22,
+                  height: 22,
+                  child: CircularProgressIndicator(
+                      color: Colors.white, strokeWidth: 2.5))
               : Text(l10n.tr('phone.cta'),
-                  style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
+                  style: const TextStyle(
+                      fontSize: 16, fontWeight: FontWeight.w600)),
         ),
       ),
     ]);
@@ -298,10 +312,13 @@ class _PhoneOtpScreenState extends ConsumerState<PhoneOtpScreen> {
       const SizedBox(height: 20),
       Text(l10n.tr('phone.otp.title'),
           style: const TextStyle(
-              fontSize: 26, fontWeight: FontWeight.bold, color: Color(0xFF1A2E0F))),
+              fontSize: 26,
+              fontWeight: FontWeight.bold,
+              color: Color(0xFF1A2E0F))),
       const SizedBox(height: 8),
       Text(l10n.tr('phone.otp.subtitle', {'phone': _phone}),
-          style: TextStyle(fontSize: 14, color: Colors.grey.shade500, height: 1.5)),
+          style: TextStyle(
+              fontSize: 14, color: Colors.grey.shade500, height: 1.5)),
       const SizedBox(height: 32),
       _buildInput(
         controller: _otpCtrl,
@@ -324,27 +341,32 @@ class _PhoneOtpScreenState extends ConsumerState<PhoneOtpScreen> {
             foregroundColor: Colors.white,
             disabledBackgroundColor: Colors.grey.shade300,
             elevation: 0,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+            shape:
+                RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
           ),
           child: _verifying
               ? const SizedBox(
-                  width: 22, height: 22,
-                  child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2.5))
+                  width: 22,
+                  height: 22,
+                  child: CircularProgressIndicator(
+                      color: Colors.white, strokeWidth: 2.5))
               : Text(l10n.tr('phone.otp.cta'),
-                  style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
+                  style: const TextStyle(
+                      fontSize: 16, fontWeight: FontWeight.w600)),
         ),
       ),
       const SizedBox(height: 20),
       Center(
         child: _resendCountdown > 0
-            ? Text(
-                l10n.tr('phone.otp.resend_in', {'sec': '$_resendCountdown'}),
+            ? Text(l10n.tr('phone.otp.resend_in', {'sec': '$_resendCountdown'}),
                 style: TextStyle(fontSize: 13, color: Colors.grey.shade500))
             : TextButton(
                 onPressed: _sending ? null : _sendOtp,
                 child: Text(l10n.tr('phone.otp.resend'),
                     style: const TextStyle(
-                        fontSize: 14, color: _green, fontWeight: FontWeight.w600)),
+                        fontSize: 14,
+                        color: _green,
+                        fontWeight: FontWeight.w600)),
               ),
       ),
       const SizedBox(height: 8),
@@ -384,7 +406,8 @@ class _PhoneOtpScreenState extends ConsumerState<PhoneOtpScreen> {
         prefixIconConstraints: const BoxConstraints(minWidth: 0, minHeight: 0),
         filled: true,
         fillColor: Colors.white,
-        contentPadding: const EdgeInsets.symmetric(vertical: 16, horizontal: 16),
+        contentPadding:
+            const EdgeInsets.symmetric(vertical: 16, horizontal: 16),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(14),
           borderSide: BorderSide(color: Colors.grey.shade200),

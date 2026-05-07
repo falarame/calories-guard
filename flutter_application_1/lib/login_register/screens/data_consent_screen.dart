@@ -14,8 +14,7 @@ class DataConsentScreen extends ConsumerStatefulWidget {
   final WidgetBuilder next;
 
   @override
-  ConsumerState<DataConsentScreen> createState() =>
-      _DataConsentScreenState();
+  ConsumerState<DataConsentScreen> createState() => _DataConsentScreenState();
 }
 
 class _DataConsentScreenState extends ConsumerState<DataConsentScreen> {
@@ -110,9 +109,8 @@ class _DataConsentScreenState extends ConsumerState<DataConsentScreen> {
                         width: 24,
                         height: 24,
                         decoration: BoxDecoration(
-                          color: _isAccepted
-                              ? palette.brand
-                              : palette.surfaceCard,
+                          color:
+                              _isAccepted ? palette.brand : palette.surfaceCard,
                           border: Border.all(color: palette.brand, width: 2),
                           borderRadius: BorderRadius.circular(4),
                         ),
@@ -185,8 +183,9 @@ void routeAfterAuth(
   final accepted = ref.read(appSettingsProvider).consentAccepted;
   final shouldShowConsent = requireConsent && !accepted;
   final route = MaterialPageRoute(
-    builder:
-        shouldShowConsent ? (ctx) => DataConsentScreen(next: destination) : destination,
+    builder: shouldShowConsent
+        ? (ctx) => DataConsentScreen(next: destination)
+        : destination,
   );
   Navigator.pushAndRemoveUntil(context, route, (_) => false);
 }

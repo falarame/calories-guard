@@ -13,10 +13,18 @@ class _UnitSettingsScreenState extends ConsumerState<UnitSettingsScreen> {
   static const _green = Color(0xFF628141);
 
   void _updateUnit(String key, String value) {
-    if (key == 'unit_weight') ref.read(userDataProvider.notifier).updateUnit(weight: value);
-    if (key == 'unit_height') ref.read(userDataProvider.notifier).updateUnit(height: value);
-    if (key == 'unit_energy') ref.read(userDataProvider.notifier).updateUnit(energy: value);
-    if (key == 'unit_water') ref.read(userDataProvider.notifier).updateUnit(water: value);
+    if (key == 'unit_weight') {
+      ref.read(userDataProvider.notifier).updateUnit(weight: value);
+    }
+    if (key == 'unit_height') {
+      ref.read(userDataProvider.notifier).updateUnit(height: value);
+    }
+    if (key == 'unit_energy') {
+      ref.read(userDataProvider.notifier).updateUnit(energy: value);
+    }
+    if (key == 'unit_water') {
+      ref.read(userDataProvider.notifier).updateUnit(water: value);
+    }
   }
 
   @override
@@ -210,16 +218,14 @@ class _UnitSettingsScreenState extends ConsumerState<UnitSettingsScreen> {
               child: Text(opt.label,
                   style: TextStyle(
                       fontSize: 15,
-                      fontWeight: isSelected
-                          ? FontWeight.w600
-                          : FontWeight.w400,
-                      color:
-                          isSelected ? _green : Colors.black87)),
+                      fontWeight:
+                          isSelected ? FontWeight.w600 : FontWeight.w400,
+                      color: isSelected ? _green : Colors.black87)),
             ),
             if (isSelected)
               Container(
-                padding: const EdgeInsets.symmetric(
-                    horizontal: 10, vertical: 3),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
                 decoration: BoxDecoration(
                     color: _green.withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(20)),
@@ -233,7 +239,8 @@ class _UnitSettingsScreenState extends ConsumerState<UnitSettingsScreen> {
         ),
       ),
       if (!isLast)
-        Divider(height: 1, indent: 50, endIndent: 16, color: Colors.grey.shade100),
+        Divider(
+            height: 1, indent: 50, endIndent: 16, color: Colors.grey.shade100),
     ]);
   }
 }

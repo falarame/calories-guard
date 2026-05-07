@@ -72,7 +72,7 @@
 //             _buildSectionHeader('การกิน'),
 //             _buildHorizontalList([
 //               _buildArticleCard(
-//                 imagePath: 'assets/images/article/20อาหารคลีนที่คนนิยมบริโภค.png', 
+//                 imagePath: 'assets/images/article/20อาหารคลีนที่คนนิยมบริโภค.png',
 //                 title: '20 อาหารคลีนที่คนนิยมบริโภค',
 //               ),
 //               _buildArticleCard(
@@ -138,11 +138,11 @@
 //   Widget _buildHorizontalList(List<Widget> children) {
 //     return SingleChildScrollView(
 //       scrollDirection: Axis.horizontal,
-//       padding: const EdgeInsets.only(left: 21), 
+//       padding: const EdgeInsets.only(left: 21),
 //       child: Row(
 //         children: children.map((item) {
 //           return Padding(
-//             padding: const EdgeInsets.only(right: 15), 
+//             padding: const EdgeInsets.only(right: 15),
 //             child: item,
 //           );
 //         }).toList(),
@@ -167,14 +167,14 @@
 //             ),
 //             boxShadow: [ // (Optional) ใส่เงาให้นิดนึงจะสวยขึ้น
 //               BoxShadow(
-//                 color: Colors.black.withOpacity(0.1),
+//                 color: Colors.black.withValues(alpha: 0.1),
 //                 blurRadius: 5,
 //                 offset: const Offset(0, 3),
 //               ),
 //             ],
 //           ),
 //         ),
-        
+
 //         // แถบชื่อเรื่อง (ทับด้านล่าง)
 //         Positioned(
 //           bottom: 25, // ขยับขึ้นมาจากขอบล่างนิดนึงตามรูปตัวอย่าง (หรือปรับเป็น 0 ถ้าอยากให้ติดขอบ)
@@ -184,7 +184,7 @@
 //             decoration: const BoxDecoration(
 //               color: Colors.white,
 //               // ทำให้ขอบล่างมนเท่ากับรูป
-//               borderRadius: BorderRadius.vertical(bottom: Radius.circular(30)), 
+//               borderRadius: BorderRadius.vertical(bottom: Radius.circular(30)),
 //             ),
 //             alignment: Alignment.centerLeft,
 //             padding: const EdgeInsets.symmetric(horizontal: 15),

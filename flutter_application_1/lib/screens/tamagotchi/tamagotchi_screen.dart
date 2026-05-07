@@ -386,9 +386,9 @@ class _TamagotchiScreenState extends ConsumerState<TamagotchiScreen>
               margin: const EdgeInsets.only(bottom: 8),
               padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
               decoration: BoxDecoration(
-                color: Colors.amber.withOpacity(0.15),
+                color: Colors.amber.withValues(alpha: 0.15),
                 borderRadius: BorderRadius.circular(20),
-                border: Border.all(color: Colors.amber.withOpacity(0.5)),
+                border: Border.all(color: Colors.amber.withValues(alpha: 0.5)),
               ),
               child: Row(mainAxisSize: MainAxisSize.min, children: [
                 const Icon(Icons.visibility_rounded,
@@ -432,10 +432,10 @@ class _TamagotchiScreenState extends ConsumerState<TamagotchiScreen>
                   padding:
                       const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                   decoration: BoxDecoration(
-                    color: const Color(0xFF8BC34A).withOpacity(0.2),
+                    color: const Color(0xFF8BC34A).withValues(alpha: 0.2),
                     borderRadius: BorderRadius.circular(8),
                     border: Border.all(
-                        color: const Color(0xFF8BC34A).withOpacity(0.5)),
+                        color: const Color(0xFF8BC34A).withValues(alpha: 0.5)),
                   ),
                   child: Text('โบนัส $_multiplierLabel',
                       style: const TextStyle(
@@ -488,11 +488,11 @@ class _TamagotchiScreenState extends ConsumerState<TamagotchiScreen>
                 gradient: const LinearGradient(
                     colors: [Color(0xFF1B5E35), Color(0xFF2E7D32)]),
                 borderRadius: BorderRadius.circular(14),
-                border:
-                    Border.all(color: const Color(0xFF66BB6A).withOpacity(0.5)),
+                border: Border.all(
+                    color: const Color(0xFF66BB6A).withValues(alpha: 0.5)),
                 boxShadow: [
                   BoxShadow(
-                      color: const Color(0xFF66BB6A).withOpacity(0.2),
+                      color: const Color(0xFF66BB6A).withValues(alpha: 0.2),
                       blurRadius: 8)
                 ],
               ),
@@ -519,12 +519,16 @@ class _TamagotchiScreenState extends ConsumerState<TamagotchiScreen>
       padding: const EdgeInsets.symmetric(vertical: 28, horizontal: 20),
       decoration: BoxDecoration(
         gradient: LinearGradient(
-          colors: [tier.color.withOpacity(0.25), tier.glow.withOpacity(0.1)],
+          colors: [
+            tier.color.withValues(alpha: 0.25),
+            tier.glow.withValues(alpha: 0.1)
+          ],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
         borderRadius: BorderRadius.circular(28),
-        border: Border.all(color: tier.color.withOpacity(0.4), width: 1.5),
+        border:
+            Border.all(color: tier.color.withValues(alpha: 0.4), width: 1.5),
       ),
       child: Column(children: [
         // Pet
@@ -541,9 +545,9 @@ class _TamagotchiScreenState extends ConsumerState<TamagotchiScreen>
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
           decoration: BoxDecoration(
-            color: tier.color.withOpacity(0.2),
+            color: tier.color.withValues(alpha: 0.2),
             borderRadius: BorderRadius.circular(20),
-            border: Border.all(color: tier.color.withOpacity(0.6)),
+            border: Border.all(color: tier.color.withValues(alpha: 0.6)),
           ),
           child: Text(
             '${tier.emoji} ${tier.name}',
@@ -574,7 +578,7 @@ class _TamagotchiScreenState extends ConsumerState<TamagotchiScreen>
                 borderRadius: BorderRadius.circular(8),
                 child: LinearProgressIndicator(
                   value: progress.clamp(0.0, 1.0),
-                  backgroundColor: Colors.white.withOpacity(0.1),
+                  backgroundColor: Colors.white.withValues(alpha: 0.1),
                   valueColor: AlwaysStoppedAnimation(tier.color),
                   minHeight: 8,
                 ),
@@ -585,7 +589,7 @@ class _TamagotchiScreenState extends ConsumerState<TamagotchiScreen>
           Text(
             'อีก ${isDemo ? nextTier.minPts - tier.minPts : nextTier.minPts - _totalPoints} เมล็ดข้าว → ${nextTier.emoji} ${nextTier.name}',
             style: TextStyle(
-                color: Colors.white.withOpacity(0.6),
+                color: Colors.white.withValues(alpha: 0.6),
                 fontSize: 12,
                 fontFamily: 'Inter'),
           ),
@@ -632,17 +636,17 @@ class _TamagotchiScreenState extends ConsumerState<TamagotchiScreen>
                     color: isSelected
                         ? t.color
                         : isUnlocked
-                            ? t.color.withOpacity(0.4)
-                            : Colors.white.withOpacity(0.07),
+                            ? t.color.withValues(alpha: 0.4)
+                            : Colors.white.withValues(alpha: 0.07),
                     border: Border.all(
                         color: isSelected
                             ? Colors.white
-                            : t.color.withOpacity(isUnlocked ? 0.7 : 0.2),
+                            : t.color.withValues(alpha: isUnlocked ? 0.7 : 0.2),
                         width: isSelected ? 2.5 : 1.5),
                     boxShadow: isSelected
                         ? [
                             BoxShadow(
-                                color: t.color.withOpacity(0.6),
+                                color: t.color.withValues(alpha: 0.6),
                                 blurRadius: 14,
                                 spreadRadius: 1)
                           ]
@@ -659,8 +663,8 @@ class _TamagotchiScreenState extends ConsumerState<TamagotchiScreen>
                         color: isSelected
                             ? t.color
                             : isUnlocked
-                                ? t.color.withOpacity(0.7)
-                                : Colors.white.withOpacity(0.25),
+                                ? t.color.withValues(alpha: 0.7)
+                                : Colors.white.withValues(alpha: 0.25),
                         fontFamily: 'Inter',
                         fontWeight:
                             isSelected ? FontWeight.w700 : FontWeight.w500)),
@@ -672,7 +676,7 @@ class _TamagotchiScreenState extends ConsumerState<TamagotchiScreen>
       const SizedBox(height: 6),
       Text('กดที่ขั้นเพื่อดูตัวอย่างต้นข้าว',
           style: TextStyle(
-              color: Colors.white.withOpacity(0.3),
+              color: Colors.white.withValues(alpha: 0.3),
               fontSize: 10,
               fontFamily: 'Inter')),
     ]);
@@ -688,17 +692,17 @@ class _TamagotchiScreenState extends ConsumerState<TamagotchiScreen>
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
         color: claimed
-            ? Colors.white.withOpacity(0.07)
+            ? Colors.white.withValues(alpha: 0.07)
             : canDo
-                ? const Color(0xFF1B5E35).withOpacity(0.3)
-                : Colors.white.withOpacity(0.04),
+                ? const Color(0xFF1B5E35).withValues(alpha: 0.3)
+                : Colors.white.withValues(alpha: 0.04),
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
           color: claimed
-              ? Colors.white.withOpacity(0.1)
+              ? Colors.white.withValues(alpha: 0.1)
               : canDo
-                  ? const Color(0xFF628141).withOpacity(0.6)
-                  : Colors.white.withOpacity(0.08),
+                  ? const Color(0xFF628141).withValues(alpha: 0.6)
+                  : Colors.white.withValues(alpha: 0.08),
         ),
       ),
       child: Row(children: [
@@ -709,15 +713,16 @@ class _TamagotchiScreenState extends ConsumerState<TamagotchiScreen>
               Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
             Text(m.title,
                 style: TextStyle(
-                    color:
-                        claimed ? Colors.white.withOpacity(0.4) : Colors.white,
+                    color: claimed
+                        ? Colors.white.withValues(alpha: 0.4)
+                        : Colors.white,
                     fontFamily: 'Inter',
                     fontWeight: FontWeight.w700,
                     fontSize: 14,
                     decoration: claimed ? TextDecoration.lineThrough : null)),
             Text(m.desc,
                 style: TextStyle(
-                    color: Colors.white.withOpacity(0.5), fontSize: 11)),
+                    color: Colors.white.withValues(alpha: 0.5), fontSize: 11)),
           ]),
         ),
         const SizedBox(width: 10),
@@ -725,11 +730,11 @@ class _TamagotchiScreenState extends ConsumerState<TamagotchiScreen>
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
             decoration: BoxDecoration(
-                color: Colors.white.withOpacity(0.1),
+                color: Colors.white.withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(10)),
             child: Text('✅ +${_missionPoints(m)} 🌾',
                 style: TextStyle(
-                    color: Colors.white.withOpacity(0.4),
+                    color: Colors.white.withValues(alpha: 0.4),
                     fontSize: 12,
                     fontFamily: 'Inter')),
           )
@@ -744,7 +749,7 @@ class _TamagotchiScreenState extends ConsumerState<TamagotchiScreen>
                   borderRadius: BorderRadius.circular(10),
                   boxShadow: [
                     BoxShadow(
-                        color: const Color(0xFF388E3C).withOpacity(0.5),
+                        color: const Color(0xFF388E3C).withValues(alpha: 0.5),
                         blurRadius: 8)
                   ]),
               child: Text('+${_missionPoints(m)} 🌾',
@@ -759,12 +764,12 @@ class _TamagotchiScreenState extends ConsumerState<TamagotchiScreen>
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
             decoration: BoxDecoration(
-                color: Colors.white.withOpacity(0.05),
+                color: Colors.white.withValues(alpha: 0.05),
                 borderRadius: BorderRadius.circular(10),
-                border: Border.all(color: Colors.white.withOpacity(0.1))),
+                border: Border.all(color: Colors.white.withValues(alpha: 0.1))),
             child: Text('+${_missionPoints(m)} 🌾',
                 style: TextStyle(
-                    color: Colors.white.withOpacity(0.3),
+                    color: Colors.white.withValues(alpha: 0.3),
                     fontSize: 12,
                     fontFamily: 'Inter')),
           ),
@@ -796,7 +801,7 @@ class _RicePainter extends CustomPainter {
         Offset(cx, cy),
         66,
         Paint()
-          ..color = color.withOpacity(0.2)
+          ..color = color.withValues(alpha: 0.2)
           ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 28));
 
     switch (stage) {
@@ -826,7 +831,7 @@ class _RicePainter extends CustomPainter {
     // drop shadow
     c.drawOval(
         Rect.fromCenter(center: Offset(cx, cy + 46), width: 52, height: 14),
-        Paint()..color = Colors.black.withOpacity(0.12));
+        Paint()..color = Colors.black.withValues(alpha: 0.12));
     // seed body
     c.drawOval(
       Rect.fromCenter(center: Offset(cx, cy), width: 68, height: 86),
@@ -847,18 +852,18 @@ class _RicePainter extends CustomPainter {
         Offset(cx, cy - 38),
         Offset(cx, cy + 38),
         Paint()
-          ..color = Colors.black.withOpacity(0.14)
+          ..color = Colors.black.withValues(alpha: 0.14)
           ..strokeWidth = 1.5);
     // tiny horizontal cracks (about to sprout)
-    _line(c, cx - 6, cy - 12, cx + 6, cy - 12, Colors.black.withOpacity(0.12),
-        1.2);
-    _line(c, cx - 5, cy + 10, cx + 5, cy + 10, Colors.black.withOpacity(0.12),
-        1.2);
+    _line(c, cx - 6, cy - 12, cx + 6, cy - 12,
+        Colors.black.withValues(alpha: 0.12), 1.2);
+    _line(c, cx - 5, cy + 10, cx + 5, cy + 10,
+        Colors.black.withValues(alpha: 0.12), 1.2);
     // shine patch
     c.drawOval(
         Rect.fromCenter(
             center: Offset(cx - 17, cy - 20), width: 13, height: 22),
-        Paint()..color = Colors.white.withOpacity(0.22));
+        Paint()..color = Colors.white.withValues(alpha: 0.22));
     // cute eyes
     _eye(c, cx - 13, cy - 5);
     _eye(c, cx + 13, cy - 5);
@@ -868,7 +873,7 @@ class _RicePainter extends CustomPainter {
           ..moveTo(cx - 9, cy + 14)
           ..quadraticBezierTo(cx, cy + 23, cx + 9, cy + 14),
         Paint()
-          ..color = Colors.black.withOpacity(0.45)
+          ..color = Colors.black.withValues(alpha: 0.45)
           ..style = PaintingStyle.stroke
           ..strokeWidth = 2
           ..strokeCap = StrokeCap.round);
@@ -972,7 +977,7 @@ class _RicePainter extends CustomPainter {
         Offset(cx, h / 2),
         72,
         Paint()
-          ..color = color.withOpacity(0.14)
+          ..color = color.withValues(alpha: 0.14)
           ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 32));
     _stage4(c, cx, h, true);
     // sparkle stars around ear
@@ -989,15 +994,15 @@ class _RicePainter extends CustomPainter {
   void _soil(Canvas c, double cx, double gy) {
     c.drawOval(
         Rect.fromCenter(center: Offset(cx, gy + 4), width: 90, height: 18),
-        Paint()..color = Colors.black.withOpacity(0.1));
+        Paint()..color = Colors.black.withValues(alpha: 0.1));
     c.drawOval(Rect.fromCenter(center: Offset(cx, gy), width: 86, height: 22),
-        Paint()..color = _soilA.withOpacity(0.72));
+        Paint()..color = _soilA.withValues(alpha: 0.72));
     c.drawOval(
         Rect.fromCenter(center: Offset(cx, gy - 4), width: 72, height: 14),
-        Paint()..color = _soilB.withOpacity(0.55));
+        Paint()..color = _soilB.withValues(alpha: 0.55));
     c.drawOval(
         Rect.fromCenter(center: Offset(cx, gy - 7), width: 50, height: 8),
-        Paint()..color = _soilC.withOpacity(0.38));
+        Paint()..color = _soilC.withValues(alpha: 0.38));
   }
 
   /// Filled rice-leaf shape rotated from (x, y)
@@ -1018,10 +1023,10 @@ class _RicePainter extends CustomPainter {
     );
     // center vein
     c.drawLine(
-        Offset(0, -2),
+        const Offset(0, -2),
         Offset(0, -len * 0.86),
         Paint()
-          ..color = Colors.white.withOpacity(0.16)
+          ..color = Colors.white.withValues(alpha: 0.16)
           ..strokeWidth = 1.2);
     // leaf shine
     c.drawPath(
@@ -1029,7 +1034,7 @@ class _RicePainter extends CustomPainter {
           ..moveTo(-hw * 0.28, -len * 0.14)
           ..quadraticBezierTo(-hw * 0.55, -len * 0.5, -hw * 0.22, -len * 0.72),
         Paint()
-          ..color = Colors.white.withOpacity(0.14)
+          ..color = Colors.white.withValues(alpha: 0.14)
           ..style = PaintingStyle.stroke
           ..strokeWidth = 1.8);
     c.restore();
@@ -1070,35 +1075,36 @@ class _RicePainter extends CustomPainter {
       c.drawOval(
           Rect.fromCenter(center: Offset.zero, width: 7, height: 12),
           Paint()
-            ..color = grainBorder.withOpacity(0.45)
+            ..color = grainBorder.withValues(alpha: 0.45)
             ..style = PaintingStyle.stroke
             ..strokeWidth = 1);
       // tiny shine
       c.drawOval(
-          Rect.fromCenter(center: Offset(-1.5, -2.5), width: 2.5, height: 4.5),
-          Paint()..color = Colors.white.withOpacity(0.55));
+          Rect.fromCenter(
+              center: const Offset(-1.5, -2.5), width: 2.5, height: 4.5),
+          Paint()..color = Colors.white.withValues(alpha: 0.55));
       c.restore();
     }
   }
 
   void _eye(Canvas c, double x, double y) {
-    c.drawCircle(
-        Offset(x, y), 5.5, Paint()..color = Colors.black.withOpacity(0.55));
+    c.drawCircle(Offset(x, y), 5.5,
+        Paint()..color = Colors.black.withValues(alpha: 0.55));
     c.drawCircle(Offset(x + 1.8, y - 1.8), 1.8,
-        Paint()..color = Colors.white.withOpacity(0.95));
+        Paint()..color = Colors.white.withValues(alpha: 0.95));
   }
 
   void _miniface(Canvas c, double cx, double cy) {
     c.drawCircle(Offset(cx - 5, cy), 2.5,
-        Paint()..color = Colors.black.withOpacity(0.35));
+        Paint()..color = Colors.black.withValues(alpha: 0.35));
     c.drawCircle(Offset(cx + 5, cy), 2.5,
-        Paint()..color = Colors.black.withOpacity(0.35));
+        Paint()..color = Colors.black.withValues(alpha: 0.35));
     c.drawPath(
         Path()
           ..moveTo(cx - 4, cy + 5)
           ..quadraticBezierTo(cx, cy + 8, cx + 4, cy + 5),
         Paint()
-          ..color = Colors.black.withOpacity(0.3)
+          ..color = Colors.black.withValues(alpha: 0.3)
           ..style = PaintingStyle.stroke
           ..strokeWidth = 1.5
           ..strokeCap = StrokeCap.round);

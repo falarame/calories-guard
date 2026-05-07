@@ -82,6 +82,8 @@ class ApiClient {
       return response;
     } on TimeoutException {
       throw Exception('Request timed out. Please try again.');
+    } on http.ClientException {
+      throw Exception('Network unavailable. Please check your connection.');
     }
   }
 
@@ -180,10 +182,13 @@ class ApiClient {
         b[0] == 0x89 &&
         b[1] == 0x50 &&
         b[2] == 0x4E &&
-        b[3] == 0x47) return 'image/png';
+        b[3] == 0x47) {
+      return 'image/png';
+    }
     if (b.length > 2 && b[0] == 0xFF && b[1] == 0xD8) return 'image/jpeg';
-    if (b.length > 2 && b[0] == 0x47 && b[1] == 0x49 && b[2] == 0x46)
+    if (b.length > 2 && b[0] == 0x47 && b[1] == 0x49 && b[2] == 0x46) {
       return 'image/gif';
+    }
     if (b.length > 11 &&
         b[0] == 0x52 &&
         b[1] == 0x49 &&
@@ -192,7 +197,9 @@ class ApiClient {
         b[8] == 0x57 &&
         b[9] == 0x45 &&
         b[10] == 0x42 &&
-        b[11] == 0x50) return 'image/webp';
+        b[11] == 0x50) {
+      return 'image/webp';
+    }
     return 'image/jpeg';
   }
 

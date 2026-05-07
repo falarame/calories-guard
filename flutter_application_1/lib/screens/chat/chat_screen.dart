@@ -124,6 +124,12 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
       if (res.statusCode == 200) {
         final data = jsonDecode(utf8.decode(res.bodyBytes));
         reply = data['response'] as String? ?? 'ไม่มีคำตอบ';
+      } else if (res.statusCode == 503) {
+        reply = _aiUnavailableMessage;
+      } else if (res.statusCode == 504) {
+        reply = _aiTimeoutMessage;
+      } else if (res.statusCode == 429) {
+        reply = 'ตอนนี้ถาม AI ถี่เกินไปนิดหนึ่ง กรุณารอสักครู่แล้วลองใหม่ครับ';
       } else {
         reply = 'เกิดข้อผิดพลาด (${res.statusCode}) กรุณาลองใหม่ครับ';
       }
@@ -135,11 +141,12 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
         });
         _scrollToBottom();
       }
-    } catch (e) {
+    } catch (e, st) {
+      ErrorReporter.report('chat.send', e, st);
       if (mounted) {
         setState(() {
           _messages.add(ChatMessage(
-            text: 'ไม่สามารถเชื่อมต่อ AI ได้ในขณะนี้ กรุณาลองใหม่อีกครั้งครับ',
+            text: _fallbackMessageFor(e),
             isUser: false,
           ));
           _isTyping = false;
@@ -147,6 +154,28 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
         _scrollToBottom();
       }
     }
+  }
+
+  static const _aiUnavailableMessage =
+      'ตอนนี้ AI Coach ยังไม่พร้อมใช้งาน แต่ฟีเจอร์หลักยังใช้ได้ปกติครับ '
+      'คุณยังสามารถบันทึกอาหาร ดูแคลอรี่ น้ำ น้ำหนัก และคำแนะนำอาหารจากระบบได้';
+
+  static const _aiTimeoutMessage =
+      'AI ตอบช้าเกินไปครับ ลองถามใหม่แบบสั้นลง หรือกลับมาอีกครั้งภายหลัง';
+
+  String _fallbackMessageFor(Object error) {
+    final text = error.toString().toLowerCase();
+    if (text.contains('timed out') || text.contains('timeout')) {
+      return _aiTimeoutMessage;
+    }
+    if (text.contains('network') ||
+        text.contains('connection') ||
+        text.contains('socket') ||
+        text.contains('failed host lookup')) {
+      return 'เชื่อมต่อเซิร์ฟเวอร์ไม่ได้ครับ กรุณาตรวจอินเทอร์เน็ตแล้วลองใหม่ '
+          'ส่วนการบันทึกอาหาร/น้ำ/น้ำหนักยังใช้งานต่อได้เมื่อกลับไปหน้าหลัก';
+    }
+    return _aiUnavailableMessage;
   }
 
   void _scrollToBottom() {

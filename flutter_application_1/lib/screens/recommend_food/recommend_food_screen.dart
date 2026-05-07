@@ -759,7 +759,7 @@ class _RecommendedFoodScreenState extends ConsumerState<RecommendedFoodScreen> {
               text: TextSpan(
                 style: const TextStyle(fontSize: 12, color: Colors.black87),
                 children: [
-                  TextSpan(
+                  const TextSpan(
                     text: 'เมนูที่มี',
                   ),
                   TextSpan(

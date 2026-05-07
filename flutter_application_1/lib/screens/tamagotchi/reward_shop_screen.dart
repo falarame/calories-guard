@@ -119,12 +119,12 @@ class _RewardShopScreenState extends State<RewardShopScreen> {
                 fontFamily: 'Inter',
                 fontWeight: FontWeight.w700)),
         content: Text('ใช้ ${r.cost} เมล็ดข้าว 🌾',
-            style: TextStyle(color: Colors.white.withOpacity(0.7))),
+            style: TextStyle(color: Colors.white.withValues(alpha: 0.7))),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
             child: Text('ยกเลิก',
-                style: TextStyle(color: Colors.white.withOpacity(0.5))),
+                style: TextStyle(color: Colors.white.withValues(alpha: 0.5))),
           ),
           ElevatedButton(
             style: ElevatedButton.styleFrom(
@@ -201,7 +201,7 @@ class _RewardShopScreenState extends State<RewardShopScreen> {
             borderRadius: BorderRadius.circular(18),
             boxShadow: [
               BoxShadow(
-                  color: _green.withOpacity(0.2),
+                  color: _green.withValues(alpha: 0.2),
                   blurRadius: 12,
                   offset: const Offset(0, 4))
             ],
@@ -244,12 +244,12 @@ class _RewardShopScreenState extends State<RewardShopScreen> {
     final canAfford = _points >= r.cost;
     final isAvailable = !r.comingSoon && !isClaimed && canAfford;
     final borderColor = isClaimed
-        ? _green.withOpacity(0.5)
+        ? _green.withValues(alpha: 0.5)
         : r.comingSoon
-            ? Colors.white.withOpacity(0.08)
+            ? Colors.white.withValues(alpha: 0.08)
             : canAfford
-                ? _green.withOpacity(0.35)
-                : Colors.white.withOpacity(0.1);
+                ? _green.withValues(alpha: 0.35)
+                : Colors.white.withValues(alpha: 0.1);
 
     return Container(
       decoration: BoxDecoration(
@@ -257,7 +257,7 @@ class _RewardShopScreenState extends State<RewardShopScreen> {
         borderRadius: BorderRadius.circular(18),
         border: Border.all(color: borderColor),
         boxShadow: isClaimed
-            ? [BoxShadow(color: _green.withOpacity(0.12), blurRadius: 10)]
+            ? [BoxShadow(color: _green.withValues(alpha: 0.12), blurRadius: 10)]
             : [],
       ),
       child: Padding(
@@ -269,10 +269,10 @@ class _RewardShopScreenState extends State<RewardShopScreen> {
             height: 52,
             decoration: BoxDecoration(
               color: isClaimed
-                  ? _green.withOpacity(0.15)
+                  ? _green.withValues(alpha: 0.15)
                   : r.comingSoon
-                      ? Colors.white.withOpacity(0.04)
-                      : Colors.white.withOpacity(0.07),
+                      ? Colors.white.withValues(alpha: 0.04)
+                      : Colors.white.withValues(alpha: 0.07),
               borderRadius: BorderRadius.circular(14),
             ),
             child: Center(
@@ -291,7 +291,7 @@ class _RewardShopScreenState extends State<RewardShopScreen> {
                         color: isClaimed
                             ? _green
                             : Colors.white
-                                .withOpacity(r.comingSoon ? 0.4 : 0.95),
+                                .withValues(alpha: r.comingSoon ? 0.4 : 0.95),
                         fontFamily: 'Inter',
                         fontWeight: FontWeight.w700,
                         fontSize: 13)),
@@ -301,10 +301,10 @@ class _RewardShopScreenState extends State<RewardShopScreen> {
                     padding:
                         const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                     decoration: BoxDecoration(
-                        color: Colors.amber.withOpacity(0.15),
+                        color: Colors.amber.withValues(alpha: 0.15),
                         borderRadius: BorderRadius.circular(6),
-                        border:
-                            Border.all(color: Colors.amber.withOpacity(0.4))),
+                        border: Border.all(
+                            color: Colors.amber.withValues(alpha: 0.4))),
                     child: const Text('เร็วๆ นี้',
                         style: TextStyle(
                             color: Colors.amber,
@@ -317,7 +317,8 @@ class _RewardShopScreenState extends State<RewardShopScreen> {
               const SizedBox(height: 3),
               Text(r.desc,
                   style: TextStyle(
-                      color: Colors.white.withOpacity(0.4), fontSize: 11)),
+                      color: Colors.white.withValues(alpha: 0.4),
+                      fontSize: 11)),
             ],
           )),
           const SizedBox(width: 10),
@@ -327,9 +328,9 @@ class _RewardShopScreenState extends State<RewardShopScreen> {
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
               decoration: BoxDecoration(
-                  color: _green.withOpacity(0.15),
+                  color: _green.withValues(alpha: 0.15),
                   borderRadius: BorderRadius.circular(10),
-                  border: Border.all(color: _green.withOpacity(0.4))),
+                  border: Border.all(color: _green.withValues(alpha: 0.4))),
               child: const Text('✅ ได้แล้ว',
                   style: TextStyle(
                       color: Color(0xFF81C784),
@@ -349,16 +350,18 @@ class _RewardShopScreenState extends State<RewardShopScreen> {
                       ? const LinearGradient(
                           colors: [Color(0xFF388E3C), Color(0xFF1B5E20)])
                       : null,
-                  color: isAvailable ? null : Colors.white.withOpacity(0.06),
+                  color:
+                      isAvailable ? null : Colors.white.withValues(alpha: 0.06),
                   borderRadius: BorderRadius.circular(10),
                   border: Border.all(
                       color: isAvailable
                           ? Colors.transparent
-                          : Colors.white.withOpacity(0.1)),
+                          : Colors.white.withValues(alpha: 0.1)),
                   boxShadow: isAvailable
                       ? [
                           BoxShadow(
-                              color: _green.withOpacity(0.35), blurRadius: 8)
+                              color: _green.withValues(alpha: 0.35),
+                              blurRadius: 8)
                         ]
                       : [],
                 ),
@@ -368,7 +371,7 @@ class _RewardShopScreenState extends State<RewardShopScreen> {
                           color: isAvailable
                               ? Colors.white
                               : r.comingSoon
-                                  ? Colors.white.withOpacity(0.2)
+                                  ? Colors.white.withValues(alpha: 0.2)
                                   : const Color(0xFFEF9A9A),
                           fontWeight: FontWeight.w800,
                           fontFamily: 'Inter',
@@ -377,7 +380,7 @@ class _RewardShopScreenState extends State<RewardShopScreen> {
                       style: TextStyle(
                           fontSize: 10,
                           color: Colors.white
-                              .withOpacity(isAvailable ? 1.0 : 0.3))),
+                              .withValues(alpha: isAvailable ? 1.0 : 0.3))),
                 ]),
               ),
             ),

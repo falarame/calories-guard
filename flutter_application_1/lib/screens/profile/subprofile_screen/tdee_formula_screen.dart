@@ -6,14 +6,16 @@ class TdeeFormulaScreen extends ConsumerWidget {
   const TdeeFormulaScreen({super.key});
 
   // Brand / structural colors
-  static const _green = Color(0xFF628141);      // brand green — goals / final target
-  static const _stepBmr  = Color(0xFF0369A1);   // blue-700 — BMR (physiological baseline)
-  static const _stepTdee = Color(0xFF7C3AED);   // violet-700 — TDEE (activity multiplier)
+  static const _green = Color(0xFF628141); // brand green — goals / final target
+  static const _stepBmr =
+      Color(0xFF0369A1); // blue-700 — BMR (physiological baseline)
+  static const _stepTdee =
+      Color(0xFF7C3AED); // violet-700 — TDEE (activity multiplier)
 
   // Macro semantic colors — must match recommend_food_screen & home screen
   static const _macroProtein = Color(0xFF2563EB); // blue-600 — muscle/protein
-  static const _macroCarbs   = Color(0xFFD97706); // amber-600 — energy/carbs
-  static const _macroFat     = Color(0xFFEA580C); // orange-600 — fat/warmth
+  static const _macroCarbs = Color(0xFFD97706); // amber-600 — energy/carbs
+  static const _macroFat = Color(0xFFEA580C); // orange-600 — fat/warmth
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -97,7 +99,8 @@ class TdeeFormulaScreen extends ConsumerWidget {
             _infoBanner(
                 '⚠️ ค่านี้ประมาณจากข้อมูลในเครื่อง อาจแตกต่างจากค่าจริงเล็กน้อย',
                 const Color(0xFFFFF8E1),
-                const Color(0xFFB45309)), // amber-700 — distinct from carbs color
+                const Color(
+                    0xFFB45309)), // amber-700 — distinct from carbs color
 
           const SizedBox(height: 20),
 
@@ -140,7 +143,8 @@ class TdeeFormulaScreen extends ConsumerWidget {
               _formulaBox(
                   '${bmr.toStringAsFixed(0)} × ${factor.toStringAsFixed(3)}'),
               const SizedBox(height: 12),
-              _resultRow('TDEE', '${tdee.toStringAsFixed(0)} kcal/วัน', _stepTdee),
+              _resultRow(
+                  'TDEE', '${tdee.toStringAsFixed(0)} kcal/วัน', _stepTdee),
             ],
           ),
 
@@ -160,8 +164,10 @@ class TdeeFormulaScreen extends ConsumerWidget {
                       ? '+${calAdjust.toStringAsFixed(0)} kcal/วัน'
                       : '${calAdjust.toStringAsFixed(0)} kcal/วัน',
                   valueColor: calAdjust < 0
-                      ? const Color(0xFFEA580C)   // orange — deficit (lose weight)
-                      : const Color(0xFF2563EB),  // blue — surplus (build muscle)
+                      ? const Color(
+                          0xFFEA580C) // orange — deficit (lose weight)
+                      : const Color(
+                          0xFF2563EB), // blue — surplus (build muscle)
                 ),
               ],
               const Divider(height: 20),
@@ -180,7 +186,8 @@ class TdeeFormulaScreen extends ConsumerWidget {
               _bigResultRow('🔥 แคลอรี่', '$targetCal kcal/วัน', _green),
               const SizedBox(height: 8),
               Row(children: [
-                _macroResultChip('🥩 โปรตีน', '$targetProtein g', _macroProtein),
+                _macroResultChip(
+                    '🥩 โปรตีน', '$targetProtein g', _macroProtein),
                 const SizedBox(width: 8),
                 _macroResultChip('🍚 คาร์บ', '$targetCarbs g', _macroCarbs),
                 const SizedBox(width: 8),

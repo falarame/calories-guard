@@ -10,6 +10,7 @@
 ///   - Myers GJ, "The Art of Software Testing" (1979) — Boundary Value Analysis
 ///   - ISTQB Foundation Level Syllabus v4.0 — Negative Testing / Error Guessing
 ///   - IEEE 829 — Test Case specification format
+library;
 
 import 'dart:convert';
 import 'package:flutter_test/flutter_test.dart';

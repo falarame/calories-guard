@@ -78,17 +78,13 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
     return Padding(
       padding: const EdgeInsets.only(top: 2),
       child: Row(children: [
-        Icon(ok ? Icons.check_circle : Icons.cancel,
-            size: 14, color: color),
+        Icon(ok ? Icons.check_circle : Icons.cancel, size: 14, color: color),
         const SizedBox(width: 6),
         Expanded(
           child: Text(
             text,
             style: TextStyle(
-                fontFamily: 'Inter',
-                fontSize: 12,
-                color: color,
-                height: 1.4),
+                fontFamily: 'Inter', fontSize: 12, color: color, height: 1.4),
           ),
         ),
       ]),
@@ -402,8 +398,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                                       ),
                                     ),
                                     const SizedBox(height: 2),
-                                    _pwRuleRow(
-                                        'ความยาวอย่างน้อย 8 ตัวอักษร',
+                                    _pwRuleRow('ความยาวอย่างน้อย 8 ตัวอักษร',
                                         _pwLenOk),
                                     _pwRuleRow(
                                         'มีตัวพิมพ์ใหญ่ (A-Z) อย่างน้อย 1 ตัว',

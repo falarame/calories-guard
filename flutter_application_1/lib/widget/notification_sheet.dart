@@ -33,8 +33,8 @@ class AppNotification {
       message: j['message'] as String? ?? '',
       type: j['type'] as String? ?? 'info',
       isRead: j['is_read'] as bool? ?? false,
-      createdAt: DateTime.tryParse(j['created_at'] as String? ?? '') ??
-          DateTime.now(),
+      createdAt:
+          DateTime.tryParse(j['created_at'] as String? ?? '') ?? DateTime.now(),
     );
   }
 }
@@ -90,8 +90,8 @@ class _NotificationBellState extends ConsumerState<NotificationBell> {
       children: [
         IconButton(
           onPressed: _openSheet,
-          icon: Icon(Icons.notifications_outlined,
-              color: widget.color, size: 28),
+          icon:
+              Icon(Icons.notifications_outlined, color: widget.color, size: 28),
         ),
         if (count > 0)
           Positioned(
@@ -251,11 +251,9 @@ class _NotificationSheetState extends ConsumerState<NotificationSheet> {
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
               ),
-              borderRadius:
-                  BorderRadius.vertical(top: Radius.circular(24)),
+              borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
             ),
-            padding:
-                const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
             child: Row(children: [
               const Icon(Icons.notifications_rounded,
                   color: Colors.white, size: 22),
@@ -282,8 +280,7 @@ class _NotificationSheetState extends ConsumerState<NotificationSheet> {
                   icon: const Icon(Icons.done_all_rounded,
                       size: 16, color: Colors.white),
                   label: const Text('อ่านทั้งหมด',
-                      style:
-                          TextStyle(fontSize: 12, color: Colors.white)),
+                      style: TextStyle(fontSize: 12, color: Colors.white)),
                   style: TextButton.styleFrom(
                       padding: const EdgeInsets.symmetric(
                           horizontal: 10, vertical: 6)),
@@ -306,8 +303,7 @@ class _NotificationSheetState extends ConsumerState<NotificationSheet> {
     if (_error != null) {
       return Center(
         child: Column(mainAxisSize: MainAxisSize.min, children: [
-          Icon(Icons.wifi_off_rounded,
-              size: 52, color: Colors.grey.shade300),
+          Icon(Icons.wifi_off_rounded, size: 52, color: Colors.grey.shade300),
           const SizedBox(height: 12),
           Text(_error!,
               style: TextStyle(color: Colors.grey.shade500, fontSize: 14)),
@@ -363,7 +359,8 @@ class _NotificationSheetState extends ConsumerState<NotificationSheet> {
         border: n.isRead
             ? null
             : Border.all(
-                color: const Color(0xFF628141).withValues(alpha: 0.3), width: 1),
+                color: const Color(0xFF628141).withValues(alpha: 0.3),
+                width: 1),
         boxShadow: [
           BoxShadow(
               color: Colors.black.withValues(alpha: 0.04),
@@ -372,8 +369,7 @@ class _NotificationSheetState extends ConsumerState<NotificationSheet> {
         ],
       ),
       child: ListTile(
-        contentPadding:
-            const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+        contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
         leading: Container(
           width: 44,
           height: 44,
@@ -399,22 +395,19 @@ class _NotificationSheetState extends ConsumerState<NotificationSheet> {
                   color: Color(0xFF628141), shape: BoxShape.circle),
             ),
         ]),
-        subtitle: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              if (n.message.isNotEmpty) ...[
-                const SizedBox(height: 3),
-                Text(n.message,
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                    style: TextStyle(
-                        fontSize: 13, color: Colors.grey.shade600)),
-              ],
-              const SizedBox(height: 4),
-              Text(_relativeTime(n.createdAt),
-                  style: TextStyle(
-                      fontSize: 11, color: Colors.grey.shade400)),
-            ]),
+        subtitle:
+            Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          if (n.message.isNotEmpty) ...[
+            const SizedBox(height: 3),
+            Text(n.message,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(fontSize: 13, color: Colors.grey.shade600)),
+          ],
+          const SizedBox(height: 4),
+          Text(_relativeTime(n.createdAt),
+              style: TextStyle(fontSize: 11, color: Colors.grey.shade400)),
+        ]),
       ),
     );
   }

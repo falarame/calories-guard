@@ -15,29 +15,29 @@ class FoodAllergyScreen extends ConsumerStatefulWidget {
 }
 
 class _FoodAllergyScreenState extends ConsumerState<FoodAllergyScreen> {
-  static const _green    = Color(0xFF628141);
-  static const _greenL   = Color(0xFFE8EFCF);
+  static const _green = Color(0xFF628141);
+  static const _greenL = Color(0xFFE8EFCF);
   static const _selected = Color(0xFFE67E22); // สีส้มตอนเลือก
 
   List<Map<String, dynamic>> _flags = [];
   Set<int> _selectedIds = {};
   bool _noAllergies = false;
-  bool _isLoading   = true;
-  bool _isSaving    = false;
+  bool _isLoading = true;
+  bool _isSaving = false;
   String? _errorMsg;
 
   // icon + color mapping ตามชื่อ allergy flag
   final List<_AllergyMeta> _metaList = const [
-    _AllergyMeta('ถั่วลิสง',          Icons.scatter_plot,     Color(0xFFD97706)),
-    _AllergyMeta('อาหารทะเล',         Icons.dinner_dining,    Color(0xFF0369A1)),
-    _AllergyMeta('ปลา',               Icons.set_meal,         Color(0xFF0284C7)),
-    _AllergyMeta('นม',                Icons.local_drink,      Color(0xFF7C3AED)),
-    _AllergyMeta('ไข่',               Icons.egg_alt,          Color(0xFFD97706)),
-    _AllergyMeta('กลูเตน',            Icons.bakery_dining,    Color(0xFF92400E)),
-    _AllergyMeta('ถั่วเหลือง',        Icons.eco,              Color(0xFF15803D)),
-    _AllergyMeta('ถั่วต้นไม้',        Icons.forest,           Color(0xFF166534)),
-    _AllergyMeta('งา',                Icons.grain,            Color(0xFFB45309)),
-    _AllergyMeta('แล็กโทส',           Icons.no_food,          Color(0xFF6D28D9)),
+    _AllergyMeta('ถั่วลิสง', Icons.scatter_plot, Color(0xFFD97706)),
+    _AllergyMeta('อาหารทะเล', Icons.dinner_dining, Color(0xFF0369A1)),
+    _AllergyMeta('ปลา', Icons.set_meal, Color(0xFF0284C7)),
+    _AllergyMeta('นม', Icons.local_drink, Color(0xFF7C3AED)),
+    _AllergyMeta('ไข่', Icons.egg_alt, Color(0xFFD97706)),
+    _AllergyMeta('กลูเตน', Icons.bakery_dining, Color(0xFF92400E)),
+    _AllergyMeta('ถั่วเหลือง', Icons.eco, Color(0xFF15803D)),
+    _AllergyMeta('ถั่วต้นไม้', Icons.forest, Color(0xFF166534)),
+    _AllergyMeta('งา', Icons.grain, Color(0xFFB45309)),
+    _AllergyMeta('แล็กโทส', Icons.no_food, Color(0xFF6D28D9)),
   ];
 
   _AllergyMeta _metaFor(String name) {
@@ -54,12 +54,16 @@ class _FoodAllergyScreenState extends ConsumerState<FoodAllergyScreen> {
   }
 
   Future<void> _loadFlags() async {
-    setState(() { _isLoading = true; _errorMsg = null; });
+    setState(() {
+      _isLoading = true;
+      _errorMsg = null;
+    });
     try {
       final res = await ApiClient().get('/allergy_flags');
 
       if (res.statusCode == 200) {
-        final data = (jsonDecode(res.body) as List).cast<Map<String, dynamic>>();
+        final data =
+            (jsonDecode(res.body) as List).cast<Map<String, dynamic>>();
         setState(() => _flags = data);
 
         final userId = ref.read(userDataProvider).userId;
@@ -70,8 +74,8 @@ class _FoodAllergyScreenState extends ConsumerState<FoodAllergyScreen> {
             final d2 = jsonDecode(r2.body);
             final ids = (d2['flag_ids'] as List).cast<int>();
             setState(() {
-              _selectedIds  = ids.toSet();
-              _noAllergies  = ids.isEmpty;
+              _selectedIds = ids.toSet();
+              _noAllergies = ids.isEmpty;
             });
           }
         } else {
@@ -229,9 +233,7 @@ class _FoodAllergyScreenState extends ConsumerState<FoodAllergyScreen> {
           const Text(
             'คุณแพ้อาหารประเภทไหน?',
             style: TextStyle(
-                fontSize: 26,
-                fontWeight: FontWeight.bold,
-                color: Colors.black),
+                fontSize: 26, fontWeight: FontWeight.bold, color: Colors.black),
           ),
           const SizedBox(height: 8),
           Text(
@@ -248,9 +250,7 @@ class _FoodAllergyScreenState extends ConsumerState<FoodAllergyScreen> {
               child: Text(
                 'เลือกแล้ว ${_selectedIds.length} รายการ',
                 style: const TextStyle(
-                    fontSize: 13,
-                    fontWeight: FontWeight.w600,
-                    color: _green),
+                    fontSize: 13, fontWeight: FontWeight.w600, color: _green),
               ),
             ),
           ],
@@ -270,8 +270,8 @@ class _FoodAllergyScreenState extends ConsumerState<FoodAllergyScreen> {
                     ),
                     itemCount: _flags.length,
                     itemBuilder: (_, i) {
-                      final flag     = _flags[i];
-                      final id       = flag['flag_id'] as int;
+                      final flag = _flags[i];
+                      final id = flag['flag_id'] as int;
                       final selected = _selectedIds.contains(id);
                       return _buildCard(flag, selected);
                     },
@@ -338,9 +338,11 @@ class _FoodAllergyScreenState extends ConsumerState<FoodAllergyScreen> {
           // checkmark มุมขวาบน
           if (selected)
             Positioned(
-              top: 8, right: 8,
+              top: 8,
+              right: 8,
               child: Container(
-                width: 20, height: 20,
+                width: 20,
+                height: 20,
                 decoration: const BoxDecoration(
                     color: _selected, shape: BoxShape.circle),
                 child: const Icon(Icons.check, size: 14, color: Colors.white),
@@ -385,8 +387,8 @@ class _FoodAllergyScreenState extends ConsumerState<FoodAllergyScreen> {
                       textAlign: TextAlign.center,
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,
-                      style: TextStyle(
-                          fontSize: 10, color: Colors.grey.shade500),
+                      style:
+                          TextStyle(fontSize: 10, color: Colors.grey.shade500),
                     ),
                   ],
                 ],
@@ -404,14 +406,12 @@ class _FoodAllergyScreenState extends ConsumerState<FoodAllergyScreen> {
       borderRadius: BorderRadius.circular(12),
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 150),
-        padding:
-            const EdgeInsets.symmetric(vertical: 16, horizontal: 20),
+        padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 20),
         decoration: BoxDecoration(
           color: _noAllergies ? _greenL : Colors.white,
           borderRadius: BorderRadius.circular(12),
           border: Border.all(
-              color: _noAllergies ? _green : Colors.grey.shade200,
-              width: 1.5),
+              color: _noAllergies ? _green : Colors.grey.shade200, width: 1.5),
         ),
         child: Row(
           children: [
@@ -422,9 +422,8 @@ class _FoodAllergyScreenState extends ConsumerState<FoodAllergyScreen> {
                 'ไม่มีอาหารที่ฉันแพ้',
                 style: TextStyle(
                     fontSize: 16,
-                    fontWeight: _noAllergies
-                        ? FontWeight.bold
-                        : FontWeight.normal),
+                    fontWeight:
+                        _noAllergies ? FontWeight.bold : FontWeight.normal),
               ),
             ),
             Container(
@@ -433,14 +432,12 @@ class _FoodAllergyScreenState extends ConsumerState<FoodAllergyScreen> {
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
                 border: Border.all(
-                    color:
-                        _noAllergies ? _green : Colors.grey.shade300,
+                    color: _noAllergies ? _green : Colors.grey.shade300,
                     width: 2),
                 color: _noAllergies ? _green : Colors.transparent,
               ),
               child: _noAllergies
-                  ? const Icon(Icons.check,
-                      size: 16, color: Colors.white)
+                  ? const Icon(Icons.check, size: 16, color: Colors.white)
                   : null,
             ),
           ],

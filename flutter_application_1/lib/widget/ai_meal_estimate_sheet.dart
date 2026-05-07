@@ -63,7 +63,8 @@ class _AiMealEstimateSheetState extends State<AiMealEstimateSheet> {
         setState(() => _error = 'AI ประมวลผลไม่สำเร็จ (${res.statusCode})');
         return;
       }
-      final data = jsonDecode(utf8.decode(res.bodyBytes)) as Map<String, dynamic>;
+      final data =
+          jsonDecode(utf8.decode(res.bodyBytes)) as Map<String, dynamic>;
       final rawItems = (data['items'] as List?) ?? [];
       final total = (data['total'] as Map?) ?? {};
       setState(() {
@@ -142,8 +143,8 @@ class _AiMealEstimateSheetState extends State<AiMealEstimateSheet> {
                 const Icon(Icons.auto_awesome, color: Color(0xFF628141)),
                 const SizedBox(width: 8),
                 const Text('บันทึกมื้ออาหารด้วย AI',
-                    style: TextStyle(
-                        fontSize: 18, fontWeight: FontWeight.bold)),
+                    style:
+                        TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
                 const Spacer(),
                 IconButton(
                   icon: const Icon(Icons.close),
@@ -163,8 +164,8 @@ class _AiMealEstimateSheetState extends State<AiMealEstimateSheet> {
               maxLength: 500,
               decoration: InputDecoration(
                 hintText: 'อธิบายมื้อนี้...',
-                border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12)),
+                border:
+                    OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
               ),
             ),
             const SizedBox(height: 8),

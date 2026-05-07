@@ -10,7 +10,8 @@ class WebUnsupportedPlaceholder extends StatelessWidget {
   const WebUnsupportedPlaceholder({
     super.key,
     this.title = 'ฟีเจอร์เฉพาะแอปมือถือ',
-    this.message = 'ฟีเจอร์นี้ใช้งานได้เฉพาะบนแอปมือถือ\nกรุณาดาวน์โหลดแอปเพื่อใช้งาน',
+    this.message =
+        'ฟีเจอร์นี้ใช้งานได้เฉพาะบนแอปมือถือ\nกรุณาดาวน์โหลดแอปเพื่อใช้งาน',
     this.icon = Icons.phone_android_rounded,
   });
 

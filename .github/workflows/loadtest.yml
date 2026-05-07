@@ -1,0 +1,52 @@
+name: Staging load test
+
+on:
+  workflow_dispatch:
+    inputs:
+      scenario:
+        description: "foods | meals | chat | all"
+        required: true
+        default: "all"
+
+concurrency:
+  group: loadtest-staging
+  cancel-in-progress: false
+
+jobs:
+  k6:
+    name: k6 against staging
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: grafana/setup-k6-action@v1
+
+      - name: Validate staging secrets
+        run: |
+          test -n "${{ secrets.STAGING_URL }}" || (echo "::error::STAGING_URL is missing" && exit 1)
+          test -n "${{ secrets.LOADTEST_USER_TOKEN }}" || (echo "::error::LOADTEST_USER_TOKEN is missing" && exit 1)
+          test -n "${{ secrets.LOADTEST_USER_ID }}" || (echo "::error::LOADTEST_USER_ID is missing" && exit 1)
+
+      - name: Foods search
+        if: inputs.scenario == 'foods' || inputs.scenario == 'all'
+        env:
+          BASE_URL: ${{ secrets.STAGING_URL }}
+          TEST_USER_TOKEN: ${{ secrets.LOADTEST_USER_TOKEN }}
+        run: k6 run backend/scripts/loadtest/foods.js
+
+      - name: Meal create and summary
+        if: inputs.scenario == 'meals' || inputs.scenario == 'all'
+        env:
+          BASE_URL: ${{ secrets.STAGING_URL }}
+          TEST_USER_TOKEN: ${{ secrets.LOADTEST_USER_TOKEN }}
+          TEST_USER_ID: ${{ secrets.LOADTEST_USER_ID }}
+        run: k6 run backend/scripts/loadtest/meals.js
+
+      - name: AI chat
+        if: inputs.scenario == 'chat' || inputs.scenario == 'all'
+        env:
+          BASE_URL: ${{ secrets.STAGING_URL }}
+          TEST_USER_TOKEN: ${{ secrets.LOADTEST_USER_TOKEN }}
+          TEST_USER_ID: ${{ secrets.LOADTEST_USER_ID }}
+        run: k6 run backend/scripts/loadtest/chat.js

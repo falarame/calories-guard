@@ -239,8 +239,7 @@ class _TargetWeightScreenState extends ConsumerState<TargetWeightScreen> {
       return DurationSliderScreen(
         selectedGoal: widget.selectedGoal,
         currentDate: DateTime.now(),
-        minDurationDays:
-            _minDurationDays(currentWeight, _selectedWeight),
+        minDurationDays: _minDurationDays(currentWeight, _selectedWeight),
         recommendedDurationDays:
             _calculateRecommendedDuration(currentWeight, _selectedWeight),
         onBack: () {

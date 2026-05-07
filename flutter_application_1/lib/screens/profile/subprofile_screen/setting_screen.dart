@@ -2,6 +2,8 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_application_1/services/api_client.dart';
+import 'package:url_launcher/url_launcher.dart';
+import '../../../constants/constants.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../../providers/user_data_provider.dart';
 import '../../../providers/settings_provider.dart';
@@ -37,8 +39,7 @@ class _SettingScreenState extends ConsumerState<SettingScreen> {
   }
 
   String _regionLabel(AppLocalizations l10n) {
-    final match =
-        _regions(l10n).where((r) => r['code'] == _selectedRegion);
+    final match = _regions(l10n).where((r) => r['code'] == _selectedRegion);
     return match.isEmpty ? l10n.tr('common.not_set') : match.first['label']!;
   }
 
@@ -85,9 +86,8 @@ class _SettingScreenState extends ConsumerState<SettingScreen> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-              content: Text(l10n.tr(
-                  'settings.delete_account.error',
-                  {'message': '$e'})),
+              content: Text(
+                  l10n.tr('settings.delete_account.error', {'message': '$e'})),
               backgroundColor: Colors.red),
         );
       }
@@ -150,6 +150,17 @@ class _SettingScreenState extends ConsumerState<SettingScreen> {
     );
   }
 
+  Future<void> _openExternalUrl(String url) async {
+    final uri = Uri.parse(url);
+    if (!await launchUrl(uri, mode: LaunchMode.externalApplication)) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+            content: Text(AppLocalizations.of(context).tr('common.error'))),
+      );
+    }
+  }
+
   void _showLanguageSelector() {
     final l10n = AppLocalizations.of(context);
     final current = ref.read(appSettingsProvider).language;
@@ -209,8 +220,7 @@ class _SettingScreenState extends ConsumerState<SettingScreen> {
         ref.read(appSettingsProvider.notifier).setLanguage(code);
         Navigator.pop(context);
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-          content: Text(
-              l10n.tr('settings.language.changed', {'label': label})),
+          content: Text(l10n.tr('settings.language.changed', {'label': label})),
           backgroundColor: palette.brand,
           duration: const Duration(seconds: 2),
         ));
@@ -239,8 +249,7 @@ class _SettingScreenState extends ConsumerState<SettingScreen> {
           if (selected)
             Icon(Icons.check_circle_rounded, color: palette.brand, size: 22)
           else
-            Icon(Icons.circle_outlined,
-                color: palette.textFaint, size: 22),
+            Icon(Icons.circle_outlined, color: palette.textFaint, size: 22),
         ]),
       ),
     );
@@ -316,8 +325,7 @@ class _SettingScreenState extends ConsumerState<SettingScreen> {
         ref.read(appSettingsProvider.notifier).setTheme(code);
         Navigator.pop(context);
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-          content:
-              Text(l10n.tr('settings.theme.changed', {'label': label})),
+          content: Text(l10n.tr('settings.theme.changed', {'label': label})),
           backgroundColor: palette.brand,
           duration: const Duration(seconds: 2),
         ));
@@ -326,7 +334,8 @@ class _SettingScreenState extends ConsumerState<SettingScreen> {
         duration: const Duration(milliseconds: 200),
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
         decoration: BoxDecoration(
-          color: selected ? color.withValues(alpha: 0.10) : palette.surfaceMuted,
+          color:
+              selected ? color.withValues(alpha: 0.10) : palette.surfaceMuted,
           borderRadius: BorderRadius.circular(14),
           border: Border.all(
             color: selected ? color : Theme.of(context).dividerColor,
@@ -354,8 +363,7 @@ class _SettingScreenState extends ConsumerState<SettingScreen> {
           if (selected)
             Icon(Icons.check_circle_rounded, color: color, size: 22)
           else
-            Icon(Icons.circle_outlined,
-                color: palette.textFaint, size: 22),
+            Icon(Icons.circle_outlined, color: palette.textFaint, size: 22),
         ]),
       ),
     );
@@ -447,8 +455,7 @@ class _SettingScreenState extends ConsumerState<SettingScreen> {
           if (selected)
             Icon(Icons.check_circle_rounded, color: palette.brand, size: 22)
           else
-            Icon(Icons.circle_outlined,
-                color: palette.textFaint, size: 22),
+            Icon(Icons.circle_outlined, color: palette.textFaint, size: 22),
         ]),
       ),
     );
@@ -469,15 +476,14 @@ class _SettingScreenState extends ConsumerState<SettingScreen> {
         setState(() => _selectedRegion = code);
         Navigator.pop(context);
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-          content: Text(
-              l10n.tr('settings.region.changed', {'label': label})),
+          content: Text(l10n.tr('settings.region.changed', {'label': label})),
           backgroundColor: palette.brand,
           duration: const Duration(seconds: 2),
         ));
       } else {
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-          content: Text(l10n.tr('settings.region.failed',
-              {'code': '${response.statusCode}'})),
+          content: Text(l10n.tr(
+              'settings.region.failed', {'code': '${response.statusCode}'})),
           backgroundColor: Colors.red,
         ));
       }
@@ -539,23 +545,23 @@ class _SettingScreenState extends ConsumerState<SettingScreen> {
               const SizedBox(width: 40),
             ]),
           ),
-
           const SizedBox(height: 24),
-
           _buildSectionLabel(l10n.tr('settings.group.general')),
           const SizedBox(height: 10),
           _buildCard([
             _buildTile(
               icon: Icons.privacy_tip_outlined,
               title: l10n.tr('settings.privacy'),
-              onTap: () => _showInfoDialog(
-                  l10n.tr('settings.privacy'), l10n.tr('settings.privacy.body')),
+              onTap: () => _openExternalUrl(AppConstants.privacyPolicyUrl),
+            ),
+            _buildTile(
+              icon: Icons.article_outlined,
+              title: l10n.tr('settings.terms'),
+              onTap: () => _openExternalUrl(AppConstants.termsOfServiceUrl),
             ),
             _buildNotificationTile(),
           ]),
-
           const SizedBox(height: 16),
-
           _buildSectionLabel(l10n.tr('settings.group.display')),
           const SizedBox(height: 10),
           _buildCard([
@@ -581,9 +587,7 @@ class _SettingScreenState extends ConsumerState<SettingScreen> {
               onTap: _showThemeSelector,
             ),
           ]),
-
           const SizedBox(height: 16),
-
           _buildSectionLabel(l10n.tr('settings.group.support')),
           const SizedBox(height: 10),
           _buildCard([
@@ -601,9 +605,7 @@ class _SettingScreenState extends ConsumerState<SettingScreen> {
                   l10n.tr('settings.help'), l10n.tr('settings.help.body')),
             ),
           ]),
-
           const SizedBox(height: 16),
-
           _buildSectionLabel(l10n.tr('settings.group.about')),
           const SizedBox(height: 10),
           _buildCard([
@@ -621,9 +623,7 @@ class _SettingScreenState extends ConsumerState<SettingScreen> {
                   l10n.tr('settings.about'), l10n.tr('settings.about.body')),
             ),
           ]),
-
           const SizedBox(height: 16),
-
           _buildSectionLabel(l10n.tr('settings.group.account')),
           const SizedBox(height: 10),
           _buildCard([
@@ -646,9 +646,7 @@ class _SettingScreenState extends ConsumerState<SettingScreen> {
               onTap: _showDeleteConfirmDialog,
             ),
           ]),
-
           const SizedBox(height: 32),
-
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 20),
             child: SizedBox(

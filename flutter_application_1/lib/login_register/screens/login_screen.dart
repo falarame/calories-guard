@@ -6,7 +6,6 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../l10n/app_localizations.dart';
 import '../../providers/user_data_provider.dart';
 import '../../services/auth_service.dart';
-import '../../theme/app_theme.dart';
 import 'data_consent_screen.dart';
 import 'forgot_password_screen.dart';
 import 'gender_selection_screen.dart';
@@ -447,8 +446,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
                             _buildSocialButton(
                               label: 'เบอร์โทรศัพท์',
                               icon: Icon(Icons.phone_outlined,
-                                  size: 20,
-                                  color: Colors.grey.shade600),
+                                  size: 20, color: Colors.grey.shade600),
                               borderColor: Colors.grey.shade300,
                               isLoading: false,
                               onTap: (_isLoading || _isGoogleLoading)

@@ -16,8 +16,7 @@ class WeightChartScreen extends ConsumerStatefulWidget {
   const WeightChartScreen({super.key});
 
   @override
-  ConsumerState<WeightChartScreen> createState() =>
-      _WeightChartScreenState();
+  ConsumerState<WeightChartScreen> createState() => _WeightChartScreenState();
 }
 
 class _WeightChartScreenState extends ConsumerState<WeightChartScreen> {
@@ -83,8 +82,8 @@ class _WeightChartScreenState extends ConsumerState<WeightChartScreen> {
         return StatefulBuilder(
           builder: (ctx, setSheetState) {
             return Padding(
-              padding: EdgeInsets.only(
-                  bottom: MediaQuery.of(ctx).viewInsets.bottom),
+              padding:
+                  EdgeInsets.only(bottom: MediaQuery.of(ctx).viewInsets.bottom),
               child: Container(
                 decoration: BoxDecoration(
                   color: palette.surfaceCard,
@@ -115,11 +114,10 @@ class _WeightChartScreenState extends ConsumerState<WeightChartScreen> {
                     TextFormField(
                       controller: controller,
                       autofocus: true,
-                      keyboardType: const TextInputType.numberWithOptions(
-                          decimal: true),
+                      keyboardType:
+                          const TextInputType.numberWithOptions(decimal: true),
                       inputFormatters: [
-                        FilteringTextInputFormatter.allow(
-                            RegExp(r'[0-9.]')),
+                        FilteringTextInputFormatter.allow(RegExp(r'[0-9.]')),
                       ],
                       style: TextStyle(
                           fontSize: 22,
@@ -144,12 +142,10 @@ class _WeightChartScreenState extends ConsumerState<WeightChartScreen> {
                     Row(children: [
                       Expanded(
                         child: OutlinedButton(
-                          onPressed: submitting
-                              ? null
-                              : () => Navigator.pop(sheetCtx),
+                          onPressed:
+                              submitting ? null : () => Navigator.pop(sheetCtx),
                           style: OutlinedButton.styleFrom(
-                            padding:
-                                const EdgeInsets.symmetric(vertical: 14),
+                            padding: const EdgeInsets.symmetric(vertical: 14),
                             shape: RoundedRectangleBorder(
                                 borderRadius: BorderRadius.circular(14)),
                           ),
@@ -179,8 +175,7 @@ class _WeightChartScreenState extends ConsumerState<WeightChartScreen> {
                           style: ElevatedButton.styleFrom(
                             backgroundColor: palette.brand,
                             foregroundColor: Colors.white,
-                            padding:
-                                const EdgeInsets.symmetric(vertical: 14),
+                            padding: const EdgeInsets.symmetric(vertical: 14),
                             shape: RoundedRectangleBorder(
                                 borderRadius: BorderRadius.circular(14)),
                           ),
@@ -189,8 +184,7 @@ class _WeightChartScreenState extends ConsumerState<WeightChartScreen> {
                                   height: 18,
                                   width: 18,
                                   child: CircularProgressIndicator(
-                                      strokeWidth: 2,
-                                      color: Colors.white),
+                                      strokeWidth: 2, color: Colors.white),
                                 )
                               : Text(l10n.tr('weight.dialog.save'),
                                   style: const TextStyle(

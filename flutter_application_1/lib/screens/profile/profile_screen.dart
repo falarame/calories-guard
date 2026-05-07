@@ -40,7 +40,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     try {
       final bytes = await xfile.readAsBytes();
       final filename = xfile.name.isNotEmpty ? xfile.name : 'avatar.jpg';
-      print(
+      debugPrint(
           '[upload] filename=$filename bytes=${bytes.length} header=${bytes.take(4).toList()}');
       final userId = ref.read(userDataProvider).userId;
       final streamed = await ApiClient().uploadBytes(
@@ -51,9 +51,11 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
         extraFields: {'user_id': userId.toString()},
       );
       final response = await http.Response.fromStream(streamed);
-      print('[upload] status=${response.statusCode} body=${response.body}');
-      if (response.statusCode != 200)
+      debugPrint(
+          '[upload] status=${response.statusCode} body=${response.body}');
+      if (response.statusCode != 200) {
         throw Exception('${response.statusCode}: ${response.body}');
+      }
       final data = jsonDecode(response.body) as Map<String, dynamic>;
       final url = data['url'] as String?;
       if (url == null) throw Exception('No URL');
@@ -62,7 +64,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
           .put('/users/$userId', body: {'avatar_url': cacheBusted});
       ref.read(userDataProvider.notifier).setAvatarUrl(cacheBusted);
     } catch (e, st) {
-      print('[upload] ERROR: $e\n$st');
+      debugPrint('[upload] ERROR: $e\n$st');
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('อัปโหลดไม่สำเร็จ: $e')),
@@ -359,10 +361,10 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
 
   Color _daysColor(String daysLeftText) {
     final days = int.tryParse(daysLeftText) ?? 0;
-    if (days <= 0) return const Color(0xFF6B7280);   // gray — deadline passed
-    if (days <= 14) return const Color(0xFFE85D04);  // orange — urgent
-    if (days <= 30) return const Color(0xFFD97706);  // amber — approaching
-    return const Color(0xFF628141);                  // brand green — on track
+    if (days <= 0) return const Color(0xFF6B7280); // gray — deadline passed
+    if (days <= 14) return const Color(0xFFE85D04); // orange — urgent
+    if (days <= 30) return const Color(0xFFD97706); // amber — approaching
+    return const Color(0xFF628141); // brand green — on track
   }
 
   Widget _buildStatsRow(dynamic userData, String daysLeftText) {
@@ -552,10 +554,10 @@ class _BadgesSectionState extends State<_BadgesSection> {
                 padding:
                     const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                 decoration: BoxDecoration(
-                  color: const Color(0xFF628141).withOpacity(0.1),
+                  color: const Color(0xFF628141).withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(12),
                   border: Border.all(
-                      color: const Color(0xFF628141).withOpacity(0.4)),
+                      color: const Color(0xFF628141).withValues(alpha: 0.4)),
                 ),
                 child: Row(mainAxisSize: MainAxisSize.min, children: [
                   Text(emoji, style: const TextStyle(fontSize: 18)),

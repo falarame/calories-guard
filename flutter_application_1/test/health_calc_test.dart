@@ -14,6 +14,7 @@
 ///  - Age validation: min 13 — AAP/COPPA eating disorder risk < 13
 ///             Tallest human on record: 272 cm (Wadlow, 1940)
 ///             Guinness heaviest: 635 kg — app caps at 300 kg for realism
+library;
 
 import 'package:flutter_test/flutter_test.dart';
 
@@ -213,7 +214,7 @@ void main() {
     });
 
     test('Asian BMR < Mifflin-St Jeor ดิบ เสมอ (correction ลด ~6%)', () {
-      final rawMale = (10 * 70.0) + (6.25 * 175) - (5 * 25) + 5;
+      const rawMale = (10 * 70.0) + (6.25 * 175) - (5 * 25) + 5;
       expect(calcBmr(70, 175, 25, 'male'), lessThan(rawMale));
     });
 
@@ -281,7 +282,7 @@ void main() {
     });
 
     test('TDEE very_active > moderately_active > sedentary', () {
-      final bmr = 1500.0;
+      const bmr = 1500.0;
       expect(calcTdee(bmr, 'very_active'),
           greaterThan(calcTdee(bmr, 'moderately_active')));
       expect(calcTdee(bmr, 'moderately_active'),

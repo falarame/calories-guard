@@ -25,6 +25,13 @@ class AppConstants {
     defaultValue: '',
   );
 
+  static const String appEnv = String.fromEnvironment(
+    'APP_ENV',
+    defaultValue: 'production',
+  );
+
+  static bool get isStaging => appEnv == 'staging';
+
   /// Must match the major segment ("YYYY") of backend `API_VERSION`.
   /// Bump this in the same PR that upgrades the client to a breaking
   /// server release. See docs/CHANGELOG_API.md for the contract.
@@ -36,10 +43,10 @@ class AppConstants {
   /// in the repo at `docs/privacy-policy.md` and `docs/terms-of-service.md`.
   static const String privacyPolicyUrl = String.fromEnvironment(
     'PRIVACY_POLICY_URL',
-    defaultValue: 'https://calories-guard.pages.dev/privacy',
+    defaultValue: 'https://calories-guard.pages.dev/privacy.html',
   );
   static const String termsOfServiceUrl = String.fromEnvironment(
     'TERMS_URL',
-    defaultValue: 'https://calories-guard.pages.dev/terms',
+    defaultValue: 'https://calories-guard.pages.dev/terms.html',
   );
 }

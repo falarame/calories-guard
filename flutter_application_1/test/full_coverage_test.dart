@@ -11,6 +11,7 @@
 ///   D. FoodLog model     — auto snapshot, meal types
 ///   E. AppSettings       — copyWith, default values
 ///   F. GoalOption enum   — ค่า enum และ macro ratio ตาม goal
+library;
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -759,9 +760,9 @@ void main() {
   // ══════════════════════════════════════════════════════════════
 
   group('[AppSettings] default + copyWith', () {
-    test('default language = en, theme = light', () {
+    test('default language = th, theme = light', () {
       const s = AppSettings();
-      expect(s.language, 'en');
+      expect(s.language, 'th');
       expect(s.theme, 'light');
     });
 
@@ -793,7 +794,7 @@ void main() {
 
   // themeModeProvider ใช้ switch เดียวกันนี้ภายใน:
   // 'dark' → dark | 'system' → system | default → light
-  ThemeMode _themeFrom(String t) {
+  ThemeMode themeFrom(String t) {
     switch (t) {
       case 'dark':
         return ThemeMode.dark;
@@ -806,13 +807,13 @@ void main() {
 
   group('[themeModeProvider] theme string → ThemeMode', () {
     test('dark → ThemeMode.dark',
-        () => expect(_themeFrom('dark'), ThemeMode.dark));
+        () => expect(themeFrom('dark'), ThemeMode.dark));
     test('system → ThemeMode.system',
-        () => expect(_themeFrom('system'), ThemeMode.system));
+        () => expect(themeFrom('system'), ThemeMode.system));
     test('light → ThemeMode.light',
-        () => expect(_themeFrom('light'), ThemeMode.light));
+        () => expect(themeFrom('light'), ThemeMode.light));
     test('unknown → ThemeMode.light (default)',
-        () => expect(_themeFrom('xyz'), ThemeMode.light));
+        () => expect(themeFrom('xyz'), ThemeMode.light));
   });
 
   // ══════════════════════════════════════════════════════════════

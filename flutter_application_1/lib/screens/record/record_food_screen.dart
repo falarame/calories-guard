@@ -982,9 +982,9 @@ class _FoodLogScreenState extends ConsumerState<FoodLogScreen>
             _debouncedSaveWater();
             if (mounted) {
               ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-                content: Text(
-                    '💧 เพิ่มน้ำ ${addedMl.toInt()} ml จากเครื่องดื่มนี้ '
-                    '(รวม ${newMl.toInt()} ml วันนี้)'),
+                content:
+                    Text('💧 เพิ่มน้ำ ${addedMl.toInt()} ml จากเครื่องดื่มนี้ '
+                        '(รวม ${newMl.toInt()} ml วันนี้)'),
                 backgroundColor: const Color(0xFF1565C0),
                 duration: const Duration(seconds: 3),
               ));
@@ -1232,7 +1232,8 @@ class _FoodLogScreenState extends ConsumerState<FoodLogScreen>
           (item) => item['severity'] == 'danger',
           orElse: () => nutritionSafetyWarnings.first,
         );
-        final title = warning['title']?.toString() ?? 'แคลอรี่วันนี้เสี่ยงเกินไป';
+        final title =
+            warning['title']?.toString() ?? 'แคลอรี่วันนี้เสี่ยงเกินไป';
         final message = warning['message']?.toString() ??
             'ระบบพบความเสี่ยงจากแคลอรี่ที่บันทึกวันนี้';
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(
@@ -1887,7 +1888,8 @@ class _AddFoodSheetState extends ConsumerState<_AddFoodSheet>
                                         fontWeight: FontWeight.w600)),
                               ),
                               // badge ภาษาท้องถิ่น
-                              if ((f['regional_name'] as String?)?.isNotEmpty == true)
+                              if ((f['regional_name'] as String?)?.isNotEmpty ==
+                                  true)
                                 Container(
                                   margin: const EdgeInsets.only(left: 4),
                                   padding: const EdgeInsets.symmetric(
@@ -1949,7 +1951,9 @@ class _AddFoodSheetState extends ConsumerState<_AddFoodSheet>
                                         fontSize: 11,
                                         color: Colors.grey.shade500)),
                                 // แสดงชื่อท้องถิ่นเป็น hint เมื่อ display_name ต่างจาก food_name
-                                if ((f['regional_name'] as String?)?.isNotEmpty == true &&
+                                if ((f['regional_name'] as String?)
+                                            ?.isNotEmpty ==
+                                        true &&
                                     f['regional_name'] != f['food_name'])
                                   Text(
                                     'ชื่อสามัญ: ${f['food_name'] ?? ''}',

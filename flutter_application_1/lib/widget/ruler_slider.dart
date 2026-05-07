@@ -9,8 +9,9 @@ class RulerSlider extends StatefulWidget {
   final String unit;
   final bool showDecimals;
   final String? displayUnit; // Display unit (e.g., 'สัปดาห์' for weeks)
-  final double? displayDivisor; // Divisor for display (e.g., 7 for weeks from days)
-  
+  final double?
+      displayDivisor; // Divisor for display (e.g., 7 for weeks from days)
+
   const RulerSlider({
     super.key,
     required this.value,
@@ -37,7 +38,7 @@ class _RulerSliderState extends State<RulerSlider> {
     super.initState();
     _currentValue = widget.value;
     _scrollController = ScrollController();
-    
+
     // Scroll to initial value
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _scrollToValue(_currentValue);
@@ -66,7 +67,7 @@ class _RulerSliderState extends State<RulerSlider> {
     final index = (offset / 60.0).round();
     final newValue = (widget.minValue + (index * widget.step))
         .clamp(widget.minValue, widget.maxValue);
-    
+
     if ((newValue - _currentValue).abs() >= widget.step * 0.9) {
       setState(() {
         _currentValue = newValue;
@@ -77,8 +78,9 @@ class _RulerSliderState extends State<RulerSlider> {
 
   @override
   Widget build(BuildContext context) {
-    final itemCount = ((widget.maxValue - widget.minValue) / widget.step).ceil() + 1;
-    
+    final itemCount =
+        ((widget.maxValue - widget.minValue) / widget.step).ceil() + 1;
+
     // Calculate display value
     double displayValue = _currentValue;
     String displayUnit = widget.unit;
@@ -86,7 +88,7 @@ class _RulerSliderState extends State<RulerSlider> {
       displayValue = _currentValue / widget.displayDivisor!;
       displayUnit = widget.displayUnit!;
     }
-    
+
     return Column(
       children: [
         // Display selected value
@@ -107,7 +109,7 @@ class _RulerSliderState extends State<RulerSlider> {
             ],
           ),
         ),
-        
+
         // Ruler slider
         Center(
           child: Column(
@@ -129,7 +131,7 @@ class _RulerSliderState extends State<RulerSlider> {
                   ],
                 ),
               ),
-              
+
               // Scrollable ruler
               SizedBox(
                 height: 80,
@@ -146,7 +148,7 @@ class _RulerSliderState extends State<RulerSlider> {
                     itemBuilder: (context, index) {
                       final value = widget.minValue + (index * widget.step);
                       final isMajor = (index % 5) == 0;
-                      
+
                       return SizedBox(
                         width: 60,
                         child: Column(
@@ -155,13 +157,16 @@ class _RulerSliderState extends State<RulerSlider> {
                             Container(
                               width: isMajor ? 2 : 1,
                               height: isMajor ? 30 : 20,
-                              color: isMajor ? const Color(0xFF628141) : Colors.grey,
+                              color: isMajor
+                                  ? const Color(0xFF628141)
+                                  : Colors.grey,
                             ),
                             const SizedBox(height: 4),
                             if (isMajor)
                               Text(
                                 value.toStringAsFixed(0),
-                                style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w500),
+                                style: const TextStyle(
+                                    fontSize: 12, fontWeight: FontWeight.w500),
                               ),
                           ],
                         ),

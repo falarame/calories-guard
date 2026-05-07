@@ -58,7 +58,7 @@ client, so they capture Flutter work (layout, form validation) too:
 | Client op | File | Notes |
 |---|---|---|
 | `meal.record` | `lib/screens/record/record_food_screen.dart` → `_submit()` | Wrap with `Sentry.startTransaction("meal.record", "ui.submit")`. |
-| `chat.send` | `lib/screens/chat/chat_screen.dart` → `_sendMessage()` | Same pattern. |
+| `chat.send` | `lib/screens/chat/chat_screen.dart` → `_send()` | Errors are reported through `ErrorReporter.report("chat.send", ...)`; add a full Sentry transaction if UI latency needs its own SLO. |
 
 `lib/services/error_reporter.dart` already ships silent errors to Sentry
 with a `where=` tag — that gives a per-screen breakdown in the issues
@@ -106,8 +106,8 @@ tune after a week of data.
 
 1. Check Sentry `chat.*` dashboard. If failure rate > 30% persistent:
 2. Railway → prod service → env vars → set `AI_ENABLED=false` → restart.
-3. Clients get 503 and display the "AI unavailable" banner (see
-   `lib/services/api_client.dart` 503 handling — TODO if not wired).
+3. Clients get 503 and display a clear AI-unavailable fallback in
+   `lib/screens/chat/chat_screen.dart`; core logging/dashboard features remain usable.
 4. Keep monitoring Ollama process health, CPU/GPU/RAM, and request latency.
 5. Flip `AI_ENABLED` back to `true` once failure rate < 5% for 30 min.
 

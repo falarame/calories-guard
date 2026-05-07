@@ -37,11 +37,12 @@ class Food {
 }
 
 class FoodLog {
-  final String id; // อันนี้เป็น ID ของการกิน เก็บไว้เป็น String หรือ int ก็ได้ตามการออกแบบ App
+  final String
+      id; // อันนี้เป็น ID ของการกิน เก็บไว้เป็น String หรือ int ก็ได้ตามการออกแบบ App
   final DateTime dateConsumed;
   final MealType meal;
-  final Food food; 
-  
+  final Food food;
+
   // Snapshot Values (ปรับเป็น double ตาม Food)
   final double loggedCalories;
   final double loggedProtein;
@@ -53,10 +54,10 @@ class FoodLog {
     required this.dateConsumed,
     required this.meal,
     required this.food,
-  }) : 
-    // Auto Snapshot: ดึงค่าจาก Food มาเก็บไว้เลย
-    loggedCalories = food.calories,
-    loggedProtein = food.protein,
-    loggedCarbs = food.carbs,
-    loggedFat = food.fat;
+  })  :
+        // Auto Snapshot: ดึงค่าจาก Food มาเก็บไว้เลย
+        loggedCalories = food.calories,
+        loggedProtein = food.protein,
+        loggedCarbs = food.carbs,
+        loggedFat = food.fat;
 }

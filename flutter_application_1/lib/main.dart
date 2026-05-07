@@ -129,7 +129,57 @@ class MyApp extends ConsumerWidget {
         GlobalCupertinoLocalizations.delegate,
       ],
       supportedLocales: AppLocalizations.supportedLocales,
+      builder: (context, child) => _EnvironmentBanner(child: child),
       home: const AuthBootstrap(),
+    );
+  }
+}
+
+class _EnvironmentBanner extends StatelessWidget {
+  const _EnvironmentBanner({required this.child});
+
+  final Widget? child;
+
+  @override
+  Widget build(BuildContext context) {
+    if (!AppConstants.isStaging) return child ?? const SizedBox.shrink();
+    return Stack(
+      children: [
+        child ?? const SizedBox.shrink(),
+        Positioned(
+          top: MediaQuery.of(context).padding.top + 8,
+          right: 12,
+          child: IgnorePointer(
+            child: Material(
+              color: Colors.transparent,
+              child: Container(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFE67E22),
+                  borderRadius: BorderRadius.circular(6),
+                  boxShadow: const [
+                    BoxShadow(
+                      color: Color(0x33000000),
+                      blurRadius: 8,
+                      offset: Offset(0, 2),
+                    ),
+                  ],
+                ),
+                child: const Text(
+                  'STAGING',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 11,
+                    fontWeight: FontWeight.w800,
+                    letterSpacing: 0.5,
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ),
+      ],
     );
   }
 }

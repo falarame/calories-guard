@@ -727,7 +727,6 @@ class _ProgressScreenState extends ConsumerState<ProgressScreen> {
                   child: Column(
                     children: [
                       const SizedBox(height: 20),
-
                       Padding(
                         padding: const EdgeInsets.symmetric(horizontal: 13),
                         child: Row(
@@ -754,15 +753,10 @@ class _ProgressScreenState extends ConsumerState<ProgressScreen> {
                           ],
                         ),
                       ),
-
                       const SizedBox(height: 20),
-
                       const SizedBox(height: 4),
-
                       _buildWeeklyChartSection(targetCal, userData),
-
                       const SizedBox(height: 10),
-
                       ...[
                         // --- 2. BMI Card ---
 
@@ -1468,7 +1462,6 @@ class _ProgressScreenState extends ConsumerState<ProgressScreen> {
     );
   }
 
-
   String _formatNumber(int n) {
     if (n.abs() < 1000) return '$n';
 
@@ -1811,7 +1804,6 @@ class _ProgressScreenState extends ConsumerState<ProgressScreen> {
       child: child,
     );
   }
-
 }
 
 class _WeeklyBarChart extends StatelessWidget {

@@ -66,8 +66,8 @@ ThemeData buildDarkTheme() {
       foregroundColor: Colors.white,
       elevation: 0,
     ),
-    dividerTheme: const DividerThemeData(
-        color: Color(0xFF2A312B), thickness: 1),
+    dividerTheme:
+        const DividerThemeData(color: Color(0xFF2A312B), thickness: 1),
     extensions: const [
       AppPalette(
         brand: Color(0xFF8FB069),

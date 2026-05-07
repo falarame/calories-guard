@@ -55,8 +55,7 @@ class WeightChartCard extends StatelessWidget {
                 Text(
                   l10n.tr('progress.no_data.body'),
                   textAlign: TextAlign.center,
-                  style: TextStyle(
-                      fontSize: 13, color: palette.textSecondary),
+                  style: TextStyle(fontSize: 13, color: palette.textSecondary),
                 ),
               ]),
             ),
@@ -105,8 +104,8 @@ class WeightChartCard extends StatelessWidget {
               Icon(Icons.show_chart, size: 14, color: palette.brandStrong),
               const SizedBox(width: 4),
               Text(
-                l10n.tr('progress.points_count',
-                    {'count': '${weightLogs.length}'}),
+                l10n.tr(
+                    'progress.points_count', {'count': '${weightLogs.length}'}),
                 style: TextStyle(
                   fontSize: 11,
                   color: palette.brandStrong,
@@ -137,8 +136,7 @@ class WeightChartCard extends StatelessWidget {
                     reservedSize: 36,
                     getTitlesWidget: (v, _) => Text(
                       '${v.toInt()}',
-                      style: TextStyle(
-                          fontSize: 10, color: palette.textFaint),
+                      style: TextStyle(fontSize: 10, color: palette.textFaint),
                     ),
                   ),
                 ),
@@ -156,8 +154,8 @@ class WeightChartCard extends StatelessWidget {
                         final dt = DateTime.parse(raw);
                         return Text(
                           '${dt.day}/${dt.month}',
-                          style: TextStyle(
-                              fontSize: 9, color: palette.textFaint),
+                          style:
+                              TextStyle(fontSize: 9, color: palette.textFaint),
                         );
                       } catch (_) {
                         return const SizedBox();
@@ -165,10 +163,10 @@ class WeightChartCard extends StatelessWidget {
                     },
                   ),
                 ),
-                rightTitles: const AxisTitles(
-                    sideTitles: SideTitles(showTitles: false)),
-                topTitles: const AxisTitles(
-                    sideTitles: SideTitles(showTitles: false)),
+                rightTitles:
+                    const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                topTitles:
+                    const AxisTitles(sideTitles: SideTitles(showTitles: false)),
               ),
               lineBarsData: [
                 LineChartBarData(
@@ -319,12 +317,12 @@ class _GoalDetails extends StatelessWidget {
     String estimateText = '—';
     if (estDays != null && estDays > 0) {
       if (estDays < 30) {
-        estimateText = l10n.tr(
-            'progress.goal.in_about_days', {'days': '$estDays'});
+        estimateText =
+            l10n.tr('progress.goal.in_about_days', {'days': '$estDays'});
       } else {
         final months = (estDays / 30).toStringAsFixed(1);
-        estimateText = l10n.tr(
-            'progress.goal.in_about_months', {'months': months});
+        estimateText =
+            l10n.tr('progress.goal.in_about_months', {'months': months});
       }
     }
 
@@ -335,25 +333,19 @@ class _GoalDetails extends StatelessWidget {
           _weightChip(
             context,
             label: l10n.tr('progress.goal.start'),
-            value: start != null
-                ? '${start.toStringAsFixed(1)} $kg'
-                : '—',
+            value: start != null ? '${start.toStringAsFixed(1)} $kg' : '—',
             color: palette.textSecondary,
           ),
           _weightChip(
             context,
             label: l10n.tr('progress.goal.current'),
-            value: curr != null
-                ? '${curr.toStringAsFixed(1)} $kg'
-                : '—',
+            value: curr != null ? '${curr.toStringAsFixed(1)} $kg' : '—',
             color: palette.brand,
           ),
           _weightChip(
             context,
             label: l10n.tr('progress.goal.target'),
-            value: target != null
-                ? '${target.toStringAsFixed(1)} $kg'
-                : '—',
+            value: target != null ? '${target.toStringAsFixed(1)} $kg' : '—',
             color: palette.brandStrong,
           ),
         ],
@@ -385,9 +377,7 @@ class _GoalDetails extends StatelessWidget {
             context,
             icon: Icons.monitor_weight_outlined,
             label: l10n.tr('progress.goal.remaining'),
-            value: remKg != null
-                ? '${remKg.toStringAsFixed(1)} $kg'
-                : '—',
+            value: remKg != null ? '${remKg.toStringAsFixed(1)} $kg' : '—',
             color: palette.warning,
           ),
         ),
@@ -402,8 +392,7 @@ class _GoalDetails extends StatelessWidget {
       Text(value,
           style: TextStyle(
               fontSize: 14, fontWeight: FontWeight.bold, color: color)),
-      Text(label,
-          style: TextStyle(fontSize: 10, color: palette.textSecondary)),
+      Text(label, style: TextStyle(fontSize: 10, color: palette.textSecondary)),
     ]);
   }
 

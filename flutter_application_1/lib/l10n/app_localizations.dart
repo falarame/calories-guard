@@ -158,6 +158,7 @@ const Map<String, Map<String, String>> _catalogue = {
     'settings.privacy': 'Privacy',
     'settings.privacy.body':
         'We protect your personal data securely under PDPA standards.',
+    'settings.terms': 'Terms of Service',
     'settings.notifications': 'Notifications',
     'settings.language': 'Language',
     'settings.language.picker_title': 'Select Language',
@@ -203,13 +204,13 @@ const Map<String, Map<String, String>> _catalogue = {
     'consent.heading': 'Personal Data Usage Consent',
     'consent.body1':
         'This app collects personal data such as name, email, password, '
-        'date of birth, gender, weight, and height to create your account '
-        'and to compute BMI, BMR, and TDEE — used for health assessment '
-        'and tailored food recommendations aligned with your weight goals.',
+            'date of birth, gender, weight, and height to create your account '
+            'and to compute BMI, BMR, and TDEE — used for health assessment '
+            'and tailored food recommendations aligned with your weight goals.',
     'consent.body2':
         'The data you log is used to power features like meal-pattern '
-        'tracking and health insights. It is stored securely and used '
-        'only within this application.',
+            'tracking and health insights. It is stored securely and used '
+            'only within this application.',
     'consent.checkbox': 'I agree to the data usage terms',
     'consent.cta': 'Save',
     'consent.error.must_accept': 'Please accept the terms to continue',
@@ -343,6 +344,7 @@ const Map<String, Map<String, String>> _catalogue = {
     'settings.privacy': 'ความเป็นส่วนตัว',
     'settings.privacy.body':
         'เราเก็บรักษาข้อมูลส่วนบุคคลของคุณอย่างปลอดภัยตามมาตรฐาน PDPA',
+    'settings.terms': 'ข้อกำหนดการใช้บริการ',
     'settings.notifications': 'การแจ้งเตือน',
     'settings.language': 'ภาษา',
     'settings.language.picker_title': 'เลือกภาษา',
@@ -388,15 +390,15 @@ const Map<String, Map<String, String>> _catalogue = {
     'consent.heading': 'การยินยอมการใช้ข้อมูลส่วนบุคคล',
     'consent.body1':
         'แอปพลิเคชันนี้มีการเก็บข้อมูลส่วนบุคคลของผู้ใช้ เช่น ชื่อ-นามสกุล '
-        'อีเมล รหัสผ่าน วันเกิด เพศ น้ำหนัก และส่วนสูง '
-        'เพื่อใช้ในการสร้างบัญชีผู้ใช้ และนำข้อมูลไปคำนวณค่า BMI, BMR และ TDEE '
-        'สำหรับการประเมินสุขภาพและแนะนำการรับประทานอาหารที่เหมาะสม'
-        'กับเป้าหมายการควบคุมน้ำหนักของผู้ใช้',
+            'อีเมล รหัสผ่าน วันเกิด เพศ น้ำหนัก และส่วนสูง '
+            'เพื่อใช้ในการสร้างบัญชีผู้ใช้ และนำข้อมูลไปคำนวณค่า BMI, BMR และ TDEE '
+            'สำหรับการประเมินสุขภาพและแนะนำการรับประทานอาหารที่เหมาะสม'
+            'กับเป้าหมายการควบคุมน้ำหนักของผู้ใช้',
     'consent.body2':
         'ข้อมูลที่ผู้ใช้บันทึกในแอปจะถูกนำไปใช้เพื่อการทำงานของระบบ เช่น '
-        'การติดตามพฤติกรรมการรับประทานอาหาร '
-        'และการแสดงผลข้อมูลสุขภาพของผู้ใช้ '
-        'ทั้งนี้ข้อมูลจะถูกจัดเก็บอย่างเหมาะสมและใช้ภายในระบบของแอปพลิเคชันเท่านั้น',
+            'การติดตามพฤติกรรมการรับประทานอาหาร '
+            'และการแสดงผลข้อมูลสุขภาพของผู้ใช้ '
+            'ทั้งนี้ข้อมูลจะถูกจัดเก็บอย่างเหมาะสมและใช้ภายในระบบของแอปพลิเคชันเท่านั้น',
     'consent.checkbox': 'ฉันยอมรับเงื่อนไขการใช้ข้อมูล',
     'consent.cta': 'บันทึก',
     'consent.error.must_accept': 'กรุณายอมรับเงื่อนไขก่อน',
