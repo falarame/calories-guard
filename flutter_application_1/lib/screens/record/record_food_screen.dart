@@ -305,7 +305,10 @@ class _FoodLogScreenState extends ConsumerState<FoodLogScreen>
       foodId: pending.foodId,
     );
     if (mounted) setState(() => meal.foods.add(food));
-    await _saveSingleMeal(meal);
+    final saved = await _saveSingleMeal(meal);
+    if (!saved && mounted) {
+      setState(() => meal.foods.remove(food));
+    }
   }
 
   double get _totalCalIn => _meals.fold(0, (s, m) => s + m.totalCalories);
@@ -733,9 +736,13 @@ class _FoodLogScreenState extends ConsumerState<FoodLogScreen>
         const SizedBox(width: 8),
         GestureDetector(
           onTap: () async {
+            final removedFood = meal.foods[index];
             setState(() => meal.foods.removeAt(index));
             // บันทึกทันทีหลังลบ
-            await _saveSingleMeal(meal);
+            final saved = await _saveSingleMeal(meal);
+            if (!saved && mounted) {
+              setState(() => meal.foods.insert(index, removedFood));
+            }
           },
           child: Container(
             padding: const EdgeInsets.all(4),
@@ -998,7 +1005,10 @@ class _FoodLogScreenState extends ConsumerState<FoodLogScreen>
             }
           }
           // Auto-save ทันทีเมื่อเพิ่มอาหาร
-          await _saveSingleMeal(meal);
+          final saved = await _saveSingleMeal(meal);
+          if (!saved && mounted) {
+            setState(() => meal.foods.remove(food));
+          }
         },
       ),
     );
@@ -1150,15 +1160,15 @@ class _FoodLogScreenState extends ConsumerState<FoodLogScreen>
     ref.read(userDataProvider.notifier).setDailySummaryFromApi(summaryData);
   }
 
-  Future<void> _saveSingleMeal(MealSlot meal) async {
+  Future<bool> _saveSingleMeal(MealSlot meal) async {
     // ป้องกันการบันทึกซ้ำซ้อน
     if (_isSaving) {
       debugPrint('⚠️ BLOCKED: Already saving, skipping...');
-      return;
+      return false;
     }
 
     final userId = ref.read(userDataProvider).userId;
-    if (userId == 0) return;
+    if (userId == 0) return false;
 
     setState(() => _isSaving = true);
 
@@ -1176,23 +1186,12 @@ class _FoodLogScreenState extends ConsumerState<FoodLogScreen>
 
       final dateStr = DateFormat('yyyy-MM-dd').format(_selectedDate);
 
-      // 1. ลบข้อมูลเก่าของมื้อนี้ก่อน (เหมือนโค้ดที่ใช้งานได้)
-      debugPrint(
-          '🗑️ DELETE: /meals/clear/$userId?date_record=$dateStr&meal_type=$mealType');
-      final delRes = await ApiClient().delete(
-        '/meals/clear/$userId?date_record=$dateStr&meal_type=$mealType',
-      );
-      debugPrint('🗑️ DELETE Response: ${delRes.statusCode}');
-      if (!_isHttpSuccess(delRes.statusCode)) {
-        throw Exception(
-            'ลบข้อมูลมื้อเดิมไม่สำเร็จ: ${_apiErrorMessage(delRes)}');
-      }
-
-      // 2. บันทึกข้อมูลใหม่ทั้งมื้อ (ถ้ามีอาหาร)
+      // Backend replaces this meal atomically when items are present.
+      // Empty meals still call clear because there is nothing to POST.
       if (meal.foods.isNotEmpty) {
         final items = meal.foods
             .map((f) => {
-                  'food_id': f.foodId ?? 0,
+                  'food_id': f.foodId,
                   'food_name': f.name,
                   'amount': f.amount,
                   'unit_id': f.unitId,
@@ -1233,7 +1232,15 @@ class _FoodLogScreenState extends ConsumerState<FoodLogScreen>
         }
       } else {
         debugPrint(
-            '💾 No items to POST (meal is empty - only DELETE was executed)');
+            '🗑️ DELETE: /meals/clear/$userId?date_record=$dateStr&meal_type=$mealType');
+        final delRes = await ApiClient().delete(
+          '/meals/clear/$userId?date_record=$dateStr&meal_type=$mealType',
+        );
+        debugPrint('🗑️ DELETE Response: ${delRes.statusCode}');
+        if (!_isHttpSuccess(delRes.statusCode)) {
+          throw Exception(
+              'ลบข้อมูลมื้อเดิมไม่สำเร็จ: ${_apiErrorMessage(delRes)}');
+        }
       }
       debugPrint('✅ SAVE COMPLETE');
 
@@ -1277,6 +1284,7 @@ class _FoodLogScreenState extends ConsumerState<FoodLogScreen>
         ));
         NotificationHelper.showNutritionSafetyWarning(title, message);
       }
+      return true;
     } catch (e) {
       debugPrint('❌ Error saving meal: $e');
       if (mounted) {
@@ -1286,6 +1294,7 @@ class _FoodLogScreenState extends ConsumerState<FoodLogScreen>
           duration: const Duration(seconds: 5),
         ));
       }
+      return false;
     } finally {
       if (mounted) setState(() => _isSaving = false);
     }

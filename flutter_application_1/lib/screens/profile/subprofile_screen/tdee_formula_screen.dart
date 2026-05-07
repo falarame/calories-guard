@@ -196,6 +196,92 @@ class TdeeFormulaScreen extends ConsumerWidget {
             ],
           ),
 
+          _stepCard(
+            step: 'Σ',
+            title: 'สูตรทั้งหมดที่ใช้ในแอพ',
+            subtitle: 'อ้างอิงค่าที่ใช้คำนวณใน Calories Guard',
+            color: const Color(0xFF4B5563),
+            icon: '🧮',
+            children: [
+              _formulaItem(
+                'อายุ',
+                'ปีปัจจุบัน − ปีเกิด แล้วลบ 1 ถ้ายังไม่ถึงวันเกิดปีนี้',
+              ),
+              _formulaItem(
+                'BMI',
+                'น้ำหนัก(kg) ÷ (ส่วนสูง(m) × ส่วนสูง(m))',
+              ),
+              _formulaItem(
+                'BMR ชาย',
+                '[(10×น้ำหนัก) + (6.25×ส่วนสูง) − (5×อายุ) + 5] × 0.94',
+              ),
+              _formulaItem(
+                'BMR หญิง',
+                '[(10×น้ำหนัก) + (6.25×ส่วนสูง) − (5×อายุ) − 161] × 0.94',
+              ),
+              _formulaItem(
+                'TDEE',
+                'BMR × Activity Factor (1.2, 1.375, 1.55, 1.725, 1.9)',
+              ),
+              _formulaItem(
+                'เป้าหมายแคลอรี่',
+                'TDEE + (kg ต่อสัปดาห์ × 1100)',
+              ),
+              _formulaItem(
+                'ขอบล่างความปลอดภัยจากระบบ',
+                'ชาย: max(BMR, 1500), หญิง: max(BMR, 1200)',
+              ),
+              _formulaItem(
+                'kg ต่อสัปดาห์',
+                '(น้ำหนักเป้าหมาย − น้ำหนักปัจจุบัน) ÷ จำนวนสัปดาห์',
+              ),
+              _formulaItem(
+                'โปรตีนจาก backend',
+                'ลดน้ำหนัก: น้ำหนัก×1.8g, คงน้ำหนัก: ×1.6g, เพิ่มกล้าม: ×2.0g',
+              ),
+              _formulaItem(
+                'ไขมันจาก backend',
+                'ลดน้ำหนัก: น้ำหนัก×0.8g, คงน้ำหนัก/เพิ่มกล้าม: ×1.0g',
+              ),
+              _formulaItem(
+                'คาร์บจาก backend',
+                '(แคลอรี่เป้าหมาย − โปรตีน×4 − ไขมัน×9) ÷ 4',
+              ),
+              _formulaItem(
+                'โปรตีน fallback ในเครื่อง',
+                '(แคลอรี่เป้าหมาย × สัดส่วนโปรตีน) ÷ 4',
+              ),
+              _formulaItem(
+                'คาร์บ fallback ในเครื่อง',
+                '(แคลอรี่เป้าหมาย × สัดส่วนคาร์บ) ÷ 4',
+              ),
+              _formulaItem(
+                'ไขมัน fallback ในเครื่อง',
+                '(แคลอรี่เป้าหมาย × สัดส่วนไขมัน) ÷ 9',
+              ),
+              _formulaItem(
+                'แคลอรี่อาหารในมื้อ',
+                'ผลรวมของ (จำนวนที่กิน × kcal ต่อหน่วย) ทุกเมนู',
+              ),
+              _formulaItem(
+                'โปรตีน/คาร์บ/ไขมันในมื้อ',
+                'ผลรวมของ (จำนวนที่กิน × macro ต่อหน่วย) ทุกเมนู',
+              ),
+              _formulaItem(
+                'น้ำดื่ม',
+                '1 แก้ว = 250 ml, เครื่องดื่มที่ไม่มีแอลกอฮอล์นับรวมตาม ml',
+              ),
+              const SizedBox(height: 8),
+              _infoBanner(
+                fromBackend
+                    ? 'ค่าบางรายการอาจถูก override จาก backend เพื่อให้ตรงกับข้อมูลล่าสุดในฐานข้อมูล'
+                    : 'ถ้ายังไม่มีค่าจาก backend แอพจะใช้สูตรประมาณจากข้อมูลในเครื่อง',
+                const Color(0xFFF3F4F6),
+                const Color(0xFF4B5563),
+              ),
+            ],
+          ),
+
           const SizedBox(height: 8),
           _infoBanner(
             '💡 ต้องการปรับเป้าหมาย? ไปที่ แก้ไขโปรไฟล์',
@@ -316,6 +402,21 @@ class TdeeFormulaScreen extends ConsumerWidget {
               fontSize: 12,
               fontFamily: 'monospace',
               color: Colors.blueGrey.shade700)),
+    );
+  }
+
+  Widget _formulaItem(String label, String formula) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 10),
+      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Text(label,
+            style: const TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.w700,
+                color: Color(0xFF374151))),
+        const SizedBox(height: 4),
+        _formulaBox(formula),
+      ]),
     );
   }
 

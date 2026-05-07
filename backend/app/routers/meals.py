@@ -35,6 +35,13 @@ def _add_meal_impl(user_id: int, log: DailyLogUpdate):
         meal_ts = datetime.combine(log.date, datetime.min.time().replace(hour=12, minute=0, second=0))
 
         cur.execute("""
+            DELETE FROM meals
+            WHERE user_id = %s
+              AND (meal_time AT TIME ZONE 'Asia/Bangkok')::date = %s
+              AND meal_type = %s
+        """, (user_id, log.date, meal_type_db))
+
+        cur.execute("""
             INSERT INTO meals (user_id, meal_type, meal_time, total_amount)
             VALUES (%s, %s, %s, %s)
             RETURNING meal_id
@@ -200,7 +207,7 @@ def get_daily_summary(user_id: int, date_record: date, current_user: dict = Depe
         }
 
         cur.execute("""
-            SELECT m.meal_type, STRING_AGG(di.food_name, ', ') AS menu_names
+            SELECT m.meal_type, STRING_AGG(di.food_name, ', ' ORDER BY di.item_id) AS menu_names
             FROM meals m
             JOIN detail_items di ON di.meal_id = m.meal_id
             WHERE m.user_id = %s

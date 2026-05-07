@@ -83,6 +83,34 @@ def test_meal_create_summary_delete_roundtrip(client_as_user, test_unit_id):
     body = r.json()
     # total_calories_intake is recomputed by the DB trigger (see v8 migration)
     assert float(body.get("total_calories_intake") or 0) == pytest.approx(650.0)
+    assert body.get("meals", {}).get("breakfast") == "ข้าวผัดไข่, นมสด"
+
+    # 2b) posting the same meal/date replaces the meal atomically instead of
+    # appending duplicate meal rows. Custom foods may have food_id=null.
+    replacement_payload = {
+        "date": today,
+        "meal_type": "breakfast",
+        "items": [
+            {
+                "food_id": None,
+                "food_name": "โจ๊กหมู",
+                "amount": 1,
+                "unit_id": test_unit_id,
+                "cal_per_unit": 320,
+                "protein_per_unit": 18,
+                "carbs_per_unit": 42,
+                "fat_per_unit": 9,
+            },
+        ],
+    }
+    r = client.post(f"/meals/{uid}", json=replacement_payload)
+    assert r.status_code == 200, r.text
+
+    r = client.get(f"/daily_summary/{uid}", params={"date_record": today})
+    assert r.status_code == 200, r.text
+    body = r.json()
+    assert float(body.get("total_calories_intake") or 0) == pytest.approx(320.0)
+    assert body.get("meals", {}).get("breakfast") == "โจ๊กหมู"
 
     # 3) detail echoes items
     r = client.get(
@@ -91,8 +119,7 @@ def test_meal_create_summary_delete_roundtrip(client_as_user, test_unit_id):
     )
     assert r.status_code == 200
     names = [it["food_name"] for it in r.json().get("items", [])]
-    assert "ข้าวผัดไข่" in names
-    assert "นมสด" in names
+    assert names == ["โจ๊กหมู"]
 
     # 4) clear zeros out the summary
     r = client.delete(
