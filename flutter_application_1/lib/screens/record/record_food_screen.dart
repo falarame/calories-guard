@@ -656,6 +656,22 @@ class _FoodLogScreenState extends ConsumerState<FoodLogScreen>
         );
         ref.read(dailyFoodRevisionProvider.notifier).state++;
         _fetchDailyLog();
+        // พา user ไปดูผลที่หน้า Home ได้ทันที (ไม่บังคับเปลี่ยนแท็บ)
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: const Text('บันทึกจาก AI แล้ว — ดูที่หน้าหลักได้เลย'),
+              backgroundColor: _green,
+              duration: const Duration(seconds: 3),
+              action: SnackBarAction(
+                label: 'ไปหน้าหลัก',
+                textColor: Colors.white,
+                onPressed: () =>
+                    ref.read(navIndexProvider.notifier).state = 0,
+              ),
+            ),
+          );
+        }
       },
     );
   }
@@ -1206,6 +1222,10 @@ class _FoodLogScreenState extends ConsumerState<FoodLogScreen>
     if (summaryData is! Map<String, dynamic>) {
       throw Exception('รูปแบบข้อมูลสรุปจากฐานข้อมูลไม่ถูกต้อง');
     }
+    // อย่า throw เมื่อชื่อไม่ match เป๊ะ — บริการอาจส่งชื่อจาก catalogue คนละรูปแบบกับที่
+    // client แสดง แต่ยอดรวมจาก DB ถูกต้องแล้ว (POST สำเร็จ + GET 200).
+    // เดิมใช้ every(...contains) ทำให้เกิด false positive → ตกไป _publishLocalDailySummary
+    // ซึ่งเคยรวมแคลผิด (ลืมคูณ amount) จนหน้า Home ดูเหมือนไม่บันทึก
     if (expectedMealType != null && expectedFoods.isNotEmpty) {
       final meals = summaryData['meals'];
       final syncedMeal =
@@ -1215,8 +1235,10 @@ class _FoodLogScreenState extends ConsumerState<FoodLogScreen>
           );
       final hasExpectedNames = expectedNames.every(syncedMeal.contains);
       if (!hasExpectedNames) {
-        throw Exception('บันทึกแล้วแต่ฐานข้อมูลยังไม่คืนข้อมูลมื้อนี้ '
-            'กรุณาลองใหม่อีกครั้ง');
+        debugPrint(
+          '⚠️ daily_summary meal text mismatch (still applying API totals): '
+          'expected=$expectedNames synced="$syncedMeal"',
+        );
       }
     }
     ref.read(userDataProvider.notifier).setDailySummaryFromApi(summaryData);
@@ -1233,10 +1255,12 @@ class _FoodLogScreenState extends ConsumerState<FoodLogScreen>
       final foods = meal.foods.where((food) => food.name.trim().isNotEmpty);
       if (foods.isEmpty) continue;
       mealsMap[meal.id] = foods.map((food) => food.name.trim()).join(', ');
-      totalCalories += foods.fold(0.0, (sum, food) => sum + food.calories);
-      totalProtein += foods.fold(0.0, (sum, food) => sum + food.protein);
-      totalCarbs += foods.fold(0.0, (sum, food) => sum + food.carbs);
-      totalFat += foods.fold(0.0, (sum, food) => sum + food.fat);
+      totalCalories +=
+          foods.fold(0.0, (sum, food) => sum + food.totalCalories);
+      totalProtein +=
+          foods.fold(0.0, (sum, food) => sum + food.totalProtein);
+      totalCarbs += foods.fold(0.0, (sum, food) => sum + food.totalCarbs);
+      totalFat += foods.fold(0.0, (sum, food) => sum + food.totalFat);
     }
 
     ref.read(userDataProvider.notifier).updateDailyFood(
@@ -1360,14 +1384,23 @@ class _FoodLogScreenState extends ConsumerState<FoodLogScreen>
           _selectedDate.day,
         );
         ref.read(dailyFoodRevisionProvider.notifier).state++;
-        messenger.showSnackBar(SnackBar(
-          content: Text(syncedFromServer
-              ? 'บันทึกอาหารและซิงค์หน้าหลักแล้ว'
-              : 'บันทึกอาหารแล้ว แต่โหลดข้อมูลจากฐานข้อมูลช้า '
-                  'หน้าหลักจะแสดงข้อมูลล่าสุดชั่วคราว'),
-          backgroundColor: _green,
-          duration: const Duration(seconds: 3),
-        ));
+        messenger.showSnackBar(
+          SnackBar(
+            content: Text(
+              syncedFromServer
+                  ? 'บันทึกอาหารและซิงค์หน้าหลักแล้ว'
+                  : 'บันทึกอาหารแล้ว แต่โหลดข้อมูลจากฐานข้อมูลช้า '
+                      'หน้าหลักจะแสดงข้อมูลล่าสุดชั่วคราว',
+            ),
+            backgroundColor: _green,
+            duration: const Duration(seconds: 3),
+            action: SnackBarAction(
+              label: 'ไปหน้าหลัก',
+              textColor: Colors.white,
+              onPressed: () => ref.read(navIndexProvider.notifier).state = 0,
+            ),
+          ),
+        );
       }
 
       // ── Calorie notification trigger ──────────────────────

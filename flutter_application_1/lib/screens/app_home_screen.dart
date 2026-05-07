@@ -131,8 +131,11 @@ class _AppHomeScreenState extends ConsumerState<AppHomeScreen> {
       if (response.statusCode == 200) {
         final summaryData = json.decode(utf8.decode(response.bodyBytes));
         Map<String, String> mealsMap = {};
-        if (summaryData['meals'] != null) {
-          mealsMap = Map<String, String>.from(summaryData['meals']);
+        final rawMeals = summaryData['meals'];
+        if (rawMeals is Map) {
+          mealsMap = rawMeals.map(
+            (k, v) => MapEntry(k.toString(), v?.toString() ?? ''),
+          );
         }
         ref.read(userDataProvider.notifier).updateDailyFood(
               cal: (summaryData['total_calories_intake'] as num?)?.toInt() ?? 0,

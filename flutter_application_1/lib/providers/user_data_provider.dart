@@ -369,8 +369,11 @@ class UserDataNotifier extends StateNotifier<UserData> {
   void setDailySummaryFromApi(Map<String, dynamic> data) {
     // แปลงข้อมูลจาก API ('meals': {...}) มาเป็น Map<String, String>
     Map<String, String> meals = {};
-    if (data['meals'] != null) {
-      meals = Map<String, String>.from(data['meals']);
+    final rawMeals = data['meals'];
+    if (rawMeals is Map) {
+      meals = rawMeals.map(
+        (k, v) => MapEntry(k.toString(), v?.toString() ?? ''),
+      );
     }
 
     state = state.copyWith(
