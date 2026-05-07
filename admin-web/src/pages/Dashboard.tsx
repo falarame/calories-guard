@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { UtensilsCrossed, ClipboardList, Languages, Clock } from 'lucide-react'
+import { UtensilsCrossed, ClipboardList, Languages, ShieldCheck } from 'lucide-react'
 import { api } from '../api/client'
 import type { Food, RegionalNameSubmission, TempFood } from '../types'
 
@@ -43,7 +43,7 @@ function RecentRow({ item }: { item: TempFood }) {
       <td className="py-3 px-4 text-sm text-gray-400">{date}</td>
       <td className="py-3 px-4">
         <span className="text-xs font-medium px-2.5 py-1 rounded-full bg-yellow-50 text-yellow-700 border border-yellow-200">
-          temp-food
+          คำขอเมนูใหม่
         </span>
       </td>
     </tr>
@@ -99,15 +99,15 @@ export default function Dashboard() {
           bg="bg-[#E8EFCF]"
         />
         <StatCard
-          icon={<ClipboardList size={22} />}
-          label="คำขอรอดำเนินการ"
+          icon={<ShieldCheck size={22} />}
+          label="รอดำเนินการทั้งหมด"
           value={pendingTotal}
           color="text-orange-600"
           bg="bg-orange-50"
         />
         <StatCard
-          icon={<Clock size={22} />}
-          label="Temp Foods (pending)"
+          icon={<ClipboardList size={22} />}
+          label="คำขอเมนูใหม่รอตรวจ"
           value={tempFoods.length}
           color="text-yellow-600"
           bg="bg-yellow-50"
