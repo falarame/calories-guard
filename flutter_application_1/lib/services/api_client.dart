@@ -1,5 +1,5 @@
-import 'dart:convert';
 import 'dart:async';
+import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:http_parser/http_parser.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -8,7 +8,7 @@ import '../constants/constants.dart';
 /// Centralized HTTP client that:
 /// - Adds Supabase auth token to every request
 /// - Handles 401 → triggers logout
-/// - Adds timeout (30s default)
+/// - Adds timeout (30s default, overridable per request)
 /// - Provides typed JSON helpers
 class ApiClient {
   static final ApiClient _instance = ApiClient._();
@@ -72,18 +72,28 @@ class ApiClient {
     }
   }
 
-  Future<http.Response> _handleResponse(Future<http.Response> request) async {
+  Future<http.Response> _handleResponse(
+    Future<http.Response> request, {
+    Duration? timeout,
+    String? label,
+  }) async {
+    final effectiveTimeout = timeout ?? _defaultTimeout;
     try {
-      final response = await request.timeout(_defaultTimeout);
+      final response = await request.timeout(effectiveTimeout);
       _checkApiVersion(response);
       if (response.statusCode == 401) {
         onUnauthorized?.call();
       }
       return response;
     } on TimeoutException {
-      throw Exception('Request timed out. Please try again.');
+      final target = label == null || label.isEmpty ? 'request' : label;
+      throw Exception(
+        '$target timed out after ${effectiveTimeout.inSeconds}s. '
+        'Please try again.',
+      );
     } on http.ClientException {
-      throw Exception('Network unavailable. Please check your connection.');
+      final target = label == null || label.isEmpty ? 'Network' : label;
+      throw Exception('$target unavailable. Please check your connection.');
     }
   }
 
@@ -93,23 +103,30 @@ class ApiClient {
     String path, {
     Map<String, String>? queryParams,
     Map<String, String>? extraHeaders,
+    Duration? timeout,
   }) {
     final uri =
         Uri.parse('$_baseUrl$path').replace(queryParameters: queryParams);
     return _handleResponse(
-        http.get(uri, headers: _headers(extra: extraHeaders)));
+      http.get(uri, headers: _headers(extra: extraHeaders)),
+      timeout: timeout,
+      label: 'GET $path',
+    );
   }
 
   Future<http.Response> post(
     String path, {
     Object? body,
     Map<String, String>? extraHeaders,
+    Duration? timeout,
   }) {
     final uri = Uri.parse('$_baseUrl$path');
     return _handleResponse(
       http.post(uri,
           headers: _headers(extra: extraHeaders),
           body: utf8.encode(jsonEncode(body))),
+      timeout: timeout,
+      label: 'POST $path',
     );
   }
 
@@ -117,12 +134,15 @@ class ApiClient {
     String path, {
     Object? body,
     Map<String, String>? extraHeaders,
+    Duration? timeout,
   }) {
     final uri = Uri.parse('$_baseUrl$path');
     return _handleResponse(
       http.put(uri,
           headers: _headers(extra: extraHeaders),
           body: utf8.encode(jsonEncode(body))),
+      timeout: timeout,
+      label: 'PUT $path',
     );
   }
 
@@ -130,22 +150,28 @@ class ApiClient {
     String path, {
     Object? body,
     Map<String, String>? extraHeaders,
+    Duration? timeout,
   }) {
     final uri = Uri.parse('$_baseUrl$path');
     return _handleResponse(
       http.patch(uri,
           headers: _headers(extra: extraHeaders),
           body: utf8.encode(jsonEncode(body))),
+      timeout: timeout,
+      label: 'PATCH $path',
     );
   }
 
   Future<http.Response> delete(
     String path, {
     Map<String, String>? extraHeaders,
+    Duration? timeout,
   }) {
     final uri = Uri.parse('$_baseUrl$path');
     return _handleResponse(
       http.delete(uri, headers: _headers(extra: extraHeaders)),
+      timeout: timeout,
+      label: 'DELETE ${path.split('?').first}',
     );
   }
 

@@ -24,8 +24,6 @@ Get-Content -LiteralPath $resolvedEnvPath | ForEach-Object {
 
 if ($values.ContainsKey("API_BASE_URL") -and ![string]::IsNullOrWhiteSpace($values["API_BASE_URL"])) {
     $ApiBaseUrl = $values["API_BASE_URL"]
-} elseif ($values.ContainsKey("VITE_API_BASE_URL") -and ![string]::IsNullOrWhiteSpace($values["VITE_API_BASE_URL"])) {
-    $ApiBaseUrl = $values["VITE_API_BASE_URL"]
 }
 
 if ($ApiBaseUrl -and !$ApiBaseUrl.StartsWith("http://") -and !$ApiBaseUrl.StartsWith("https://")) {

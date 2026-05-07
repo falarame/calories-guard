@@ -23,7 +23,8 @@ $projectRoot = Split-Path -Parent $PSScriptRoot
 Set-Location $projectRoot
 $env:DEBUG = ""
 
-$flutterApk = Join-Path $projectRoot "android\app\build\outputs\flutter-apk\app-debug.apk"
+$flutterBuildApk = Join-Path $projectRoot "build\app\outputs\flutter-apk\app-debug.apk"
+$legacyFlutterApk = Join-Path $projectRoot "android\app\build\outputs\flutter-apk\app-debug.apk"
 $gradleApk = Join-Path $projectRoot "android\app\build\outputs\apk\debug\app-debug.apk"
 $expectedFlutterPath = Join-Path $projectRoot "build\app\outputs\flutter-apk\app-debug.apk"
 
@@ -40,15 +41,26 @@ $args = @(
 & flutter @args
 $exitCode = $LASTEXITCODE
 
-if (Test-Path $flutterApk) {
+if ($exitCode -ne 0) {
+    exit $exitCode
+}
+
+if (Test-Path $flutterBuildApk) {
+    Write-Host ""
+    Write-Host "APK ready:"
+    Write-Host "  $flutterBuildApk"
+    exit 0
+}
+
+if (Test-Path $legacyFlutterApk) {
     $expectedDir = Split-Path -Parent $expectedFlutterPath
     if (!(Test-Path $expectedDir)) {
         New-Item -ItemType Directory -Path $expectedDir -Force | Out-Null
     }
-    Copy-Item -LiteralPath $flutterApk -Destination $expectedFlutterPath -Force
+    Copy-Item -LiteralPath $legacyFlutterApk -Destination $expectedFlutterPath -Force
     Write-Host ""
     Write-Host "APK ready:"
-    Write-Host "  $flutterApk"
+    Write-Host "  $expectedFlutterPath"
     exit 0
 }
 
@@ -60,7 +72,7 @@ if (Test-Path $gradleApk) {
     Copy-Item -LiteralPath $gradleApk -Destination $expectedFlutterPath -Force
     Write-Host ""
     Write-Host "APK ready:"
-    Write-Host "  $gradleApk"
+    Write-Host "  $expectedFlutterPath"
     exit 0
 }
 

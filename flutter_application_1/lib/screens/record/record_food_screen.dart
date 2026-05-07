@@ -108,6 +108,8 @@ class _FoodLogScreenState extends ConsumerState<FoodLogScreen>
   static const _orange = Color(0xFFD76A3C);
   static const _blue = Color(0xFF1565C0);
   static const _bg = Color(0xFFF2F7F4);
+  static const _mealWriteTimeout = Duration(seconds: 90);
+  static const _mealSummaryTimeout = Duration(seconds: 60);
 
   DateTime _selectedDate = DateTime.now();
   int _waterGlasses = 0;
@@ -1193,6 +1195,7 @@ class _FoodLogScreenState extends ConsumerState<FoodLogScreen>
     final summaryRes = await ApiClient().get(
       '/daily_summary/$userId',
       queryParams: {'date_record': dateStr},
+      timeout: _mealSummaryTimeout,
     );
     if (!_isHttpSuccess(summaryRes.statusCode)) {
       throw Exception('โหลดข้อมูลที่บันทึกจากฐานข้อมูลไม่สำเร็จ: '
@@ -1217,6 +1220,32 @@ class _FoodLogScreenState extends ConsumerState<FoodLogScreen>
       }
     }
     ref.read(userDataProvider.notifier).setDailySummaryFromApi(summaryData);
+  }
+
+  void _publishLocalDailySummary() {
+    final mealsMap = <String, String>{};
+    var totalCalories = 0.0;
+    var totalProtein = 0.0;
+    var totalCarbs = 0.0;
+    var totalFat = 0.0;
+
+    for (final meal in _meals) {
+      final foods = meal.foods.where((food) => food.name.trim().isNotEmpty);
+      if (foods.isEmpty) continue;
+      mealsMap[meal.id] = foods.map((food) => food.name.trim()).join(', ');
+      totalCalories += foods.fold(0.0, (sum, food) => sum + food.calories);
+      totalProtein += foods.fold(0.0, (sum, food) => sum + food.protein);
+      totalCarbs += foods.fold(0.0, (sum, food) => sum + food.carbs);
+      totalFat += foods.fold(0.0, (sum, food) => sum + food.fat);
+    }
+
+    ref.read(userDataProvider.notifier).updateDailyFood(
+          cal: totalCalories.round(),
+          protein: totalProtein.round(),
+          carbs: totalCarbs.round(),
+          fat: totalFat.round(),
+          dailyMeals: mealsMap,
+        );
   }
 
   Future<bool> _saveSingleMeal(MealSlot meal) async {
@@ -1270,6 +1299,7 @@ class _FoodLogScreenState extends ConsumerState<FoodLogScreen>
             'meal_type': mealType,
             'items': items,
           },
+          timeout: _mealWriteTimeout,
         );
         debugPrint('💾 POST Response: ${postRes.statusCode}');
         if (!_isHttpSuccess(postRes.statusCode)) {
@@ -1295,6 +1325,7 @@ class _FoodLogScreenState extends ConsumerState<FoodLogScreen>
             '🗑️ DELETE: /meals/clear/$userId?date_record=$dateStr&meal_type=$mealType');
         final delRes = await ApiClient().delete(
           '/meals/clear/$userId?date_record=$dateStr&meal_type=$mealType',
+          timeout: _mealWriteTimeout,
         );
         debugPrint('🗑️ DELETE Response: ${delRes.statusCode}');
         if (!_isHttpSuccess(delRes.statusCode)) {
@@ -1306,22 +1337,36 @@ class _FoodLogScreenState extends ConsumerState<FoodLogScreen>
 
       // ── Sync provider ทันทีหลัง save เพื่อให้ home screen อัปเดตเลย ──────
       if (mounted) {
-        await _syncProviderFromServerSummary(
-          userId: userId,
-          dateStr: dateStr,
-          expectedMealType: mealType,
-          expectedFoods: meal.foods,
-        );
+        var syncedFromServer = true;
+        try {
+          await _syncProviderFromServerSummary(
+            userId: userId,
+            dateStr: dateStr,
+            expectedMealType: mealType,
+            expectedFoods: meal.foods,
+          );
+        } on TimeoutException catch (e) {
+          syncedFromServer = false;
+          debugPrint('⚠️ Summary sync timed out after save: $e');
+          _publishLocalDailySummary();
+        } catch (e) {
+          syncedFromServer = false;
+          debugPrint('⚠️ Summary sync failed after save: $e');
+          _publishLocalDailySummary();
+        }
         ref.read(homeViewDateProvider.notifier).state = DateTime(
           _selectedDate.year,
           _selectedDate.month,
           _selectedDate.day,
         );
         ref.read(dailyFoodRevisionProvider.notifier).state++;
-        messenger.showSnackBar(const SnackBar(
-          content: Text('บันทึกอาหารและซิงค์หน้าหลักแล้ว'),
+        messenger.showSnackBar(SnackBar(
+          content: Text(syncedFromServer
+              ? 'บันทึกอาหารและซิงค์หน้าหลักแล้ว'
+              : 'บันทึกอาหารแล้ว แต่โหลดข้อมูลจากฐานข้อมูลช้า '
+                  'หน้าหลักจะแสดงข้อมูลล่าสุดชั่วคราว'),
           backgroundColor: _green,
-          duration: Duration(seconds: 2),
+          duration: const Duration(seconds: 3),
         ));
       }
 
