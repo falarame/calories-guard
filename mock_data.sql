@@ -1005,6 +1005,66 @@ VALUES
 ('ต้มยำกุ้ง',            'meal',    120, 10.0,  6.0,  6.0, 1,   'ทัพพี', 'ซุปและแกง'),
 ('ข้าวเหนียว',           'meal',    170,  3.5, 37.0,  0.5, 1,   'ทัพพี', 'ข้าวและแป้ง');
 
+-- ============================================================
+-- เครื่องดื่มไทยที่ขาดจากชุดข้อมูลเดิม (เพิ่มเติม)
+-- หน่วย ml, serving_quantity = ปริมาณต่อ 1 แก้ว/กล่อง/ขวด
+-- ค่าโภชนาการอ้างอิง: USDA FoodData Central + INMU Thailand Food Composition
+-- ============================================================
+INSERT INTO cleangoal.foods
+    (food_name, food_type, calories, protein, carbs, fat, serving_quantity, serving_unit, food_category)
+VALUES
+-- ผลไม้ไทย
+('น้ำลำใย',           'beverage',  65, 0.2, 16.0, 0.0, 250, 'ml', 'เครื่องดื่ม'),
+('น้ำกระเจี๊ยบ',      'beverage',  45, 0.5, 11.0, 0.0, 250, 'ml', 'เครื่องดื่ม'),
+('น้ำมังคุด',         'beverage',  70, 0.3, 17.5, 0.1, 250, 'ml', 'เครื่องดื่ม'),
+('น้ำองุ่น 100%',     'beverage', 130, 0.7, 32.0, 0.0, 250, 'ml', 'เครื่องดื่ม'),
+-- สมุนไพรไทย
+('น้ำขิง',            'beverage',  55, 0.5, 13.0, 0.0, 250, 'ml', 'เครื่องดื่ม'),
+('น้ำมะตูม',          'beverage',  50, 0.3, 12.0, 0.0, 250, 'ml', 'เครื่องดื่ม'),
+('น้ำตะไคร้',         'beverage',  35, 0.2,  9.0, 0.0, 250, 'ml', 'เครื่องดื่ม'),
+('น้ำสมุนไพรรวม',    'beverage',  40, 0.2, 10.0, 0.0, 250, 'ml', 'เครื่องดื่ม'),
+-- นมทางเลือก
+('นมข้าวโอ๊ต',        'beverage', 120, 3.0, 16.0, 5.0, 250, 'ml', 'เครื่องดื่ม'),
+('นมอัลมอนด์',        'beverage',  39, 1.5,  3.5, 2.5, 250, 'ml', 'เครื่องดื่ม'),
+-- เครื่องดื่มยอดนิยม
+('ชานมไข่มุก',        'beverage', 280, 3.0, 52.0, 7.0, 500, 'ml', 'เครื่องดื่ม'),
+('เครื่องดื่มชูกำลัง','beverage', 115, 0.0, 28.0, 0.0, 150, 'ml', 'เครื่องดื่ม'),
+('น้ำมะพร้าวอ่อน',   'beverage',  46, 0.5, 11.0, 0.2, 350, 'ml', 'เครื่องดื่ม');
+
+-- เชื่อม beverages table สำหรับรายการที่เพิ่มใหม่
+INSERT INTO cleangoal.beverages
+    (food_id, volume_ml, is_alcoholic, caffeine_mg, sugar_level_label, container_type)
+SELECT
+    f.food_id,
+    f.serving_quantity AS volume_ml,
+    false              AS is_alcoholic,
+    CASE f.food_name
+        WHEN 'เครื่องดื่มชูกำลัง' THEN 50
+        ELSE 0
+    END AS caffeine_mg,
+    CASE f.food_name
+        WHEN 'ชานมไข่มุก'       THEN 'หวาน'
+        WHEN 'เครื่องดื่มชูกำลัง' THEN 'หวานมาก'
+        WHEN 'น้ำองุ่น 100%'    THEN 'หวานปานกลาง'
+        WHEN 'นมข้าวโอ๊ต'       THEN 'ไม่หวาน'
+        WHEN 'นมอัลมอนด์'       THEN 'ไม่หวาน'
+        ELSE 'หวานน้อย'
+    END AS sugar_level_label,
+    CASE f.food_name
+        WHEN 'ชานมไข่มุก'       THEN 'แก้วพลาสติก'
+        WHEN 'เครื่องดื่มชูกำลัง' THEN 'ขวดแก้ว'
+        WHEN 'น้ำมะพร้าวอ่อน'  THEN 'ลูกมะพร้าว'
+        ELSE 'แก้ว'
+    END AS container_type
+FROM cleangoal.foods f
+WHERE f.food_type = 'beverage'
+  AND f.food_name IN (
+      'น้ำลำใย','น้ำกระเจี๊ยบ','น้ำมังคุด','น้ำองุ่น 100%',
+      'น้ำขิง','น้ำมะตูม','น้ำตะไคร้','น้ำสมุนไพรรวม',
+      'นมข้าวโอ๊ต','นมอัลมอนด์','ชานมไข่มุก',
+      'เครื่องดื่มชูกำลัง','น้ำมะพร้าวอ่อน'
+  );
+
 -- หน่วย: จาน — อาหารจานเดียว (~300-400 g ต่อจาน)
 INSERT INTO cleangoal.foods
     (food_name, food_type, calories, protein, carbs, fat, serving_quantity, serving_unit, food_category)

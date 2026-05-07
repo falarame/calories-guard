@@ -32,6 +32,9 @@ class LoggedFood {
   final String unitName;
   final int? foodId;
   final bool isPending;
+  // waterMl > 0 หมายความว่าอาหารนี้เป็นเครื่องดื่ม → นับรวมใน water tracker
+  final double waterMl;
+
   LoggedFood({
     required this.name,
     required this.calories,
@@ -43,12 +46,15 @@ class LoggedFood {
     this.unitName = 'กรัม (g)',
     this.foodId,
     this.isPending = false,
+    this.waterMl = 0,
   });
 
   double get totalCalories => calories * amount;
   double get totalProtein => protein * amount;
   double get totalCarbs => carbs * amount;
   double get totalFat => fat * amount;
+  // ปริมาณน้ำรวมของรายการนี้ (ml)
+  double get totalWaterMl => waterMl * amount;
 }
 
 class MealSlot {
@@ -261,6 +267,7 @@ class _FoodLogScreenState extends ConsumerState<FoodLogScreen>
                     unitId: item['unit_id'],
                     unitName: item['unit_name'] ?? 'กรัม (g)',
                     foodId: item['food_id'],
+                    waterMl: (item['water_ml_per_serving'] ?? 0).toDouble(),
                   ));
                 }
               }
@@ -687,6 +694,21 @@ class _FoodLogScreenState extends ConsumerState<FoodLogScreen>
                             fontWeight: FontWeight.w600)),
                   ),
                 ],
+                if (food.waterMl > 0) ...[
+                  const SizedBox(width: 6),
+                  Container(
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                    decoration: BoxDecoration(
+                        color: const Color(0xFFE3F2FD),
+                        borderRadius: BorderRadius.circular(99)),
+                    child: Text('💧${food.totalWaterMl.toInt()}ml',
+                        style: const TextStyle(
+                            fontSize: 9,
+                            color: Color(0xFF1565C0),
+                            fontWeight: FontWeight.w600)),
+                  ),
+                ],
               ]),
               Text(
                   '${food.amount % 1 == 0 ? food.amount.toInt() : food.amount} ${food.unitName}  •  '
@@ -950,6 +972,24 @@ class _FoodLogScreenState extends ConsumerState<FoodLogScreen>
         meal: meal,
         onFoodAdded: (food) async {
           setState(() => meal.foods.add(food));
+          // ถ้าเป็นเครื่องดื่ม → นับน้ำเพิ่มอัตโนมัติ
+          if (food.waterMl > 0) {
+            final addedMl = food.totalWaterMl;
+            final currentMl = _waterGlasses * 250;
+            final newMl = currentMl + addedMl;
+            final newGlasses = (newMl / 250).round().clamp(0, 20);
+            setState(() => _waterGlasses = newGlasses);
+            _debouncedSaveWater();
+            if (mounted) {
+              ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                content: Text(
+                    '💧 เพิ่มน้ำ ${addedMl.toInt()} ml จากเครื่องดื่มนี้ '
+                    '(รวม ${newMl.toInt()} ml วันนี้)'),
+                backgroundColor: const Color(0xFF1565C0),
+                duration: const Duration(seconds: 3),
+              ));
+            }
+          }
           // Auto-save ทันทีเมื่อเพิ่มอาหาร
           await _saveSingleMeal(meal);
         },
@@ -1068,6 +1108,30 @@ class _FoodLogScreenState extends ConsumerState<FoodLogScreen>
     );
   }
 
+  /// อัปเดต userDataProvider ด้วยผลรวมจาก local state
+  /// เรียกหลัง save สำเร็จ เพื่อให้ home screen แสดงข้อมูลทันที
+  void _syncProviderFromLocalState() {
+    final totalCal = _meals.fold<double>(0, (s, m) => s + m.totalCalories);
+    final totalProt = _meals.fold<double>(0, (s, m) => s + m.totalProtein);
+    final totalCarbs = _meals.fold<double>(0, (s, m) => s + m.totalCarbs);
+    final totalFat = _meals.fold<double>(0, (s, m) => s + m.totalFat);
+
+    final mealsMap = <String, String>{};
+    for (final m in _meals) {
+      if (m.foods.isNotEmpty) {
+        mealsMap[m.id] = m.foods.map((f) => f.name).join(', ');
+      }
+    }
+
+    ref.read(userDataProvider.notifier).updateDailyFood(
+          cal: totalCal.toInt(),
+          protein: totalProt.toInt(),
+          carbs: totalCarbs.toInt(),
+          fat: totalFat.toInt(),
+          dailyMeals: mealsMap,
+        );
+  }
+
   Future<void> _saveSingleMeal(MealSlot meal) async {
     // ป้องกันการบันทึกซ้ำซ้อน
     if (_isSaving) {
@@ -1147,6 +1211,9 @@ class _FoodLogScreenState extends ConsumerState<FoodLogScreen>
             '💾 No items to POST (meal is empty - only DELETE was executed)');
       }
       debugPrint('✅ SAVE COMPLETE');
+
+      // ── Sync provider ทันทีหลัง save เพื่อให้ home screen อัปเดตเลย ──────
+      if (mounted) _syncProviderFromLocalState();
 
       // ── Calorie notification trigger ──────────────────────
       final targetCalDouble = ref.read(userDataProvider).targetCalories;
@@ -1275,6 +1342,9 @@ class _AddFoodSheetState extends ConsumerState<_AddFoodSheet>
     final servingQty = (food['serving_quantity'] as num? ?? 100).toDouble();
     final servingUnit = food['serving_unit'] as String? ?? 'g';
     final imageUrl = food['image_url'] as String? ?? '';
+    final isBeverage = food['food_type']?.toString() == 'beverage';
+    // สำหรับเครื่องดื่ม: serving_quantity (g ≈ ml) คือปริมาณน้ำต่อ 1 serving
+    final waterMlPerServing = isBeverage ? servingQty : 0.0;
     int amount = 1;
 
     showModalBottomSheet(
@@ -1370,6 +1440,33 @@ class _AddFoodSheetState extends ConsumerState<_AddFoodSheet>
                     const Color(0xFFDC2626)),
               ]),
             ),
+            // แสดง water info เมื่อเป็นเครื่องดื่ม
+            if (isBeverage) ...[
+              const SizedBox(height: 10),
+              Container(
+                width: double.infinity,
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                decoration: BoxDecoration(
+                    color: const Color(0xFFE3F2FD),
+                    borderRadius: BorderRadius.circular(12)),
+                child: Row(children: [
+                  const Text('💧', style: TextStyle(fontSize: 16)),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      'เครื่องดื่มนี้จะนับเป็นน้ำ '
+                      '${(waterMlPerServing * amount).toInt()} ml '
+                      '(≈ ${(waterMlPerServing * amount / 250).toStringAsFixed(1)} แก้ว)',
+                      style: const TextStyle(
+                          fontSize: 12,
+                          color: Color(0xFF1565C0),
+                          fontWeight: FontWeight.w500),
+                    ),
+                  ),
+                ]),
+              ),
+            ],
             const SizedBox(height: 20),
             // ── ปุ่ม - จำนวน + และปุ่มเพิ่ม ──
             Row(children: [
@@ -1428,6 +1525,7 @@ class _AddFoodSheetState extends ConsumerState<_AddFoodSheet>
                         amount: amount.toDouble(),
                         unitName: 'serving',
                         foodId: food['food_id'] as int?,
+                        waterMl: waterMlPerServing,
                       ));
                       Navigator.pop(ctx);
                       Navigator.pop(context);
@@ -1788,6 +1886,36 @@ class _AddFoodSheetState extends ConsumerState<_AddFoodSheet>
                                         fontSize: 14,
                                         fontWeight: FontWeight.w600)),
                               ),
+                              // badge ภาษาท้องถิ่น
+                              if ((f['regional_name'] as String?)?.isNotEmpty == true)
+                                Container(
+                                  margin: const EdgeInsets.only(left: 4),
+                                  padding: const EdgeInsets.symmetric(
+                                      horizontal: 5, vertical: 2),
+                                  decoration: BoxDecoration(
+                                      color: const Color(0xFFE8F5E9),
+                                      borderRadius: BorderRadius.circular(99)),
+                                  child: const Text('ท้องถิ่น',
+                                      style: TextStyle(
+                                          fontSize: 9,
+                                          color: Color(0xFF388E3C),
+                                          fontWeight: FontWeight.w700)),
+                                ),
+                              // badge เครื่องดื่ม
+                              if (f['food_type']?.toString() == 'beverage')
+                                Container(
+                                  margin: const EdgeInsets.only(left: 4),
+                                  padding: const EdgeInsets.symmetric(
+                                      horizontal: 5, vertical: 2),
+                                  decoration: BoxDecoration(
+                                      color: const Color(0xFFE3F2FD),
+                                      borderRadius: BorderRadius.circular(99)),
+                                  child: const Text('💧 เครื่องดื่ม',
+                                      style: TextStyle(
+                                          fontSize: 9,
+                                          color: Color(0xFF1565C0),
+                                          fontWeight: FontWeight.w700)),
+                                ),
                               if (allergic)
                                 Flexible(
                                   child: Container(
@@ -1808,13 +1936,30 @@ class _AddFoodSheetState extends ConsumerState<_AddFoodSheet>
                                   ),
                                 ),
                             ]),
-                            subtitle: Text(
-                                '${f['calories']?.toStringAsFixed(0) ?? 0} kcal  •  '
-                                'P:${f['protein']?.toStringAsFixed(0) ?? 0}g  '
-                                'C:${f['carbs']?.toStringAsFixed(0) ?? 0}g  '
-                                'F:${f['fat']?.toStringAsFixed(0) ?? 0}g',
-                                style: TextStyle(
-                                    fontSize: 11, color: Colors.grey.shade500)),
+                            subtitle: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Text(
+                                    '${f['calories']?.toStringAsFixed(0) ?? 0} kcal  •  '
+                                    'P:${f['protein']?.toStringAsFixed(0) ?? 0}g  '
+                                    'C:${f['carbs']?.toStringAsFixed(0) ?? 0}g  '
+                                    'F:${f['fat']?.toStringAsFixed(0) ?? 0}g',
+                                    style: TextStyle(
+                                        fontSize: 11,
+                                        color: Colors.grey.shade500)),
+                                // แสดงชื่อท้องถิ่นเป็น hint เมื่อ display_name ต่างจาก food_name
+                                if ((f['regional_name'] as String?)?.isNotEmpty == true &&
+                                    f['regional_name'] != f['food_name'])
+                                  Text(
+                                    'ชื่อสามัญ: ${f['food_name'] ?? ''}',
+                                    style: TextStyle(
+                                        fontSize: 10,
+                                        color: Colors.grey.shade400,
+                                        fontStyle: FontStyle.italic),
+                                  ),
+                              ],
+                            ),
                             trailing: GestureDetector(
                               onTap: () => _handleFoodTap(f),
                               child: Container(

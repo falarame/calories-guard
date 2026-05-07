@@ -272,13 +272,7 @@ class _AppHomeScreenState extends ConsumerState<AppHomeScreen> {
   Widget build(BuildContext context) {
     final userData = ref.watch(userDataProvider);
 
-    // ✅ FIX: Re-fetch when user navigates back to home tab from record screen
-    ref.listen<int>(navIndexProvider, (prev, next) {
-      if (next == 0 && prev != 0 && mounted) {
-        _fetchDailyData(_viewDate);
-      }
-    });
-
+    // homeViewDateProvider: หน้าอื่นส่งวันที่มาให้ home แสดง
     ref.listen<DateTime?>(homeViewDateProvider, (prev, next) {
       if (next != null && mounted) {
         ref.read(homeViewDateProvider.notifier).state = null;
@@ -309,13 +303,6 @@ class _AppHomeScreenState extends ConsumerState<AppHomeScreen> {
 
     final double bmi = userData.bmi;
     final String bmiStatus = getBMIStatus(bmi);
-
-    // ── Refresh อัตโนมัติเมื่อ user กลับมา Home tab (index 0) ───────────────
-    ref.listen<int>(navIndexProvider, (prev, next) {
-      if (next == 0 && prev != null && prev != 0) {
-        _fetchAllData(); // ดึงข้อมูลใหม่โดยใช้ _viewDate เดิม (ไม่ reset วันที่)
-      }
-    });
 
     return Scaffold(
       backgroundColor: _bg,

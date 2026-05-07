@@ -348,10 +348,13 @@ def get_daily_log_by_date(user_id: int, date_query: date, current_user: dict = D
         cur.execute("""
             SELECT m.meal_type, di.food_id, di.food_name, di.amount, di.unit_id,
                    u.name AS unit_name,
-                   di.cal_per_unit, di.protein_per_unit, di.carbs_per_unit, di.fat_per_unit
+                   di.cal_per_unit, di.protein_per_unit, di.carbs_per_unit, di.fat_per_unit,
+                   COALESCE(f.food_type::text, '') AS food_type,
+                   COALESCE(f.serving_quantity, 0) AS serving_quantity
             FROM meals m
             JOIN detail_items di ON di.meal_id = m.meal_id
             LEFT JOIN units u ON u.unit_id = di.unit_id
+            LEFT JOIN foods f ON f.food_id = di.food_id
             WHERE m.user_id = %s AND DATE(m.meal_time) = %s
             ORDER BY m.meal_type, di.item_id
         """, (user_id, date_query))
@@ -360,6 +363,8 @@ def get_daily_log_by_date(user_id: int, date_query: date, current_user: dict = D
         for item in items:
             meal_type = item["meal_type"]
             if meal_type in meals_map:
+                food_type = item["food_type"] or ""
+                serving_qty = float(item["serving_quantity"]) if item["serving_quantity"] else 0.0
                 meals_map[meal_type].append({
                     "food_id": item["food_id"],
                     "food_name": item["food_name"],
@@ -370,6 +375,9 @@ def get_daily_log_by_date(user_id: int, date_query: date, current_user: dict = D
                     "protein_per_unit": float(item["protein_per_unit"]) if item["protein_per_unit"] else 0,
                     "carbs_per_unit": float(item["carbs_per_unit"]) if item["carbs_per_unit"] else 0,
                     "fat_per_unit": float(item["fat_per_unit"]) if item["fat_per_unit"] else 0,
+                    "food_type": food_type,
+                    # สำหรับ beverage: ปริมาณน้ำ (ml) ต่อ 1 serving
+                    "water_ml_per_serving": serving_qty if food_type == "beverage" else 0.0,
                 })
         return {
             "calories": total_cal,
