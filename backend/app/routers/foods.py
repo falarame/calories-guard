@@ -574,7 +574,9 @@ def update_food(food_id: int, food: FoodCreate, current_user: dict = Depends(get
 @router.patch("/foods/{food_id}")
 def patch_food(food_id: int, data: dict, current_user: dict = Depends(get_current_admin)):
     """Partial update — อัปเดตเฉพาะ field ที่ส่งมา (admin only)"""
-    allowed = {"food_name", "calories", "protein", "carbs", "fat", "image_url"}
+    allowed = {"food_name", "calories", "protein", "carbs", "fat", "image_url",
+               "food_type", "serving_quantity", "serving_unit_id",
+               "sodium", "sugar", "cholesterol", "fiber_g"}
     fields = {k: v for k, v in data.items() if k in allowed}
     if not fields:
         raise HTTPException(status_code=400, detail="ไม่มี field ที่อัปเดตได้")
@@ -588,6 +590,22 @@ def patch_food(food_id: int, data: dict, current_user: dict = Depends(get_curren
         )
         if not cur.fetchone():
             raise HTTPException(status_code=404, detail="ไม่พบเมนูนี้")
+
+        # ถ้า food_type เป็น beverage ให้ auto-insert beverages row (ถ้ายังไม่มี)
+        final_type = fields.get("food_type")
+        if not final_type:
+            cur.execute("SELECT food_type FROM foods WHERE food_id = %s", (food_id,))
+            row = cur.fetchone()
+            final_type = row[0] if row else None
+        if final_type == "beverage":
+            vol = data.get("volume_ml")
+            cur.execute("""
+                INSERT INTO beverages (food_id, volume_ml, is_alcoholic)
+                VALUES (%s, %s, FALSE)
+                ON CONFLICT (food_id) DO UPDATE SET
+                    volume_ml = COALESCE(EXCLUDED.volume_ml, beverages.volume_ml)
+            """, (food_id, vol))
+
         conn.commit()
         return {"message": "อัปเดตสำเร็จ", "food_id": food_id}
     except HTTPException:

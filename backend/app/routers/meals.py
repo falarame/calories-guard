@@ -56,7 +56,13 @@ def _add_meal_impl(user_id: int, log: DailyLogUpdate):
                     SELECT
                         COALESCE(
                             b.volume_ml,
-                            CASE WHEN lower(u.name) LIKE '%ml%' THEN f.serving_quantity ELSE NULL END
+                            CASE
+                                WHEN lower(u.name) LIKE '%ml%'
+                                    THEN f.serving_quantity
+                                WHEN lower(u.name) LIKE '%แก้ว%' OR lower(u.name) LIKE '%glass%' OR lower(u.name) LIKE '%cup%'
+                                    THEN f.serving_quantity * 250
+                                ELSE 250
+                            END
                         ) AS volume_ml,
                         COALESCE(b.is_alcoholic, FALSE) AS is_alcoholic
                     FROM foods f
