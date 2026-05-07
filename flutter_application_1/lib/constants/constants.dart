@@ -43,10 +43,10 @@ class AppConstants {
   /// in the repo at `docs/privacy-policy.md` and `docs/terms-of-service.md`.
   static const String privacyPolicyUrl = String.fromEnvironment(
     'PRIVACY_POLICY_URL',
-    defaultValue: 'https://calories-guard.pages.dev/privacy.html',
+    defaultValue: 'https://admin.caloriesguard.com/privacy.html',
   );
   static const String termsOfServiceUrl = String.fromEnvironment(
     'TERMS_URL',
-    defaultValue: 'https://calories-guard.pages.dev/terms.html',
+    defaultValue: 'https://admin.caloriesguard.com/terms.html',
   );
 }

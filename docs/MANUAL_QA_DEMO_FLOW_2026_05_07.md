@@ -14,8 +14,8 @@ flutter build apk --release \
   --dart-define=API_BASE_URL=https://<staging-api> \
   --dart-define=SUPABASE_URL=https://<staging-ref>.supabase.co \
   --dart-define=SUPABASE_ANON_KEY=<staging-anon-key> \
-  --dart-define=PRIVACY_POLICY_URL=https://calories-guard.pages.dev/privacy.html \
-  --dart-define=TERMS_URL=https://calories-guard.pages.dev/terms.html
+  --dart-define=PRIVACY_POLICY_URL=https://admin.caloriesguard.com/privacy.html \
+  --dart-define=TERMS_URL=https://admin.caloriesguard.com/terms.html
 ```
 
 ## Screenshots to capture
@@ -69,4 +69,3 @@ flutter build apk --release \
 - Notification permission request works on Android 13+.
 - Health Connect/Samsung Health permission prompt appears when supported.
 - If Health Connect is unavailable, the app shows fallback state and still allows manual logging.
-
