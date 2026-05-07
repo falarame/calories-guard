@@ -40,12 +40,15 @@ def read_foods(user_id: int | None = None):
                    u.name AS serving_unit,
                    COALESCE(frn.name_th, f.food_name) AS display_name,
                    frn.name_th AS regional_name,
+                   dc.category_name,
                    COALESCE(
                        array_agg(faf.flag_id) FILTER (WHERE faf.flag_id IS NOT NULL),
                        '{}'
                    ) AS allergy_flag_ids
             FROM foods f
             LEFT JOIN units u ON u.unit_id = f.serving_unit_id
+            LEFT JOIN dishes d ON d.dish_id = f.dish_id
+            LEFT JOIN dish_categories dc ON dc.dish_category_id = d.dish_category_id
             LEFT JOIN food_regional_names frn
                    ON frn.food_id = f.food_id
                   AND frn.region = %s::thai_region
@@ -53,7 +56,7 @@ def read_foods(user_id: int | None = None):
                   AND frn.deleted_at IS NULL
             LEFT JOIN food_allergy_flags faf ON faf.food_id = f.food_id
             WHERE f.deleted_at IS NULL
-            GROUP BY f.food_id, u.name, frn.name_th
+            GROUP BY f.food_id, u.name, frn.name_th, dc.category_name
             ORDER BY f.food_id ASC
         """, (region,))
         rows = cur.fetchall()
