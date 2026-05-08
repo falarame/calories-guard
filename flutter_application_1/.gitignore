@@ -10,6 +10,7 @@ build/
 **/android/local.properties
 **/android/**/GeneratedPluginRegistrant.java
 app-debug.apk
+app-release.apk
 
 # Generated plugin registrant files (all platforms)
 **/ios/Runner/GeneratedPluginRegistrant.h
