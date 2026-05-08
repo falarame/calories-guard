@@ -8,6 +8,7 @@ import 'package:http/http.dart' as http;
 import 'package:url_launcher/url_launcher.dart';
 import 'dart:math' show cos, sqrt, asin;
 import '../config/secrets.dart';
+import '../constants/constants.dart';
 import '../widget/web_unsupported_placeholder.dart';
 
 class RestaurantMapScreen extends StatefulWidget {
@@ -61,11 +62,25 @@ class _RestaurantMapScreenState extends State<RestaurantMapScreen> {
     }
   }
 
+  String _apiBase() {
+    final u = AppConstants.baseUrl.trim();
+    if (u.isEmpty) return '';
+    return u.endsWith('/') ? u.substring(0, u.length - 1) : u;
+  }
+
   Future<void> _initLocation() async {
     try {
       bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
       if (!serviceEnabled) {
         setState(() => _isLoading = false);
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('กรุณาเปิดบริการตำแหน่ง (GPS) เพื่อค้นหาร้านใกล้คุณ'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
         return;
       }
 
@@ -74,12 +89,28 @@ class _RestaurantMapScreenState extends State<RestaurantMapScreen> {
         permission = await Geolocator.requestPermission();
         if (permission == LocationPermission.denied) {
           setState(() => _isLoading = false);
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('ต้องอนุญาตตำแหน่งเพื่อแสดงร้านใกล้คุณ'),
+                backgroundColor: Colors.red,
+              ),
+            );
+          }
           return;
         }
       }
 
       if (permission == LocationPermission.deniedForever) {
         setState(() => _isLoading = false);
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('การอนุญาตตำแหน่งถูกปิดถาวร กรุณาเปิดในการตั้งค่าแอป'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
         return;
       }
 
@@ -108,58 +139,132 @@ class _RestaurantMapScreenState extends State<RestaurantMapScreen> {
     setState(() => _isLoading = true);
 
     try {
-      final keywordParam = _selectedKeyword != 'ทั้งหมด'
-          ? '&keyword=${Uri.encodeComponent(_selectedKeyword)}'
-          : '';
-      final url = Uri.parse(
-        'https://maps.googleapis.com/maps/api/place/nearbysearch/json'
-        '?location=${_currentPosition!.latitude},${_currentPosition!.longitude}'
-        '&radius=$_radiusMeters'
-        '&type=restaurant'
-        '&language=th'
-        '$keywordParam'
-        '&key=$_apiKey',
-      );
+      http.Response response;
+      final base = _apiBase();
+      if (base.isNotEmpty) {
+        final q = <String, String>{
+          'lat': '${_currentPosition!.latitude}',
+          'lng': '${_currentPosition!.longitude}',
+          'radius': '$_radiusMeters',
+        };
+        if (_selectedKeyword != 'ทั้งหมด') {
+          q['keyword'] = _selectedKeyword;
+        }
+        final uri =
+            Uri.parse('$base/places/nearby').replace(queryParameters: q);
+        response = await http.get(uri);
+        // Backend ไม่มีคีย์ → ลองเรียก Google โดยตรง (เดฟ / fallback)
+        if (response.statusCode == 503) {
+          final keywordParam = _selectedKeyword != 'ทั้งหมด'
+              ? '&keyword=${Uri.encodeComponent(_selectedKeyword)}'
+              : '';
+          response = await http.get(Uri.parse(
+            'https://maps.googleapis.com/maps/api/place/nearbysearch/json'
+            '?location=${_currentPosition!.latitude},${_currentPosition!.longitude}'
+            '&radius=$_radiusMeters'
+            '&type=restaurant'
+            '&language=th'
+            '$keywordParam'
+            '&key=$_apiKey',
+          ));
+        }
+      } else {
+        final keywordParam = _selectedKeyword != 'ทั้งหมด'
+            ? '&keyword=${Uri.encodeComponent(_selectedKeyword)}'
+            : '';
+        response = await http.get(Uri.parse(
+          'https://maps.googleapis.com/maps/api/place/nearbysearch/json'
+          '?location=${_currentPosition!.latitude},${_currentPosition!.longitude}'
+          '&radius=$_radiusMeters'
+          '&type=restaurant'
+          '&language=th'
+          '$keywordParam'
+          '&key=$_apiKey',
+        ));
+      }
 
-      final response = await http.get(url);
+      if (response.statusCode != 200) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(
+                  'ไม่สามารถโหลดร้านได้ (รหัส ${response.statusCode})'),
+              backgroundColor: _red,
+            ),
+          );
+        }
+        setState(() => _isLoading = false);
+        return;
+      }
 
-      if (response.statusCode == 200) {
-        final data = json.decode(response.body);
-        final results = data['results'] as List;
-
+      final data = json.decode(response.body) as Map<String, dynamic>;
+      final status = data['status'] as String? ?? '';
+      if (status != 'OK' && status != 'ZERO_RESULTS') {
+        final err =
+            (data['error_message'] as String?)?.trim() ?? status;
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(
+                err.isEmpty
+                    ? 'ไม่สามารถค้นหาร้านได้ กรุณาลองใหม่'
+                    : 'ค้นหาร้านไม่สำเร็จ: $err',
+              ),
+              backgroundColor: _red,
+            ),
+          );
+        }
         setState(() {
-          _restaurants = results.map((r) {
-            final lat = r['geometry']['location']['lat'];
-            final lng = r['geometry']['location']['lng'];
-            final distance = _calculateDistance(
-              _currentPosition!.latitude,
-              _currentPosition!.longitude,
-              lat,
-              lng,
-            );
-
-            return {
-              'place_id': r['place_id'],
-              'name': r['name'],
-              'vicinity': r['vicinity'] ?? '',
-              'rating': r['rating']?.toDouble() ?? 0.0,
-              'user_ratings_total': r['user_ratings_total'] ?? 0,
-              'lat': lat,
-              'lng': lng,
-              'distance': distance,
-              'open_now': r['opening_hours']?['open_now'] ?? false,
-              'has_opening_hours': r['opening_hours'] != null,
-              'photos': r['photos'],
-            };
-          }).toList();
-
-          _filteredRestaurants = List.from(_restaurants);
-          _applyFilters();
-          _updateMarkers();
+          _restaurants = [];
+          _filteredRestaurants = [];
+          _markers = {};
           _isLoading = false;
         });
+        return;
       }
-    } catch (_) {
+
+      final results = (data['results'] as List?) ?? [];
+
+      setState(() {
+        _restaurants = results.map((r) {
+          final lat = r['geometry']['location']['lat'];
+          final lng = r['geometry']['location']['lng'];
+          final distance = _calculateDistance(
+            _currentPosition!.latitude,
+            _currentPosition!.longitude,
+            lat,
+            lng,
+          );
+
+          return {
+            'place_id': r['place_id'],
+            'name': r['name'],
+            'vicinity': r['vicinity'] ?? '',
+            'rating': r['rating']?.toDouble() ?? 0.0,
+            'user_ratings_total': r['user_ratings_total'] ?? 0,
+            'lat': lat,
+            'lng': lng,
+            'distance': distance,
+            'open_now': r['opening_hours']?['open_now'] ?? false,
+            'has_opening_hours': r['opening_hours'] != null,
+            'photos': r['photos'],
+          };
+        }).toList();
+
+        _filteredRestaurants = List.from(_restaurants);
+        _applyFilters();
+        _updateMarkers();
+        _isLoading = false;
+      });
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('เกิดข้อผิดพลาด: $e'),
+            backgroundColor: _red,
+          ),
+        );
+      }
       setState(() => _isLoading = false);
     }
   }
@@ -212,7 +317,12 @@ class _RestaurantMapScreenState extends State<RestaurantMapScreen> {
     if (photos is! List || photos.isEmpty) return '';
     final photoRef = photos[0]['photo_reference'];
     if (photoRef == null) return '';
-    return 'https://maps.googleapis.com/maps/api/place/photo?maxwidth=400&photo_reference=$photoRef&key=$_apiKey';
+    final ref = Uri.encodeComponent(photoRef.toString());
+    final base = _apiBase();
+    if (base.isNotEmpty) {
+      return '$base/places/photo?maxwidth=400&photo_reference=$ref';
+    }
+    return 'https://maps.googleapis.com/maps/api/place/photo?maxwidth=400&photo_reference=$ref&key=$_apiKey';
   }
 
   String _getAICalorieHint(double remainingCal) {
