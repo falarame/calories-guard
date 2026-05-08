@@ -18,6 +18,9 @@ abstract final class NutritionApprox {
   /// "~596 kcal"
   static String kcal(num n) => '~${n.round()} kcal';
 
+  /// แคลที่ต้องการแสดงเป็นตัวเลขเป้าหมายชัดเจน (ไม่มี ~)
+  static String kcalExact(num n) => '${n.round()} kcal';
+
   /// Dynamic JSON values (recipe/API): grams or other amounts as "~180".
   static String tildeDynamic(dynamic v, {int fractionDigits = 0}) {
     final n = _asNum(v);
@@ -27,5 +30,10 @@ abstract final class NutritionApprox {
   /// Expanded meal row on Home: "~596 kcal • P:~29g C:~69g F:~21g"
   static String mealMacroLine(num cal, num p, num c, num f) =>
       '${tildeRound(cal)} kcal • '
+      'P:${tildeRound(p)}g C:${tildeRound(c)}g F:${tildeRound(f)}g';
+
+  /// Home: แคลเป็นเลขเป้าหมายชัด เฉพาะกรัมโภชนาการเป็น ~
+  static String mealMacroLineHome(num cal, num p, num c, num f) =>
+      '${cal.round()} kcal • '
       'P:${tildeRound(p)}g C:${tildeRound(c)}g F:${tildeRound(f)}g';
 }

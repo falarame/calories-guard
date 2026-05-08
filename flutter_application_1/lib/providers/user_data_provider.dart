@@ -209,11 +209,9 @@ class UserData {
       storedTargetFat != null &&
       storedTargetFat! > 0;
 
-  bool get isUsingEstimatedTargets =>
-      !hasBackendTargetCalories || !hasBackendTargetMacros;
-
-  String get targetSourceLabel =>
-      isUsingEstimatedTargets ? 'ประมาณจากข้อมูลในเครื่อง' : 'คำนวณจากระบบ';
+  /// แหล่งที่มาของเป้าแคล — ไม่ผูกกับแมโคร (เป้ากรัมยังเป็น “ประมาณ” ได้แยกต่างหากบนการ์ด P/C/F)
+  String get targetCaloriesSourceLabel =>
+      hasBackendTargetCalories ? 'คำนวณจากระบบ' : 'คำนวณจากสูตรในเครื่อง';
 
   double get targetCalories {
     if (hasBackendTargetCalories) {

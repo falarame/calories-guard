@@ -296,7 +296,7 @@ class _AppHomeScreenState extends ConsumerState<AppHomeScreen> {
     if (isOver && !_hasWarnedCalories) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-            content: Text('⚠️ แจ้งเตือน: พลังงานสุทธิเกินเป้าหมายแล้ว!'),
+            content: Text('⚠️ แจ้งเตือน: แคลอรีเกินเป้าหมายแล้ว!'),
             backgroundColor: Colors.redAccent));
         NotificationHelper.showCalorieAlert(ringCal, targetCal);
         setState(() => _hasWarnedCalories = true);
@@ -505,7 +505,7 @@ class _AppHomeScreenState extends ConsumerState<AppHomeScreen> {
             const Icon(Icons.local_fire_department_rounded,
                 color: _green, size: 20),
             const SizedBox(width: 8),
-            const Text('พลังงานสุทธิวันนี้',
+            const Text('แคลอรี่ที่ได้รับในวันนี้',
                 style: TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.bold,
@@ -558,7 +558,7 @@ class _AppHomeScreenState extends ConsumerState<AppHomeScreen> {
             Padding(
               padding: const EdgeInsets.only(top: 6),
               child: Text(
-                'กิน ${NutritionApprox.kcal(grossIntake.toDouble())} · เผา ${NutritionApprox.kcal(burned.toDouble())}',
+                'กิน ${NutritionApprox.kcalExact(grossIntake.toDouble())} · เผา ${NutritionApprox.kcalExact(burned.toDouble())}',
                 style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
               ),
             ),
@@ -594,7 +594,7 @@ class _AppHomeScreenState extends ConsumerState<AppHomeScreen> {
                 ),
                 Column(mainAxisSize: MainAxisSize.min, children: [
                   Text(
-                    NutritionApprox.tildeRound(ringCal.toDouble()),
+                    '${ringCal.round()}',
                     style: TextStyle(
                         fontSize: 26,
                         fontWeight: FontWeight.bold,
@@ -618,13 +618,11 @@ class _AppHomeScreenState extends ConsumerState<AppHomeScreen> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     _calorieStatItem(
-                        userData.hasBackendTargetCalories
-                            ? 'เป้าหมาย'
-                            : 'เป้าหมาย (ประมาณ)',
-                        NutritionApprox.kcal(targetCal.toDouble()),
+                        'เป้าหมาย',
+                        NutritionApprox.kcalExact(targetCal.toDouble()),
                         _green,
                         Icons.flag_outlined,
-                        helperText: userData.targetSourceLabel),
+                        helperText: userData.targetCaloriesSourceLabel),
                     const SizedBox(height: 12),
                     // Removed extra stat item based on user request
                     const SizedBox(height: 8),
@@ -744,6 +742,11 @@ class _AppHomeScreenState extends ConsumerState<AppHomeScreen> {
   Widget _macroCard(String label, int current, int target, Color color,
       String emoji, String macroType,
       {bool isEstimated = false}) {
+    final gramCurrent =
+        isEstimated ? NutritionApprox.tildeRound(current.toDouble()) : '${current.round()}';
+    final gramTarget = isEstimated
+        ? '${NutritionApprox.tildeRound(target.toDouble())} g'
+        : '${target.round()} g';
     final isOver = target > 0 && current > target;
     final displayColor = isOver ? const Color(0xFFD32F2F) : color;
     final pct = target > 0 ? (current / target).clamp(0.0, 1.0) : 0.0;
@@ -790,12 +793,12 @@ class _AppHomeScreenState extends ConsumerState<AppHomeScreen> {
                     color: Colors.grey.shade500,
                     fontWeight: FontWeight.w500)),
             const SizedBox(height: 2),
-            Text('${NutritionApprox.tildeRound(current.toDouble())} g',
+            Text('$gramCurrent g',
                 style: TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.bold,
                     color: isOver ? const Color(0xFFD32F2F) : Colors.black87)),
-            Text('/ ${NutritionApprox.tildeRound(target.toDouble())} g${isEstimated ? ' ประมาณ' : ''}',
+            Text('/ $gramTarget${isEstimated ? ' ประมาณ' : ''}',
                 style: TextStyle(
                     fontSize: 12,
                     color: Colors.grey.shade700,
@@ -1252,7 +1255,7 @@ class _AppHomeScreenState extends ConsumerState<AppHomeScreen> {
                 final p = food.totalProtein.round();
                 final c = food.totalCarbs.round();
                 final fVal = food.totalFat.round();
-                final macroLine = NutritionApprox.mealMacroLine(
+                final macroLine = NutritionApprox.mealMacroLineHome(
                     cal.toDouble(),
                     p.toDouble(),
                     c.toDouble(),
