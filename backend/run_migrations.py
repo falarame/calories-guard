@@ -77,6 +77,7 @@ TARGET_MIGRATIONS = [
     "v25_restore_ingredients_relations.sql",
     "v26_food_versioning_and_log_snapshots.sql",
     "v27_seed_beverages_table.sql",
+    "v28_thaifcd_import_foods.sql",
 ]
 
 
