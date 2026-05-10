@@ -12,6 +12,7 @@ class NotificationHelper {
   static final pendingPayload = ValueNotifier<String?>(null);
 
   static const _prefKeyEnabled = 'notifications_enabled';
+  static const _prefKeyWeighInDay = 'weigh_in_weekday'; // DateTime.monday(1)–sunday(7)
 
   // ─── Persistence ─────────────────────────────────────────────────────────
 
@@ -23,6 +24,17 @@ class NotificationHelper {
   static Future<void> setEnabled(bool value) async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setBool(_prefKeyEnabled, value);
+  }
+
+  // default = DateTime.monday (1)
+  static Future<int> getWeighInDay() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getInt(_prefKeyWeighInDay) ?? DateTime.monday;
+  }
+
+  static Future<void> setWeighInDay(int weekday) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setInt(_prefKeyWeighInDay, weekday);
   }
 
   // ─── Init ──────────────────────────────────────────────────────────────────
@@ -229,11 +241,13 @@ class NotificationHelper {
 
   static Future<void> scheduleWeeklyWeightCheck() async {
     if (kIsWeb) return;
+    final weekday = await getWeighInDay();
+    final dayName = _thaiWeekdayName(weekday);
     await _notification.zonedSchedule(
       601,
       '⚖️ ได้เวลาชั่งน้ำหนักแล้ว',
-      'เช้าวันจันทร์แบบนี้ มาอัปเดตน้ำหนักล่าสุดกันเถอะ!',
-      _nextInstanceOfMondaySevenAM(),
+      '$dayName นี้มาอัปเดตน้ำหนักล่าสุดกันเถอะ!',
+      _nextInstanceOfWeekdaySevenAM(weekday),
       const NotificationDetails(
         android: AndroidNotificationDetails(
           'channel_id_weekly',
@@ -250,12 +264,25 @@ class NotificationHelper {
     );
   }
 
-  static tz.TZDateTime _nextInstanceOfMondaySevenAM() {
+  static tz.TZDateTime _nextInstanceOfWeekdaySevenAM(int weekday) {
     tz.TZDateTime scheduled = _nextInstanceOfTime(7, 0);
-    while (scheduled.weekday != DateTime.monday) {
+    while (scheduled.weekday != weekday) {
       scheduled = scheduled.add(const Duration(days: 1));
     }
     return scheduled;
+  }
+
+  static String _thaiWeekdayName(int weekday) {
+    const names = {
+      DateTime.monday: 'วันจันทร์',
+      DateTime.tuesday: 'วันอังคาร',
+      DateTime.wednesday: 'วันพุธ',
+      DateTime.thursday: 'วันพฤหัสบดี',
+      DateTime.friday: 'วันศุกร์',
+      DateTime.saturday: 'วันเสาร์',
+      DateTime.sunday: 'วันอาทิตย์',
+    };
+    return names[weekday] ?? 'วันจันทร์';
   }
 
   // ─── P1: Re-engagement Guard ───────────────────────────────────────────────

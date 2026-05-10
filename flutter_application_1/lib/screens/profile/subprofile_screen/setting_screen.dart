@@ -18,16 +18,33 @@ class SettingScreen extends ConsumerStatefulWidget {
 
 class _SettingScreenState extends ConsumerState<SettingScreen> {
   bool _isNotificationOn = true;
+  int _weighInDay = DateTime.monday; // default วันจันทร์
+
+  static const _thaiDays = {
+    DateTime.monday: 'วันจันทร์',
+    DateTime.tuesday: 'วันอังคาร',
+    DateTime.wednesday: 'วันพุธ',
+    DateTime.thursday: 'วันพฤหัสบดี',
+    DateTime.friday: 'วันศุกร์',
+    DateTime.saturday: 'วันเสาร์',
+    DateTime.sunday: 'วันอาทิตย์',
+  };
 
   @override
   void initState() {
     super.initState();
-    _loadNotificationPref();
+    _loadPrefs();
   }
 
-  Future<void> _loadNotificationPref() async {
+  Future<void> _loadPrefs() async {
     final enabled = await NotificationHelper.isEnabled();
-    if (mounted) setState(() => _isNotificationOn = enabled);
+    final day = await NotificationHelper.getWeighInDay();
+    if (mounted) {
+      setState(() {
+        _isNotificationOn = enabled;
+        _weighInDay = day;
+      });
+    }
   }
 
   Future<void> _onToggleNotification(bool val) async {
@@ -38,6 +55,74 @@ class _SettingScreenState extends ConsumerState<SettingScreen> {
     } else {
       await NotificationHelper.cancelAllScheduled();
     }
+  }
+
+  Future<void> _onPickWeighInDay() async {
+    final palette = context.palette;
+    await showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (_) => Container(
+        decoration: BoxDecoration(
+          color: palette.surfaceCard,
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const SizedBox(height: 12),
+            Container(
+              width: 40, height: 4,
+              decoration: BoxDecoration(
+                color: Colors.grey.shade300,
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+            const SizedBox(height: 8),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(20, 8, 20, 4),
+              child: Row(children: [
+                const Icon(Icons.scale_outlined, size: 18, color: Color(0xFF628141)),
+                const SizedBox(width: 8),
+                Text('เลือกวันชั่งน้ำหนัก',
+                    style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                        color: palette.textPrimary)),
+              ]),
+            ),
+            const SizedBox(height: 4),
+            ..._thaiDays.entries.map((e) {
+              final isSelected = e.key == _weighInDay;
+              return ListTile(
+                contentPadding: const EdgeInsets.symmetric(horizontal: 20),
+                leading: Icon(
+                  isSelected ? Icons.radio_button_checked_rounded : Icons.radio_button_unchecked_rounded,
+                  color: isSelected ? const Color(0xFF628141) : Colors.grey,
+                  size: 22,
+                ),
+                title: Text(e.value,
+                    style: TextStyle(
+                        fontSize: 15,
+                        fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                        color: isSelected ? const Color(0xFF628141) : palette.textPrimary)),
+                trailing: isSelected
+                    ? const Text('(ค่าเริ่มต้น)', style: TextStyle(fontSize: 12, color: Colors.grey))
+                    : null,
+                onTap: () async {
+                  Navigator.pop(context);
+                  setState(() => _weighInDay = e.key);
+                  await NotificationHelper.setWeighInDay(e.key);
+                  // reschedule ทันทีด้วยวันใหม่
+                  await NotificationHelper.scheduleWeeklyWeightCheck();
+                },
+              );
+            }),
+            const SizedBox(height: 16),
+          ],
+        ),
+      ),
+    );
   }
 
   Future<void> _deleteAccount() async {
@@ -195,6 +280,7 @@ class _SettingScreenState extends ConsumerState<SettingScreen> {
               onTap: () => _openExternalUrl(AppConstants.termsOfServiceUrl),
             ),
             _buildNotificationTile(),
+            _buildWeighInDayTile(),
           ]),
           const SizedBox(height: 16),
           _buildSectionLabel(l10n.tr('settings.group.support')),
@@ -394,5 +480,31 @@ class _SettingScreenState extends ConsumerState<SettingScreen> {
           endIndent: 20,
           color: Theme.of(context).dividerColor),
     ]);
+  }
+
+  Widget _buildWeighInDayTile() {
+    final palette = context.palette;
+    final dayLabel = _thaiDays[_weighInDay] ?? 'วันจันทร์';
+    return ListTile(
+      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+      leading: Container(
+        width: 38,
+        height: 38,
+        decoration: BoxDecoration(
+            color: palette.surfaceMuted,
+            borderRadius: BorderRadius.circular(10)),
+        child: Icon(Icons.scale_outlined, color: palette.textSecondary, size: 20),
+      ),
+      title: Text('วันชั่งน้ำหนัก',
+          style: TextStyle(
+              fontSize: 15,
+              fontWeight: FontWeight.w500,
+              color: palette.textPrimary)),
+      subtitle: Text(dayLabel,
+          style: TextStyle(fontSize: 13, color: palette.textSecondary)),
+      trailing: Icon(Icons.arrow_forward_ios_rounded,
+          size: 14, color: palette.textFaint),
+      onTap: _onPickWeighInDay,
+    );
   }
 }
