@@ -13,7 +13,10 @@ import '../screens/record/record_food_screen.dart';
 import '../screens/recommened_exercise/exercise_recommendation_screen.dart';
 import '../screens/recommend_food/recommend_food_screen.dart';
 import '../screens/profile/profile_screen.dart';
+import '../screens/profile/subprofile_screen/progress_screen.dart';
+import '../screens/weight/weight_chart_screen.dart';
 import '../screens/chat/chat_screen.dart';
+import '../services/notification_helper.dart';
 import 'notification_sheet.dart';
 
 class MainScreen extends ConsumerStatefulWidget {
@@ -41,12 +44,42 @@ class _MainScreenState extends ConsumerState<MainScreen> {
   void initState() {
     super.initState();
     _maybeShowWelcome();
+    // P2: listen for notification deep-link payloads
+    NotificationHelper.pendingPayload.addListener(_handleNotificationPayload);
+    // Handle payload that may have been set before this widget was mounted
+    WidgetsBinding.instance.addPostFrameCallback((_) => _handleNotificationPayload());
   }
 
   @override
   void dispose() {
+    NotificationHelper.pendingPayload.removeListener(_handleNotificationPayload);
     _welcomeTimer?.cancel();
     super.dispose();
+  }
+
+  void _handleNotificationPayload() {
+    final payload = NotificationHelper.pendingPayload.value;
+    if (payload == null || !mounted) return;
+    NotificationHelper.pendingPayload.value = null;
+
+    switch (payload) {
+      case 'record_food':
+        ref.read(navIndexProvider.notifier).state = 1;
+        break;
+      case 'home':
+        ref.read(navIndexProvider.notifier).state = 0;
+        break;
+      case 'weight':
+        ref.read(navIndexProvider.notifier).state = 0;
+        Navigator.push(context,
+            MaterialPageRoute(builder: (_) => const WeightChartScreen()));
+        break;
+      case 'progress':
+        ref.read(navIndexProvider.notifier).state = 0;
+        Navigator.push(context,
+            MaterialPageRoute(builder: (_) => const ProgressScreen()));
+        break;
+    }
   }
 
   Future<void> _maybeShowWelcome() async {

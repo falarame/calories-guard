@@ -5,6 +5,7 @@ import 'package:url_launcher/url_launcher.dart';
 import '../../../constants/constants.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../../providers/user_data_provider.dart';
+import '../../../services/notification_helper.dart';
 import '../../../theme/app_theme.dart';
 import '../../../login_register/screens/welcome_screen.dart';
 
@@ -17,6 +18,27 @@ class SettingScreen extends ConsumerStatefulWidget {
 
 class _SettingScreenState extends ConsumerState<SettingScreen> {
   bool _isNotificationOn = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadNotificationPref();
+  }
+
+  Future<void> _loadNotificationPref() async {
+    final enabled = await NotificationHelper.isEnabled();
+    if (mounted) setState(() => _isNotificationOn = enabled);
+  }
+
+  Future<void> _onToggleNotification(bool val) async {
+    setState(() => _isNotificationOn = val);
+    await NotificationHelper.setEnabled(val);
+    if (val) {
+      await NotificationHelper.scheduleAll();
+    } else {
+      await NotificationHelper.cancelAllScheduled();
+    }
+  }
 
   Future<void> _deleteAccount() async {
     final l10n = AppLocalizations.of(context);
@@ -363,7 +385,7 @@ class _SettingScreenState extends ConsumerState<SettingScreen> {
         trailing: Switch(
           value: _isNotificationOn,
           activeThumbColor: palette.brand,
-          onChanged: (val) => setState(() => _isNotificationOn = val),
+          onChanged: _onToggleNotification,
         ),
       ),
       Divider(

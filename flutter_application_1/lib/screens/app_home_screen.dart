@@ -8,6 +8,8 @@ import '../../services/api_client.dart';
 import '../../services/daily_summary_enrichment.dart';
 import '../../services/notification_helper.dart';
 import '../../services/lifecycle_service.dart';
+import '../../services/streak_service.dart';
+import '../../services/fcm_service.dart';
 import '../../services/error_reporter.dart';
 import '../../utils/bmi_utils.dart';
 import '../../constants/constants.dart';
@@ -34,6 +36,7 @@ class _AppHomeScreenState extends ConsumerState<AppHomeScreen> {
   bool _hasError = false;
   bool _hasWarnedCalories = false;
   late DateTime _viewDate;
+  int _streak = 0;
 
   @override
   void initState() {
@@ -87,6 +90,14 @@ class _AppHomeScreenState extends ConsumerState<AppHomeScreen> {
       // Lifecycle checks (2-week weight / birthday / monthly) — silent, ไม่บล็อก UI
       final userId = ref.read(userDataProvider).userId;
       LifecycleService.runChecks(userId);
+      // P1: reset re-engagement timer ทุกครั้งที่ user เปิดแอป
+      NotificationHelper.scheduleReEngagementGuard();
+      // P4: upload FCM token ถ้ายังไม่เคย หรือ token refresh
+      FcmService.uploadToken(userId);
+      // P3: schedule streak warning ถ้ายังไม่ได้บันทึกวันนี้ + โหลด streak
+      StreakService.scheduleWarningIfNeeded();
+      final streak = await StreakService.getStreak();
+      if (mounted) setState(() => _streak = streak);
     } catch (_) {
       if (mounted) setState(() => _hasError = true);
     }
@@ -421,6 +432,30 @@ class _AppHomeScreenState extends ConsumerState<AppHomeScreen> {
             ],
           ),
         ),
+        // Streak badge
+        if (_streak >= 2) ...[
+          Container(
+            margin: const EdgeInsets.only(right: 10),
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
+            decoration: BoxDecoration(
+              color: Colors.orange.withValues(alpha: 0.25),
+              borderRadius: BorderRadius.circular(50),
+              border: Border.all(
+                  color: Colors.orange.withValues(alpha: 0.5), width: 1),
+            ),
+            child: Row(mainAxisSize: MainAxisSize.min, children: [
+              const Text('🔥', style: TextStyle(fontSize: 14)),
+              const SizedBox(width: 4),
+              Text(
+                '$_streak วัน',
+                style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 13,
+                    fontWeight: FontWeight.bold),
+              ),
+            ]),
+          ),
+        ],
         // Date picker button
         GestureDetector(
           onTap: () async {
@@ -511,46 +546,18 @@ class _AppHomeScreenState extends ConsumerState<AppHomeScreen> {
                     fontWeight: FontWeight.bold,
                     color: Colors.black87)),
             const Spacer(),
-            GestureDetector(
+            _actionChipButton(
+              label: 'สูตรคำนวณ',
+              icon: Icons.calculate_outlined,
               onTap: () => Navigator.push(context,
                   MaterialPageRoute(builder: (_) => const TdeeFormulaScreen())),
-              child: Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                decoration: BoxDecoration(
-                    color: const Color(0xFFF0F7E8),
-                    borderRadius: BorderRadius.circular(20)),
-                child: const Row(mainAxisSize: MainAxisSize.min, children: [
-                  Icon(Icons.calculate_outlined, size: 13, color: _green),
-                  SizedBox(width: 3),
-                  Text('สูตรคำนวณ',
-                      style: TextStyle(
-                          fontSize: 11,
-                          color: _green,
-                          fontWeight: FontWeight.w600)),
-                ]),
-              ),
             ),
             const SizedBox(width: 8),
-            GestureDetector(
+            _actionChipButton(
+              label: 'กราฟ',
+              icon: Icons.bar_chart_rounded,
               onTap: () => Navigator.push(context,
                   MaterialPageRoute(builder: (_) => const ProgressScreen())),
-              child: Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                decoration: BoxDecoration(
-                    color: _greenLight,
-                    borderRadius: BorderRadius.circular(20)),
-                child: const Row(mainAxisSize: MainAxisSize.min, children: [
-                  Icon(Icons.bar_chart_rounded, size: 14, color: _green),
-                  SizedBox(width: 4),
-                  Text('กราฟ',
-                      style: TextStyle(
-                          fontSize: 12,
-                          color: _green,
-                          fontWeight: FontWeight.w600)),
-                ]),
-              ),
             ),
           ]),
 
@@ -713,6 +720,32 @@ class _AppHomeScreenState extends ConsumerState<AppHomeScreen> {
                   fontSize: 10, color: Colors.grey.shade500, height: 1.2)),
       ]),
     ]);
+  }
+
+  Widget _actionChipButton({
+    required String label,
+    required IconData icon,
+    required VoidCallback onTap,
+  }) {
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(20),
+        child: Ink(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+          decoration: BoxDecoration(
+              color: _greenLight, borderRadius: BorderRadius.circular(20)),
+          child: Row(mainAxisSize: MainAxisSize.min, children: [
+            Icon(icon, size: 14, color: _green),
+            const SizedBox(width: 4),
+            Text(label,
+                style: const TextStyle(
+                    fontSize: 12, color: _green, fontWeight: FontWeight.w600)),
+          ]),
+        ),
+      ),
+    );
   }
 
   // ─── Macro Row ────────────────────────────────────────────────────────────

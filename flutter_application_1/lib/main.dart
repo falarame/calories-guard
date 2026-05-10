@@ -15,6 +15,7 @@ import 'providers/settings_provider.dart';
 import 'providers/user_data_provider.dart';
 import 'services/auth_service.dart';
 import 'services/notification_helper.dart';
+import 'services/fcm_service.dart';
 import 'services/api_client.dart';
 import 'theme/app_theme.dart';
 import 'constants/constants.dart';
@@ -22,6 +23,9 @@ import 'widget/bottom_bar.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  // Initialize Firebase (ต้องมาก่อน runApp และก่อน Supabase)
+  await FcmService.initFirebase();
 
   if (AppConstants.supabaseAnonKey.isEmpty) {
     runApp(const _MissingConfigApp());
@@ -69,11 +73,12 @@ void main() async {
 Future<void> _initNotificationsAfterFirstFrame() async {
   try {
     await NotificationHelper.init();
-    await NotificationHelper.scheduleMealReminders();
-    await NotificationHelper.scheduleDailyRecap();
-    await NotificationHelper.scheduleMorningMotivation();
-    await NotificationHelper.scheduleWaterReminders();
-    await NotificationHelper.scheduleWeeklyWeightCheck();
+    final enabled = await NotificationHelper.isEnabled();
+    if (enabled) {
+      await NotificationHelper.scheduleAll();
+    }
+    // P4: setup FCM message handlers (token upload ทำใน home screen เมื่อมี userId)
+    await FcmService.init();
   } catch (e, st) {
     debugPrint('Notification startup skipped: $e');
     debugPrintStack(stackTrace: st);

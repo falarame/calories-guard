@@ -1,46 +1,107 @@
 import 'package:flutter/foundation.dart'
-    show kIsWeb, defaultTargetPlatform, TargetPlatform;
+    show kIsWeb, defaultTargetPlatform, TargetPlatform, ValueNotifier;
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:timezone/timezone.dart' as tz;
 import 'package:timezone/data/latest.dart' as tz;
 
 class NotificationHelper {
   static final _notification = FlutterLocalNotificationsPlugin();
 
-  // ตั้งค่าเริ่มต้น
+  // Deep-link payload ที่รอ handle — MainScreen listen แล้วเปลี่ยน tab
+  static final pendingPayload = ValueNotifier<String?>(null);
+
+  static const _prefKeyEnabled = 'notifications_enabled';
+
+  // ─── Persistence ─────────────────────────────────────────────────────────
+
+  static Future<bool> isEnabled() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getBool(_prefKeyEnabled) ?? true;
+  }
+
+  static Future<void> setEnabled(bool value) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool(_prefKeyEnabled, value);
+  }
+
+  // ─── Init ──────────────────────────────────────────────────────────────────
+
   static Future<void> init() async {
     if (kIsWeb) return;
-    tz.initializeTimeZones(); // โหลดฐานข้อมูลเวลา
+    tz.initializeTimeZones();
 
-    const androidSettings =
-        AndroidInitializationSettings('@mipmap/ic_launcher'); // ไอคอนแอป
+    const androidSettings = AndroidInitializationSettings('@mipmap/ic_launcher');
     const iosSettings = DarwinInitializationSettings();
+    const settings = InitializationSettings(android: androidSettings, iOS: iosSettings);
 
-    const settings =
-        InitializationSettings(android: androidSettings, iOS: iosSettings);
+    await _notification.initialize(
+      settings,
+      onDidReceiveNotificationResponse: (response) {
+        final payload = response.payload;
+        if (payload != null && payload.isNotEmpty) {
+          pendingPayload.value = payload;
+        }
+      },
+    );
 
-    await _notification.initialize(settings);
+    // ── Handle notification that launched the app from killed state ──────────
+    final launchDetails = await _notification.getNotificationAppLaunchDetails();
+    if (launchDetails?.didNotificationLaunchApp == true) {
+      final payload = launchDetails?.notificationResponse?.payload;
+      if (payload != null && payload.isNotEmpty) {
+        pendingPayload.value = payload;
+      }
+    }
 
-    // ✅ 2. เรียกขออนุญาตทันทีที่ Init (สำคัญมากสำหรับ Android 13+)
     await requestPermission();
   }
 
-  // ✅ 3. เพิ่มฟังก์ชันขออนุญาต
   static Future<void> requestPermission() async {
     if (kIsWeb) return;
     if (defaultTargetPlatform == TargetPlatform.android) {
-      final androidImplementation =
-          _notification.resolvePlatformSpecificImplementation<
-              AndroidFlutterLocalNotificationsPlugin>();
-      await androidImplementation?.requestNotificationsPermission();
+      final androidImpl = _notification.resolvePlatformSpecificImplementation<
+          AndroidFlutterLocalNotificationsPlugin>();
+      await androidImpl?.requestNotificationsPermission();
     }
   }
 
-  // ฟังก์ชันพื้นฐานสำหรับแสดงแจ้งเตือนทันที
+  // ─── Schedule / Cancel all ────────────────────────────────────────────────
+
+  /// เรียกตอน toggle ON — reschedule ทุก recurring notifications
+  static Future<void> scheduleAll() async {
+    if (kIsWeb) return;
+    await scheduleMealReminders();
+    await scheduleWaterReminders();
+    await scheduleMorningMotivation();
+    await scheduleDailyRecap();
+    await scheduleWeeklyWeightCheck();
+  }
+
+  /// เรียกตอน toggle OFF — ยกเลิกเฉพาะ scheduled (ไม่ยกเลิก immediate alerts)
+  static Future<void> cancelAllScheduled() async {
+    if (kIsWeb) return;
+    const scheduledIds = [
+      101, 102, 103, // meal reminders
+      301, // daily recap
+      401, // morning motivation
+      500, 501, 502, 503, // water reminders
+      601, // weekly weight
+      901, 902, // re-engagement guard
+      1001, // streak warning
+    ];
+    for (final id in scheduledIds) {
+      await _notification.cancel(id);
+    }
+  }
+
+  // ─── Immediate Notifications ───────────────────────────────────────────────
+
   static Future<void> showNotification({
     required int id,
     required String title,
     required String body,
+    String? payload,
   }) async {
     if (kIsWeb) return;
     await _notification.show(
@@ -49,24 +110,27 @@ class NotificationHelper {
       body,
       const NotificationDetails(
         android: AndroidNotificationDetails(
-          'channel_id_alert', // ตั้งชื่อ channel ให้ต่างกันสำหรับ Alert
+          'channel_id_alert',
           'Alert Notifications',
-          importance: Importance.max, // ✅ ต้อง Max ถึงจะเด้งทับหน้าจอ
-          priority: Priority.high, // ✅ ต้อง High
+          importance: Importance.max,
+          priority: Priority.high,
           playSound: true,
         ),
         iOS: DarwinNotificationDetails(),
       ),
+      payload: payload,
     );
   }
 
-  // ฟังก์ชันตั้งเวลาเตือน (ทำซ้ำทุกวัน)
+  // ─── Scheduled Notifications ───────────────────────────────────────────────
+
   static Future<void> scheduleDailyNotification({
     required int id,
     required String title,
     required String body,
     required int hour,
     required int minute,
+    String? payload,
   }) async {
     if (kIsWeb) return;
     await _notification.zonedSchedule(
@@ -82,141 +146,91 @@ class NotificationHelper {
           priority: Priority.high,
         ),
       ),
-      // ✅ 4. แก้เป็น inexact เพื่อเลี่ยงปัญหา Permission บน Android 12+
       androidScheduleMode: AndroidScheduleMode.inexactAllowWhileIdle,
       uiLocalNotificationDateInterpretation:
           UILocalNotificationDateInterpretation.absoluteTime,
-      matchDateTimeComponents:
-          DateTimeComponents.time, // ให้เตือนซ้ำทุกวันเวลาเดิม
+      matchDateTimeComponents: DateTimeComponents.time,
+      payload: payload,
     );
   }
 
-  // คำนวณเวลาถัดไปที่จะเตือน
   static tz.TZDateTime _nextInstanceOfTime(int hour, int minute) {
     final now = tz.TZDateTime.now(tz.local);
-    var scheduledDate =
+    var scheduled =
         tz.TZDateTime(tz.local, now.year, now.month, now.day, hour, minute);
-    if (scheduledDate.isBefore(now)) {
-      scheduledDate = scheduledDate.add(const Duration(days: 1));
+    if (scheduled.isBefore(now)) {
+      scheduled = scheduled.add(const Duration(days: 1));
     }
-    return scheduledDate;
+    return scheduled;
   }
 
-  // ==========================================
-  // 🔥 รวมมิตรฟังก์ชันเรียกใช้ตามโจทย์ 4 ข้อ
-  // ==========================================
+  // ─── Recurring Reminder Sets ───────────────────────────────────────────────
 
-  // 1. แจ้งเตือนกันลืม (Time-based)
   static Future<void> scheduleMealReminders() async {
     if (kIsWeb) return;
     await scheduleDailyNotification(
-        id: 101,
-        title: '🍳 มื้อเช้าสำคัญนะ!',
-        body: 'อย่าลืมบันทึกอาหารเช้าลง CleanGoal นะครับ',
-        hour: 08,
-        minute: 00);
+      id: 101,
+      title: '🍳 มื้อเช้าสำคัญนะ!',
+      body: 'อย่าลืมบันทึกอาหารเช้าลง CaloriesGuard นะครับ',
+      hour: 8, minute: 0,
+      payload: 'record_food',
+    );
     await scheduleDailyNotification(
-        id: 102,
-        title: '🍱 เที่ยงแล้ว กินไรยัง?',
-        body: 'ทานมื้อเที่ยงแล้วมาจดบันทึกกันเถอะ',
-        hour: 12,
-        minute: 00);
+      id: 102,
+      title: '🍱 เที่ยงแล้ว กินไรยัง?',
+      body: 'ทานมื้อเที่ยงแล้วมาจดบันทึกกันเถอะ',
+      hour: 12, minute: 0,
+      payload: 'record_food',
+    );
     await scheduleDailyNotification(
-        id: 103,
-        title: '🥗 มื้อเย็นเบาๆ กันเถอะ',
-        body: 'จบวันแล้ว สรุปยอดแคลอรี่กันหน่อย',
-        hour: 18,
-        minute: 00);
-  }
-
-  // 2. แจ้งเตือนเตือนภัย (Alert) - เรียกตอนแคลอรี่เกิน
-  static Future<void> showCalorieAlert(int current, int target) async {
-    if (kIsWeb) return;
-    await showNotification(
-      id: 201,
-      title: '🚨 พลังงานเกินเป้าหมายแล้ว!',
-      body:
-          'คุณทานไป $current / $target KCAL แนะนำให้ขยับร่างกายเพิ่มหน่อยนะครับ',
+      id: 103,
+      title: '🥗 มื้อเย็นเบาๆ กันเถอะ',
+      body: 'จบวันแล้ว สรุปยอดแคลอรี่กันหน่อย',
+      hour: 18, minute: 0,
+      payload: 'record_food',
     );
   }
 
-  // 2.1 แจ้งเตือนใกล้เต็ม (Warning) - เรียกตอนใกล้ถึงเป้า
-  static Future<void> showCalorieWarning(int current, int target) async {
-    if (kIsWeb) return;
-    await showNotification(
-      id: 202,
-      title: '⚠️ ใกล้เต็มโควตาแล้วนะ',
-      body:
-          'เหลืออีกแค่ ${target - current} KCAL มื้อถัดไปเน้นผักหน่อยดีมั้ย? 🥦',
-    );
-  }
-
-  static Future<void> showNutritionSafetyWarning(
-    String title,
-    String body,
-  ) async {
-    if (kIsWeb) return;
-    await showNotification(
-      id: 203,
-      title: title,
-      body: body,
-    );
-  }
-
-  static Future<void> showWaterSafetyWarning(
-    String title,
-    String body,
-  ) async {
-    if (kIsWeb) return;
-    await showNotification(
-      id: 204,
-      title: title,
-      body: body,
-    );
-  }
-
-  // 3. แจ้งเตือนความคืบหน้า (Progress) - สรุปตอนค่ำ
   static Future<void> scheduleDailyRecap() async {
     if (kIsWeb) return;
     await scheduleDailyNotification(
-        id: 301,
-        title: '🌙 สรุปผลวันนี้',
-        body: 'มาดูกันว่าวันนี้คุณทำได้ตามเป้าหมายหรือไม่?',
-        hour: 21,
-        minute: 00);
+      id: 301,
+      title: '🌙 สรุปผลวันนี้',
+      body: 'มาดูกันว่าวันนี้คุณทำได้ตามเป้าหมายหรือไม่?',
+      hour: 21, minute: 0,
+      payload: 'home',
+    );
   }
 
-  // 4. แจ้งเตือนปลุกใจ (Motivation) - ตอนเช้า
   static Future<void> scheduleMorningMotivation() async {
     if (kIsWeb) return;
     await scheduleDailyNotification(
-        id: 401,
-        title: '🔥 เช้าวันใหม่ สดใสกว่าเดิม',
-        body: 'วินัยเริ่มต้นที่ตัวเรา วันนี้สู้ๆ นะครับ!',
-        hour: 07,
-        minute: 00);
+      id: 401,
+      title: '🔥 เช้าวันใหม่ สดใสกว่าเดิม',
+      body: 'วินัยเริ่มต้นที่ตัวเรา วันนี้สู้ๆ นะครับ!',
+      hour: 7, minute: 0,
+      payload: 'home',
+    );
   }
 
   static Future<void> scheduleWaterReminders() async {
     if (kIsWeb) return;
-    // เตือนตอน 10:00, 14:00, 16:00, 20:00
     final times = [10, 14, 16, 20];
     for (int i = 0; i < times.length; i++) {
       await scheduleDailyNotification(
-        id: 500 + i, // ID เริ่มที่ 500
+        id: 500 + i,
         title: '💧 จิบน้ำหน่อยมั้ย?',
         body: 'ดื่มน้ำเพื่อสุขภาพผิวและการเผาผลาญที่ดีนะครับ',
-        hour: times[i],
-        minute: 0,
+        hour: times[i], minute: 0,
+        payload: 'record_food',
       );
     }
   }
 
-  // 6. ⚖️ เตือนชั่งน้ำหนัก (ทุกวันจันทร์ 7 โมงเช้า)
   static Future<void> scheduleWeeklyWeightCheck() async {
     if (kIsWeb) return;
     await _notification.zonedSchedule(
-      601, // ID
+      601,
       '⚖️ ได้เวลาชั่งน้ำหนักแล้ว',
       'เช้าวันจันทร์แบบนี้ มาอัปเดตน้ำหนักล่าสุดกันเถอะ!',
       _nextInstanceOfMondaySevenAM(),
@@ -231,42 +245,151 @@ class NotificationHelper {
       androidScheduleMode: AndroidScheduleMode.inexactAllowWhileIdle,
       uiLocalNotificationDateInterpretation:
           UILocalNotificationDateInterpretation.absoluteTime,
-      matchDateTimeComponents:
-          DateTimeComponents.dayOfWeekAndTime, // ✅ เตือนซ้ำทุกสัปดาห์
+      matchDateTimeComponents: DateTimeComponents.dayOfWeekAndTime,
+      payload: 'weight',
     );
   }
 
-  // Helper: หาเวลา 7 โมงเช้าวันจันทร์ถัดไป
   static tz.TZDateTime _nextInstanceOfMondaySevenAM() {
-    tz.TZDateTime scheduledDate =
-        _nextInstanceOfTime(7, 0); // เอา 7 โมงวันนี้มาก่อน
-    while (scheduledDate.weekday != DateTime.monday) {
-      scheduledDate = scheduledDate.add(const Duration(days: 1));
+    tz.TZDateTime scheduled = _nextInstanceOfTime(7, 0);
+    while (scheduled.weekday != DateTime.monday) {
+      scheduled = scheduled.add(const Duration(days: 1));
     }
-    return scheduledDate;
+    return scheduled;
   }
 
-  // ═══════════════════════════════════════════════════════
-  // Lifecycle Notifications — weight/birthday/monthly
-  // ═══════════════════════════════════════════════════════
+  // ─── P1: Re-engagement Guard ───────────────────────────────────────────────
+  // เรียกทุกครั้งที่ผู้ใช้เปิดแอป — reset timer ไปข้างหน้า 2/5 วัน
+  // ถ้า user เปิดแอปก่อน 2 วัน notifications จะถูกยกเลิกและตั้งเวลาใหม่
 
-  /// แจ้งเตือนน้ำหนักทุก 2 สัปดาห์ (เรียกหลังจาก lifecycle_check API)
+  static Future<void> scheduleReEngagementGuard() async {
+    if (kIsWeb) return;
+    await _notification.cancel(901);
+    await _notification.cancel(902);
+
+    final now = tz.TZDateTime.now(tz.local);
+
+    await _notification.zonedSchedule(
+      901,
+      '😔 เราคิดถึงคุณนะ!',
+      'ผ่านมา 2 วันแล้วที่ไม่ได้บันทึกอาหาร มาเช็กความคืบหน้ากันดีกว่า 💪',
+      now.add(const Duration(days: 2)),
+      const NotificationDetails(
+        android: AndroidNotificationDetails(
+          'channel_id_reengagement',
+          'Re-engagement',
+          importance: Importance.high,
+          priority: Priority.high,
+        ),
+        iOS: DarwinNotificationDetails(),
+      ),
+      androidScheduleMode: AndroidScheduleMode.inexactAllowWhileIdle,
+      uiLocalNotificationDateInterpretation:
+          UILocalNotificationDateInterpretation.absoluteTime,
+      payload: 'record_food',
+    );
+
+    await _notification.zonedSchedule(
+      902,
+      '🔥 Streak ของคุณกำลังจะหาย!',
+      'ผ่านมา 5 วันแล้วที่ไม่ได้บันทึก อย่าปล่อยให้ความพยายามสูญเปล่านะ',
+      now.add(const Duration(days: 5)),
+      const NotificationDetails(
+        android: AndroidNotificationDetails(
+          'channel_id_reengagement',
+          'Re-engagement',
+          importance: Importance.high,
+          priority: Priority.high,
+        ),
+        iOS: DarwinNotificationDetails(),
+      ),
+      androidScheduleMode: AndroidScheduleMode.inexactAllowWhileIdle,
+      uiLocalNotificationDateInterpretation:
+          UILocalNotificationDateInterpretation.absoluteTime,
+      payload: 'record_food',
+    );
+  }
+
+  // ─── P3: Streak Warning ────────────────────────────────────────────────────
+  // เรียกตอนเช้าเพื่อเตือนตอน 20:00 ถ้ายังไม่ได้บันทึกวันนี้
+  // cancel ทิ้งตอนที่ user บันทึกอาหารสำเร็จ
+
+  static Future<void> scheduleStreakWarning(int currentStreak) async {
+    if (kIsWeb || currentStreak < 2) return;
+    await _notification.cancel(1001);
+    await _notification.zonedSchedule(
+      1001,
+      '🔥 Streak $currentStreak วันของคุณกำลังจะหาย!',
+      'บันทึกอาหารวันนี้ก่อน 4 ทุ่มเพื่อรักษา streak ไว้นะ',
+      _nextInstanceOfTime(20, 0),
+      const NotificationDetails(
+        android: AndroidNotificationDetails(
+          'channel_id_streak',
+          'Streak Reminders',
+          importance: Importance.high,
+          priority: Priority.high,
+        ),
+        iOS: DarwinNotificationDetails(),
+      ),
+      androidScheduleMode: AndroidScheduleMode.inexactAllowWhileIdle,
+      uiLocalNotificationDateInterpretation:
+          UILocalNotificationDateInterpretation.absoluteTime,
+      payload: 'record_food',
+    );
+  }
+
+  static Future<void> cancelStreakWarning() async {
+    await _notification.cancel(1001);
+  }
+
+  // ─── Calorie / Nutrition Alerts ────────────────────────────────────────────
+
+  static Future<void> showCalorieAlert(int current, int target) async {
+    if (kIsWeb) return;
+    await showNotification(
+      id: 201,
+      title: '🚨 พลังงานเกินเป้าหมายแล้ว!',
+      body: 'คุณทานไป $current / $target KCAL แนะนำให้ขยับร่างกายเพิ่มหน่อยนะครับ',
+      payload: 'home',
+    );
+  }
+
+  static Future<void> showCalorieWarning(int current, int target) async {
+    if (kIsWeb) return;
+    await showNotification(
+      id: 202,
+      title: '⚠️ ใกล้เต็มโควตาแล้วนะ',
+      body: 'เหลืออีกแค่ ${target - current} KCAL มื้อถัดไปเน้นผักหน่อยดีมั้ย? 🥦',
+      payload: 'home',
+    );
+  }
+
+  static Future<void> showNutritionSafetyWarning(String title, String body) async {
+    if (kIsWeb) return;
+    await showNotification(id: 203, title: title, body: body, payload: 'home');
+  }
+
+  static Future<void> showWaterSafetyWarning(String title, String body) async {
+    if (kIsWeb) return;
+    await showNotification(id: 204, title: title, body: body, payload: 'record_food');
+  }
+
+  // ─── Lifecycle Notifications ───────────────────────────────────────────────
+
   static Future<void> showWeightReminderIfOverdue({
     required bool overdue,
     required int? daysSince,
   }) async {
-    if (kIsWeb) return;
-    if (!overdue) return;
+    if (kIsWeb || !overdue) return;
     final since = daysSince != null ? ' (ผ่านมา $daysSince วันแล้ว)' : '';
     await showNotification(
       id: 602,
       title: '⚖️ อัปเดตน้ำหนักด้วยนะ!',
-      body:
-          'ยังไม่ได้บันทึกน้ำหนักเลย$since ชั่งแล้วมาบันทึกเพื่อติดตามความก้าวหน้ากันเถอะ 💪',
+      body: 'ยังไม่ได้บันทึกน้ำหนักเลย$since ชั่งแล้วมาบันทึกเพื่อติดตามความก้าวหน้ากันเถอะ 💪',
+      payload: 'weight',
     );
   }
 
-  /// แจ้งเตือนวันเกิด + แจ้งว่า TDEE จะถูกคำนวณใหม่
   static Future<void> showBirthdayAndTdeeUpdate({
     required bool isBirthday,
     required bool tdeeNeedsUpdate,
@@ -279,32 +402,29 @@ class NotificationHelper {
         title: '🎂 สุขสันต์วันเกิด!',
         body: 'ขอให้มีสุขภาพดีตลอดปีนะ!'
             '${newTargetCalories != null ? " เราได้อัปเดตโควตาแคลอรี่เป็น $newTargetCalories kcal/วัน" : ""}',
+        payload: 'home',
       );
     } else if (tdeeNeedsUpdate && newTargetCalories != null) {
       await showNotification(
         id: 702,
         title: '🔄 อัปเดตเป้าหมายแล้ว',
-        body:
-            'คำนวณแคลอรี่ใหม่ตามอายุปีนี้ — โควตาใหม่: $newTargetCalories kcal/วัน',
+        body: 'คำนวณแคลอรี่ใหม่ตามอายุปีนี้ — โควตาใหม่: $newTargetCalories kcal/วัน',
+        payload: 'home',
       );
     }
   }
 
-  /// แจ้งเตือนสรุปรายเดือน (ครบ 30 วัน / ทุก 30 วัน)
   static Future<void> showMonthlySummary({
     required bool trigger,
     required int? goalDaysLeft,
     required bool? onTrack,
   }) async {
-    if (kIsWeb) return;
-    if (!trigger) return;
+    if (kIsWeb || !trigger) return;
     String body;
     if (onTrack == true) {
-      body =
-          'คุณอยู่ในเส้นทางที่ถูกต้อง! เหลืออีก ${goalDaysLeft ?? "?"} วันถึงเป้าหมาย 🎯';
+      body = 'คุณอยู่ในเส้นทางที่ถูกต้อง! เหลืออีก ${goalDaysLeft ?? "?"} วันถึงเป้าหมาย 🎯';
     } else if (onTrack == false) {
-      body =
-          'ต้องปรับแผนนิดนึงนะ เหลือ ${goalDaysLeft ?? "?"} วัน ลองดูรายงานความก้าวหน้าดู';
+      body = 'ต้องปรับแผนนิดนึงนะ เหลือ ${goalDaysLeft ?? "?"} วัน ลองดูรายงานความก้าวหน้าดู';
     } else {
       body = 'ผ่านมา 1 เดือนแล้ว มาดูว่าคุณทำได้ดีแค่ไหน!';
     }
@@ -312,6 +432,7 @@ class NotificationHelper {
       id: 801,
       title: '📊 สรุปความก้าวหน้ารายเดือน',
       body: body,
+      payload: 'progress',
     );
   }
 }

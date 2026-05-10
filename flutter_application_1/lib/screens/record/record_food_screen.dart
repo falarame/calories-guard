@@ -10,6 +10,7 @@ import '/services/daily_summary_enrichment.dart';
 import '/providers/pending_food_provider.dart';
 import '../../services/health_service.dart';
 import '../../services/notification_helper.dart';
+import '../../services/streak_service.dart';
 import '../../widget/ai_meal_estimate_sheet.dart';
 import '../../services/error_reporter.dart';
 import '../../utils/nutrition_approx.dart';
@@ -1501,6 +1502,9 @@ class _FoodLogScreenState extends ConsumerState<FoodLogScreen>
         }
       }
       debugPrint('✅ SAVE COMPLETE');
+
+      // Update streak เมื่อบันทึกอาหารสำเร็จ (cancel streak warning อัตโนมัติ)
+      if (meal.foods.isNotEmpty) StreakService.updateStreak();
 
       // ── Sync provider ทันทีหลัง save เพื่อให้ home screen อัปเดตเลย ──────
       if (mounted) {
