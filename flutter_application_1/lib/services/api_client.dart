@@ -1,6 +1,9 @@
 import 'dart:async';
 import 'dart:convert';
+import 'dart:io';
+import 'package:flutter/foundation.dart' show kDebugMode, kIsWeb;
 import 'package:http/http.dart' as http;
+import 'package:http/io_client.dart';
 import 'package:http_parser/http_parser.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../constants/constants.dart';
@@ -18,6 +21,18 @@ class ApiClient {
   static const Duration _defaultTimeout = Duration(seconds: 30);
 
   String get _baseUrl => AppConstants.baseUrl;
+
+  /// Returns an HTTP client. In debug mode on non-web platforms we allow
+  /// all certificates so that an incomplete SSL chain on the server does
+  /// not block development. Release builds always use strict verification.
+  http.Client _httpClient() {
+    if (!kIsWeb && kDebugMode) {
+      final inner = HttpClient()
+        ..badCertificateCallback = (cert, host, port) => true;
+      return IOClient(inner);
+    }
+    return http.Client();
+  }
 
   /// Manually stored token (used when currentSession is null after login).
   static String? _manualToken;
@@ -108,7 +123,7 @@ class ApiClient {
     final uri =
         Uri.parse('$_baseUrl$path').replace(queryParameters: queryParams);
     return _handleResponse(
-      http.get(uri, headers: _headers(extra: extraHeaders)),
+      _httpClient().get(uri, headers: _headers(extra: extraHeaders)),
       timeout: timeout,
       label: 'GET $path',
     );
@@ -122,7 +137,7 @@ class ApiClient {
   }) {
     final uri = Uri.parse('$_baseUrl$path');
     return _handleResponse(
-      http.post(uri,
+      _httpClient().post(uri,
           headers: _headers(extra: extraHeaders),
           body: utf8.encode(jsonEncode(body))),
       timeout: timeout,
@@ -138,7 +153,7 @@ class ApiClient {
   }) {
     final uri = Uri.parse('$_baseUrl$path');
     return _handleResponse(
-      http.put(uri,
+      _httpClient().put(uri,
           headers: _headers(extra: extraHeaders),
           body: utf8.encode(jsonEncode(body))),
       timeout: timeout,
@@ -154,7 +169,7 @@ class ApiClient {
   }) {
     final uri = Uri.parse('$_baseUrl$path');
     return _handleResponse(
-      http.patch(uri,
+      _httpClient().patch(uri,
           headers: _headers(extra: extraHeaders),
           body: utf8.encode(jsonEncode(body))),
       timeout: timeout,
@@ -169,7 +184,7 @@ class ApiClient {
   }) {
     final uri = Uri.parse('$_baseUrl$path');
     return _handleResponse(
-      http.delete(uri, headers: _headers(extra: extraHeaders)),
+      _httpClient().delete(uri, headers: _headers(extra: extraHeaders)),
       timeout: timeout,
       label: 'DELETE ${path.split('?').first}',
     );

@@ -1,5 +1,5 @@
 import 'dart:convert';
-import 'package:flutter/foundation.dart' show kIsWeb;
+import 'package:flutter/foundation.dart' show debugPrint, kIsWeb;
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'api_client.dart';
 
@@ -251,7 +251,8 @@ class AuthService {
         'statusCode': response.statusCode,
         'message': thaiMessage,
       };
-    } catch (_) {
+    } catch (e) {
+      debugPrint('[AuthService] _loginWithBackendPassword exception: $e');
       return {
         'success': false,
         'message':
