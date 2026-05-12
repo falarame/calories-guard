@@ -21,6 +21,11 @@ on:
         required: true
         default: 'no'
 
+# Required additional secrets for Flutter web:
+#   CLOUDFLARE_API_TOKEN  — CF token with Workers Scripts: Edit
+#   FLUTTER_SUPABASE_URL  — e.g. https://xxx.supabase.co
+#   FLUTTER_SUPABASE_ANON_KEY — public anon key
+
 concurrency:
   group: deploy-${{ github.ref }}
   cancel-in-progress: false  # never cancel a deploy mid-flight
@@ -114,3 +119,41 @@ jobs:
           curl --silent --fail -X POST -H 'Content-Type: application/json' \
             --data "{\"text\":\":rocket: prod deployed \`$SHA\` by *$ACTOR*\"}" \
             "$SLACK"
+
+  # ───────────────────────────────────────────────────────────────────────────
+  # Flutter Web → Cloudflare Workers (auto on push-to-main)
+  # ───────────────────────────────────────────────────────────────────────────
+  deploy-flutter-web:
+    name: Deploy Flutter Web → Cloudflare Workers
+    if: github.event_name == 'push'
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: flutter_application_1
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - name: Install dependencies
+        run: flutter pub get
+
+      - name: Build Flutter Web
+        env:
+          SUPABASE_URL: ${{ secrets.FLUTTER_SUPABASE_URL }}
+          SUPABASE_ANON_KEY: ${{ secrets.FLUTTER_SUPABASE_ANON_KEY }}
+        run: |
+          flutter build web --release \
+            --dart-define=API_BASE_URL=https://api.caloriesguard.com \
+            --dart-define=SUPABASE_URL=$SUPABASE_URL \
+            --dart-define=SUPABASE_ANON_KEY=$SUPABASE_ANON_KEY \
+            --dart-define=APP_ENV=production
+
+      - name: Deploy to Cloudflare Workers
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+        run: npx --yes wrangler@4 deploy
