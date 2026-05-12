@@ -118,7 +118,7 @@ class _RewardShopScreenState extends State<RewardShopScreen> {
                 color: Colors.white,
                 fontFamily: 'Inter',
                 fontWeight: FontWeight.w700)),
-        content: Text('ใช้ ${r.cost} เมล็ดข้าว 🌾',
+        content: Text('ใช้ ${r.cost} แต้ม',
             style: TextStyle(color: Colors.white.withValues(alpha: 0.7))),
         actions: [
           TextButton(
@@ -177,13 +177,13 @@ class _RewardShopScreenState extends State<RewardShopScreen> {
     return Scaffold(
       backgroundColor: _bg,
       appBar: AppBar(
-        backgroundColor: _bg,
+        backgroundColor: Colors.transparent,
         elevation: 0,
         leading: IconButton(
           icon: const Icon(Icons.arrow_back_ios_new, color: Colors.white70),
           onPressed: () => Navigator.pop(context),
         ),
-        title: const Text('ร้านแลกรางวัล 🏪',
+        title: const Text('แลกรางวัล',
             style: TextStyle(
                 color: Colors.white,
                 fontFamily: 'Inter',
@@ -210,12 +210,12 @@ class _RewardShopScreenState extends State<RewardShopScreen> {
             const Text('🌾', style: TextStyle(fontSize: 28)),
             const SizedBox(width: 12),
             Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              const Text('เมล็ดข้าวของฉัน',
+              const Text('แต้มสะสมของฉัน',
                   style: TextStyle(
                       color: Colors.white70,
                       fontSize: 12,
                       fontFamily: 'Inter')),
-              Text('$_points เมล็ด',
+              Text('$_points แต้ม',
                   style: const TextStyle(
                       color: Colors.white,
                       fontSize: 22,

@@ -91,23 +91,23 @@ final _missions = [
   _Mission(
     id: 'open_app',
     emoji: '☀️',
-    title: 'รับแสงแดดวันนี้',
-    desc: 'เปิดแอปเพื่อให้ต้นข้าวได้รับแสง',
+    title: 'เช็กอินวันนี้',
+    desc: 'เปิดแอปเพื่อรับแต้มประจำวัน',
     points: 2,
     autoCheck: (_) => true,
   ),
   _Mission(
     id: 'log_meal',
-    emoji: '💧',
-    title: 'รดน้ำต้นข้าว',
+    emoji: '🍱',
+    title: 'บันทึกมื้ออาหาร',
     desc: 'บันทึกอาหารอย่างน้อย 1 มื้อวันนี้',
     points: 5,
     autoCheck: (u) => u.consumedCalories > 0,
   ),
   _Mission(
     id: 'hit_all_macros',
-    emoji: '🌿',
-    title: 'ใส่ปุ๋ยครบสูตร',
+    emoji: '💪',
+    title: 'ครบตามโภชนาการ',
     desc: 'โปรตีน คาร์บ ไขมัน ครบตามเป้าทั้งหมด',
     points: 20,
     autoCheck: (u) =>
@@ -120,8 +120,8 @@ final _missions = [
   ),
   _Mission(
     id: 'hit_calories',
-    emoji: '�️',
-    title: 'ควบคุมปริมาณน้ำ',
+    emoji: '🎯',
+    title: 'แคลอรี่ตามเป้า',
     desc: 'แคลอรี่อยู่ในช่วง 80–110% ของเป้า',
     points: 15,
     autoCheck: (u) {
@@ -132,9 +132,9 @@ final _missions = [
   ),
   _Mission(
     id: 'streak_3',
-    emoji: '🌤️',
-    title: 'แดดต่อเนื่อง 3 วัน',
-    desc: 'ใช้แอปต่อเนื่องอย่างน้อย 3 วัน',
+    emoji: '🔥',
+    title: 'ใช้แอปต่อเนื่อง 3 วัน',
+    desc: 'บันทึกสุขภาพต่อเนื่องอย่างน้อย 3 วัน',
     points: 10,
     autoCheck: (u) => u.currentStreak >= 3,
   ),
@@ -149,33 +149,19 @@ class TamagotchiScreen extends ConsumerStatefulWidget {
   ConsumerState<TamagotchiScreen> createState() => _TamagotchiScreenState();
 }
 
-class _TamagotchiScreenState extends ConsumerState<TamagotchiScreen>
-    with SingleTickerProviderStateMixin {
+class _TamagotchiScreenState extends ConsumerState<TamagotchiScreen> {
   int _totalPoints = 0;
-  int _maxTierIdx =
-      0; // never decreases — tier earned, not tier from current pts
+  int _maxTierIdx = 0;
   Set<String> _claimedToday = {};
   Set<String> _claimedRewards = {};
-  int? _demoTierIdx; // null = show real tier
-  late AnimationController _bounceCtrl;
-  late Animation<double> _bounceAnim;
 
-  static const _bg = Color(0xFF0A1A0E);
+  static const _bg = Color(0xFFF5F8F2);
+  static const _primary = Color(0xFF628141);
 
-  /// Tier index used for display — uses maxTierIdx so spending never lowers tier
-  int get _activeTierIdx =>
-      (_demoTierIdx ?? _maxTierIdx).clamp(0, _tiers.length - 1);
+  int get _activeTierIdx => _maxTierIdx.clamp(0, _tiers.length - 1);
 
-  /// Real tier for reward multiplier — also uses maxTierIdx
-  int get _realTierIdx => _maxTierIdx;
-
-  /// Points shown in UI — demo-aware
   int _missionPoints(_Mission m) =>
       (m.points * _tierMultipliers[_activeTierIdx]).round();
-
-  /// Real points actually awarded when claiming
-  int _missionPointsReal(_Mission m) =>
-      (m.points * _tierMultipliers[_realTierIdx]).round();
 
   String get _multiplierLabel {
     final m = _tierMultipliers[_activeTierIdx];
@@ -187,12 +173,6 @@ class _TamagotchiScreenState extends ConsumerState<TamagotchiScreen>
   @override
   void initState() {
     super.initState();
-    _bounceCtrl = AnimationController(
-        vsync: this, duration: const Duration(milliseconds: 1200))
-      ..repeat(reverse: true);
-    _bounceAnim = Tween<double>(begin: -8, end: 8)
-        .animate(CurvedAnimation(parent: _bounceCtrl, curve: Curves.easeInOut));
-    // Quick local init — prevents tier-0 flicker before backend responds
     SharedPreferences.getInstance().then((prefs) {
       final uid = ref.read(userDataProvider).userId;
       if (!mounted) return;
@@ -209,7 +189,6 @@ class _TamagotchiScreenState extends ConsumerState<TamagotchiScreen>
 
   @override
   void dispose() {
-    _bounceCtrl.dispose();
     super.dispose();
   }
 
@@ -273,11 +252,10 @@ class _TamagotchiScreenState extends ConsumerState<TamagotchiScreen>
   Future<void> _claimMission(_Mission m) async {
     if (_claimedToday.contains(m.id)) return;
     final userId = ref.read(userDataProvider).userId;
-    final pts = _missionPointsReal(m);
+    final pts = _missionPoints(m);
     final prefs = await SharedPreferences.getInstance();
     final newPts = _totalPoints + pts;
     final newClaimed = {..._claimedToday, m.id};
-    // Tier can only go up
     final earnedTier = _tiers
         .lastIndexWhere((t) => newPts >= t.minPts)
         .clamp(0, _tiers.length - 1);
@@ -295,8 +273,8 @@ class _TamagotchiScreenState extends ConsumerState<TamagotchiScreen>
     _syncPointsToBackend(newPts);
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-        content: Text('${m.emoji} +$pts เมล็ดข้าว! "${m.title}"'),
-        backgroundColor: const Color(0xFF2E7D32),
+        content: Text('${m.emoji} +$pts แต้ม! "${m.title}"'),
+        backgroundColor: _primary,
         duration: const Duration(seconds: 2),
       ));
     }
@@ -315,11 +293,9 @@ class _TamagotchiScreenState extends ConsumerState<TamagotchiScreen>
   @override
   Widget build(BuildContext context) {
     final userData = ref.watch(userDataProvider);
-    final isDemo = _demoTierIdx != null;
-    final tierIdx = _demoTierIdx ?? _maxTierIdx;
-    final tier = _tiers[tierIdx];
-    final nextTier = tierIdx < _tiers.length - 1 ? _tiers[tierIdx + 1] : null;
-    final demoPoints = isDemo ? tier.minPts : _totalPoints;
+    final tier = _tiers[_activeTierIdx];
+    final nextTier =
+        _activeTierIdx < _tiers.length - 1 ? _tiers[_activeTierIdx + 1] : null;
     final progress = nextTier != null
         ? ((_totalPoints - tier.minPts) / (nextTier.minPts - tier.minPts))
             .clamp(0.0, 1.0)
@@ -328,38 +304,26 @@ class _TamagotchiScreenState extends ConsumerState<TamagotchiScreen>
     return Scaffold(
       backgroundColor: _bg,
       appBar: AppBar(
-        backgroundColor: _bg,
+        backgroundColor: Colors.white,
         elevation: 0,
+        surfaceTintColor: Colors.transparent,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios_new, color: Colors.white70),
+          icon: const Icon(Icons.arrow_back_ios_new,
+              color: Colors.black87, size: 20),
           onPressed: () => Navigator.pop(context),
         ),
-        title: const Text('ไร่ข้าวของฉัน 🌾',
+        title: const Text('สะสมแต้มสุขภาพ',
             style: TextStyle(
-                color: Colors.white,
+                color: Colors.black87,
                 fontFamily: 'Inter',
-                fontWeight: FontWeight.w700)),
+                fontWeight: FontWeight.w700,
+                fontSize: 18)),
         centerTitle: true,
         actions: [
           IconButton(
-            tooltip: 'ร้านแลกรางวัล',
-            icon: Stack(clipBehavior: Clip.none, children: [
-              const Text('🏪', style: TextStyle(fontSize: 20)),
-              Positioned(
-                top: -4,
-                right: -4,
-                child: Container(
-                  width: 8,
-                  height: 8,
-                  decoration: BoxDecoration(
-                    color: const Color(0xFF66BB6A),
-                    shape: BoxShape.circle,
-                    border:
-                        Border.all(color: const Color(0xFF0A1A0E), width: 1.2),
-                  ),
-                ),
-              ),
-            ]),
+            tooltip: 'แลกรางวัล',
+            icon: const Icon(Icons.card_giftcard_rounded,
+                color: _primary, size: 26),
             onPressed: () async {
               await Navigator.push(
                   context,
@@ -374,355 +338,278 @@ class _TamagotchiScreenState extends ConsumerState<TamagotchiScreen>
                   ));
             },
           ),
-          const SizedBox(width: 4),
         ],
       ),
       body: SingleChildScrollView(
-        padding: const EdgeInsets.fromLTRB(20, 0, 20, 32),
-        child: Column(children: [
-          // ── Demo badge ──
-          if (isDemo)
-            Container(
-              margin: const EdgeInsets.only(bottom: 8),
-              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
-              decoration: BoxDecoration(
-                color: Colors.amber.withValues(alpha: 0.15),
-                borderRadius: BorderRadius.circular(20),
-                border: Border.all(color: Colors.amber.withValues(alpha: 0.5)),
-              ),
-              child: Row(mainAxisSize: MainAxisSize.min, children: [
-                const Icon(Icons.visibility_rounded,
-                    color: Colors.amber, size: 14),
-                const SizedBox(width: 6),
-                const Text('โหมดเดโม่ — กดสีใดก็ได้เพื่อดู',
-                    style: TextStyle(
-                        color: Colors.amber,
-                        fontSize: 11,
-                        fontFamily: 'Inter')),
-                const SizedBox(width: 8),
-                GestureDetector(
-                  onTap: () => setState(() => _demoTierIdx = null),
-                  child: const Icon(Icons.close_rounded,
-                      color: Colors.amber, size: 16),
-                ),
-              ]),
-            ),
-
-          // ── Pet + tier card ──
-          _buildPetCard(tier, tierIdx, progress, nextTier, demoPoints, isDemo),
+        padding: const EdgeInsets.fromLTRB(20, 16, 20, 40),
+        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          _buildHeroCard(tier, nextTier, progress),
           const SizedBox(height: 20),
-
-          // ── Tier ladder (tappable) ──
-          _buildTierLadder(tierIdx, _maxTierIdx),
+          _buildTierRow(),
           const SizedBox(height: 24),
-
-          // ── Missions ──
-          Align(
-            alignment: Alignment.centerLeft,
-            child: Row(children: [
-              const Text('กิจวัตรต้นข้าว',
-                  style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 16,
-                      fontWeight: FontWeight.w700,
-                      fontFamily: 'Inter')),
-              const Spacer(),
-              if (_multiplierLabel.isNotEmpty)
-                Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFF8BC34A).withValues(alpha: 0.2),
-                    borderRadius: BorderRadius.circular(8),
-                    border: Border.all(
-                        color: const Color(0xFF8BC34A).withValues(alpha: 0.5)),
-                  ),
-                  child: Text('โบนัส $_multiplierLabel',
-                      style: const TextStyle(
-                          color: Color(0xFFAED581),
-                          fontSize: 11,
-                          fontFamily: 'Inter',
-                          fontWeight: FontWeight.w600)),
-                ),
-            ]),
-          ),
-          const SizedBox(height: 12),
-          ..._missions.map((m) => _buildMissionCard(m, userData)),
-          // ── Rewards showcase ──
+          _buildMissionsSection(userData),
           if (_claimedRewards.isNotEmpty) ...[
             const SizedBox(height: 24),
-            _buildRewardsShowcase(),
+            _buildBadgesSection(),
           ],
         ]),
       ),
     );
   }
 
-  static const _badgeInfo = {
-    'badge_newbie': ('🌱', 'ชาวนามือใหม่'),
-    'badge_grower': ('🌾', 'รวงทอง'),
-    'badge_champion': ('✨', 'วิ้งค์'),
-  };
-
-  Widget _buildRewardsShowcase() {
-    final earned = _badgeInfo.entries
-        .where((e) => _claimedRewards.contains(e.key))
-        .toList();
-    return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-      const Text('🏆  บาดจ์ที่ได้รับ',
-          style: TextStyle(
-              color: Colors.white,
-              fontSize: 16,
-              fontWeight: FontWeight.w700,
-              fontFamily: 'Inter')),
-      const SizedBox(height: 12),
-      Wrap(
-          spacing: 10,
-          runSpacing: 10,
-          children: earned.map((e) {
-            final emoji = e.value.$1;
-            final label = e.value.$2;
-            return Container(
-              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-              decoration: BoxDecoration(
-                gradient: const LinearGradient(
-                    colors: [Color(0xFF1B5E35), Color(0xFF2E7D32)]),
-                borderRadius: BorderRadius.circular(14),
-                border: Border.all(
-                    color: const Color(0xFF66BB6A).withValues(alpha: 0.5)),
-                boxShadow: [
-                  BoxShadow(
-                      color: const Color(0xFF66BB6A).withValues(alpha: 0.2),
-                      blurRadius: 8)
-                ],
-              ),
-              child: Row(mainAxisSize: MainAxisSize.min, children: [
-                Text(emoji, style: const TextStyle(fontSize: 22)),
-                const SizedBox(width: 8),
-                Text(label,
-                    style: const TextStyle(
-                        color: Colors.white,
-                        fontFamily: 'Inter',
-                        fontWeight: FontWeight.w700,
-                        fontSize: 13)),
-              ]),
-            );
-          }).toList()),
-    ]);
-  }
-
-  // ─── Pet Card ───────────────────────────────────────────
-  Widget _buildPetCard(_Tier tier, int tierIdx, double progress,
-      _Tier? nextTier, int displayPoints, bool isDemo) {
+  // ── Hero Card ──────────────────────────────────────────────
+  Widget _buildHeroCard(_Tier tier, _Tier? nextTier, double progress) {
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.symmetric(vertical: 28, horizontal: 20),
+      padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
         gradient: LinearGradient(
           colors: [
-            tier.color.withValues(alpha: 0.25),
-            tier.glow.withValues(alpha: 0.1)
+            tier.color,
+            Color.lerp(tier.color, _primary, 0.5)!,
           ],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
-        borderRadius: BorderRadius.circular(28),
-        border:
-            Border.all(color: tier.color.withValues(alpha: 0.4), width: 1.5),
+        borderRadius: BorderRadius.circular(24),
+        boxShadow: [
+          BoxShadow(
+              color: tier.color.withValues(alpha: 0.4),
+              blurRadius: 20,
+              offset: const Offset(0, 8)),
+        ],
       ),
       child: Column(children: [
-        // Pet
-        AnimatedBuilder(
-          animation: _bounceAnim,
-          builder: (_, __) => Transform.translate(
-            offset: Offset(0, _bounceAnim.value),
-            child: _buildPetBody(tier),
+        Row(children: [
+          Text(tier.emoji, style: const TextStyle(fontSize: 36)),
+          const SizedBox(width: 12),
+          Expanded(
+            child:
+                Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              Text('ระดับ ${tier.name}',
+                  style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 20,
+                      fontWeight: FontWeight.w800,
+                      fontFamily: 'Inter')),
+              Text('สมาชิกสุขภาพ CaloriesGuard',
+                  style: TextStyle(
+                      color: Colors.white.withValues(alpha: 0.75),
+                      fontSize: 12,
+                      fontFamily: 'Inter')),
+            ]),
           ),
-        ),
-        const SizedBox(height: 20),
-
-        // Tier badge
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
-          decoration: BoxDecoration(
-            color: tier.color.withValues(alpha: 0.2),
-            borderRadius: BorderRadius.circular(20),
-            border: Border.all(color: tier.color.withValues(alpha: 0.6)),
-          ),
-          child: Text(
-            '${tier.emoji} ${tier.name}',
-            style: TextStyle(
-                color: tier.color,
-                fontFamily: 'Inter',
-                fontWeight: FontWeight.w700,
-                fontSize: 14),
-          ),
-        ),
-        const SizedBox(height: 12),
-
-        // Points
-        Text(
-          '${isDemo ? '${tier.minPts}+' : displayPoints} เมล็ดข้าว 🌾${isDemo ? ' (เดโม่)' : ''}',
-          style: const TextStyle(
-              color: Colors.white,
-              fontSize: 28,
-              fontWeight: FontWeight.w800,
-              fontFamily: 'Inter'),
-        ),
-
-        if (nextTier != null) ...[
-          const SizedBox(height: 12),
-          Row(children: [
-            Expanded(
-              child: ClipRRect(
-                borderRadius: BorderRadius.circular(8),
-                child: LinearProgressIndicator(
-                  value: progress.clamp(0.0, 1.0),
-                  backgroundColor: Colors.white.withValues(alpha: 0.1),
-                  valueColor: AlwaysStoppedAnimation(tier.color),
-                  minHeight: 8,
-                ),
-              ),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+            decoration: BoxDecoration(
+              color: Colors.white.withValues(alpha: 0.2),
+              borderRadius: BorderRadius.circular(16),
             ),
-          ]),
-          const SizedBox(height: 6),
-          Text(
-            'อีก ${isDemo ? nextTier.minPts - tier.minPts : nextTier.minPts - _totalPoints} เมล็ดข้าว → ${nextTier.emoji} ${nextTier.name}',
-            style: TextStyle(
-                color: Colors.white.withValues(alpha: 0.6),
-                fontSize: 12,
-                fontFamily: 'Inter'),
+            child: Column(mainAxisSize: MainAxisSize.min, children: [
+              Text('$_totalPoints',
+                  style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 24,
+                      fontWeight: FontWeight.w800,
+                      fontFamily: 'Inter')),
+              Text('แต้ม',
+                  style: TextStyle(
+                      color: Colors.white.withValues(alpha: 0.8),
+                      fontSize: 11,
+                      fontFamily: 'Inter')),
+            ]),
           ),
-        ] else
-          Text('🏆 ถึงระดับสูงสุดแล้ว!',
+        ]),
+        if (nextTier != null) ...[
+          const SizedBox(height: 20),
+          ClipRRect(
+            borderRadius: BorderRadius.circular(6),
+            child: LinearProgressIndicator(
+              value: progress,
+              backgroundColor: Colors.white.withValues(alpha: 0.25),
+              valueColor: const AlwaysStoppedAnimation(Colors.white),
+              minHeight: 8,
+            ),
+          ),
+          const SizedBox(height: 8),
+          Row(children: [
+            Text('${tier.emoji} ${tier.name}',
+                style: TextStyle(
+                    color: Colors.white.withValues(alpha: 0.8),
+                    fontSize: 11,
+                    fontFamily: 'Inter')),
+            const Spacer(),
+            Text(
+                'อีก ${nextTier.minPts - _totalPoints} แต้ม → ${nextTier.emoji} ${nextTier.name}',
+                style: TextStyle(
+                    color: Colors.white.withValues(alpha: 0.85),
+                    fontSize: 11,
+                    fontFamily: 'Inter')),
+          ]),
+        ] else ...[
+          const SizedBox(height: 16),
+          const Text('🏆 ระดับสูงสุดแล้ว!',
               style: TextStyle(
-                  color: tier.color,
+                  color: Colors.white,
                   fontSize: 14,
                   fontWeight: FontWeight.w700)),
+        ],
       ]),
     );
   }
 
-  // ─── Pet Body Painter ───────────────────────────────────
-  Widget _buildPetBody(_Tier tier) {
-    final stage = _tiers.indexOf(tier);
-    return SizedBox(
-      width: 160,
-      height: 160,
-      child: CustomPaint(painter: _RicePainter(tier.color, stage)),
-    );
-  }
-
-  // ─── Tier Ladder ───────────────────────────────────────
-  Widget _buildTierLadder(int currentIdx, int realTierIdx) {
-    return Column(children: [
-      Row(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: List.generate(_tiers.length, (i) {
-          final t = _tiers[i];
-          final isUnlocked = i <= realTierIdx;
-          final isSelected = i == currentIdx;
-          return Expanded(
-            child: GestureDetector(
-              onTap: () =>
-                  setState(() => _demoTierIdx = (_demoTierIdx == i) ? null : i),
+  // ── Tier Row ──────────────────────────────────────────────
+  Widget _buildTierRow() {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: [
+          BoxShadow(
+              color: Colors.black.withValues(alpha: 0.05),
+              blurRadius: 10,
+              offset: const Offset(0, 4))
+        ],
+      ),
+      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        const Text('ระดับสมาชิก',
+            style: TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.w700,
+                color: Colors.black87,
+                fontFamily: 'Inter')),
+        const SizedBox(height: 12),
+        Row(
+          children: List.generate(_tiers.length, (i) {
+            final t = _tiers[i];
+            final isUnlocked = i <= _maxTierIdx;
+            final isCurrent = i == _maxTierIdx;
+            return Expanded(
               child: Column(children: [
                 AnimatedContainer(
                   duration: const Duration(milliseconds: 250),
-                  width: isSelected ? 42 : 36,
-                  height: isSelected ? 42 : 36,
+                  width: isCurrent ? 44 : 36,
+                  height: isCurrent ? 44 : 36,
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
-                    color: isSelected
-                        ? t.color
-                        : isUnlocked
-                            ? t.color.withValues(alpha: 0.4)
-                            : Colors.white.withValues(alpha: 0.07),
-                    border: Border.all(
-                        color: isSelected
-                            ? Colors.white
-                            : t.color.withValues(alpha: isUnlocked ? 0.7 : 0.2),
-                        width: isSelected ? 2.5 : 1.5),
-                    boxShadow: isSelected
+                    color: isUnlocked
+                        ? t.color.withValues(alpha: isCurrent ? 1.0 : 0.45)
+                        : Colors.grey.shade200,
+                    boxShadow: isCurrent
                         ? [
                             BoxShadow(
-                                color: t.color.withValues(alpha: 0.6),
-                                blurRadius: 14,
-                                spreadRadius: 1)
+                                color: t.color.withValues(alpha: 0.5),
+                                blurRadius: 10)
                           ]
                         : [],
                   ),
                   child: Center(
                       child: Text(t.emoji,
-                          style: TextStyle(fontSize: isSelected ? 20 : 14))),
+                          style: TextStyle(fontSize: isCurrent ? 22 : 16))),
                 ),
-                const SizedBox(height: 5),
+                const SizedBox(height: 4),
                 Text(t.name,
                     style: TextStyle(
                         fontSize: 9,
-                        color: isSelected
-                            ? t.color
-                            : isUnlocked
-                                ? t.color.withValues(alpha: 0.7)
-                                : Colors.white.withValues(alpha: 0.25),
-                        fontFamily: 'Inter',
                         fontWeight:
-                            isSelected ? FontWeight.w700 : FontWeight.w500)),
+                            isCurrent ? FontWeight.w700 : FontWeight.w500,
+                        color: isUnlocked ? t.color : Colors.grey.shade400,
+                        fontFamily: 'Inter')),
               ]),
+            );
+          }),
+        ),
+      ]),
+    );
+  }
+
+  // ── Missions ──────────────────────────────────────────────
+  Widget _buildMissionsSection(UserData userData) {
+    return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+      Row(children: [
+        const Text('กิจกรรมรับแต้มวันนี้',
+            style: TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.w700,
+                color: Colors.black87,
+                fontFamily: 'Inter')),
+        const Spacer(),
+        if (_multiplierLabel.isNotEmpty)
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+            decoration: BoxDecoration(
+              color: _primary.withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(color: _primary.withValues(alpha: 0.3)),
             ),
-          );
-        }),
-      ),
-      const SizedBox(height: 6),
-      Text('กดที่ขั้นเพื่อดูตัวอย่างต้นข้าว',
-          style: TextStyle(
-              color: Colors.white.withValues(alpha: 0.3),
-              fontSize: 10,
-              fontFamily: 'Inter')),
+            child: Text('โบนัส $_multiplierLabel',
+                style: const TextStyle(
+                    color: _primary,
+                    fontSize: 11,
+                    fontFamily: 'Inter',
+                    fontWeight: FontWeight.w600)),
+          ),
+      ]),
+      const SizedBox(height: 12),
+      ..._missions.map((m) => _buildMissionCard(m, userData)),
     ]);
   }
 
-  // ─── Mission Card ───────────────────────────────────────
   Widget _buildMissionCard(_Mission m, UserData userData) {
     final claimed = _claimedToday.contains(m.id);
     final canDo = m.autoCheck(userData);
+    final pts = _missionPoints(m);
 
     return Container(
       margin: const EdgeInsets.only(bottom: 10),
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: claimed
-            ? Colors.white.withValues(alpha: 0.07)
-            : canDo
-                ? const Color(0xFF1B5E35).withValues(alpha: 0.3)
-                : Colors.white.withValues(alpha: 0.04),
+        color: Colors.white,
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
           color: claimed
-              ? Colors.white.withValues(alpha: 0.1)
+              ? _primary.withValues(alpha: 0.25)
               : canDo
-                  ? const Color(0xFF628141).withValues(alpha: 0.6)
-                  : Colors.white.withValues(alpha: 0.08),
+                  ? _primary.withValues(alpha: 0.5)
+                  : Colors.grey.shade200,
+          width: canDo && !claimed ? 1.5 : 1,
         ),
+        boxShadow: [
+          BoxShadow(
+              color: Colors.black.withValues(alpha: 0.04),
+              blurRadius: 8,
+              offset: const Offset(0, 2))
+        ],
       ),
       child: Row(children: [
-        Text(m.emoji, style: const TextStyle(fontSize: 28)),
+        Container(
+          width: 44,
+          height: 44,
+          decoration: BoxDecoration(
+            color: claimed
+                ? _primary.withValues(alpha: 0.08)
+                : canDo
+                    ? _primary.withValues(alpha: 0.1)
+                    : Colors.grey.shade100,
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: Center(
+              child: Text(m.emoji, style: const TextStyle(fontSize: 22))),
+        ),
         const SizedBox(width: 12),
         Expanded(
           child:
               Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
             Text(m.title,
                 style: TextStyle(
-                    color: claimed
-                        ? Colors.white.withValues(alpha: 0.4)
-                        : Colors.white,
+                    color: claimed ? Colors.grey.shade500 : Colors.black87,
                     fontFamily: 'Inter',
                     fontWeight: FontWeight.w700,
                     fontSize: 14,
                     decoration: claimed ? TextDecoration.lineThrough : null)),
             Text(m.desc,
-                style: TextStyle(
-                    color: Colors.white.withValues(alpha: 0.5), fontSize: 11)),
+                style: TextStyle(color: Colors.grey.shade500, fontSize: 11)),
           ]),
         ),
         const SizedBox(width: 10),
@@ -730,29 +617,30 @@ class _TamagotchiScreenState extends ConsumerState<TamagotchiScreen>
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
             decoration: BoxDecoration(
-                color: Colors.white.withValues(alpha: 0.1),
-                borderRadius: BorderRadius.circular(10)),
-            child: Text('✅ +${_missionPoints(m)} 🌾',
-                style: TextStyle(
-                    color: Colors.white.withValues(alpha: 0.4),
+              color: _primary.withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: Text('✅ +$pts',
+                style: const TextStyle(
+                    color: _primary,
                     fontSize: 12,
-                    fontFamily: 'Inter')),
+                    fontFamily: 'Inter',
+                    fontWeight: FontWeight.w600)),
           )
         else if (canDo)
           GestureDetector(
             onTap: () => _claimMission(m),
             child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
               decoration: BoxDecoration(
-                  gradient: const LinearGradient(
-                      colors: [Color(0xFF388E3C), Color(0xFF1B5E20)]),
-                  borderRadius: BorderRadius.circular(10),
-                  boxShadow: [
-                    BoxShadow(
-                        color: const Color(0xFF388E3C).withValues(alpha: 0.5),
-                        blurRadius: 8)
-                  ]),
-              child: Text('+${_missionPoints(m)} 🌾',
+                color: _primary,
+                borderRadius: BorderRadius.circular(10),
+                boxShadow: [
+                  BoxShadow(
+                      color: _primary.withValues(alpha: 0.35), blurRadius: 8)
+                ],
+              ),
+              child: Text('+$pts แต้ม',
                   style: const TextStyle(
                       color: Colors.white,
                       fontWeight: FontWeight.w700,
@@ -764,23 +652,70 @@ class _TamagotchiScreenState extends ConsumerState<TamagotchiScreen>
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
             decoration: BoxDecoration(
-                color: Colors.white.withValues(alpha: 0.05),
-                borderRadius: BorderRadius.circular(10),
-                border: Border.all(color: Colors.white.withValues(alpha: 0.1))),
-            child: Text('+${_missionPoints(m)} 🌾',
+              color: Colors.grey.shade100,
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: Text('+$pts แต้ม',
                 style: TextStyle(
-                    color: Colors.white.withValues(alpha: 0.3),
+                    color: Colors.grey.shade400,
                     fontSize: 12,
                     fontFamily: 'Inter')),
           ),
       ]),
     );
   }
+
+  // ── Badges ────────────────────────────────────────────────
+  static const _badgeInfo = {
+    'badge_newbie': ('🌱', 'มือใหม่'),
+    'badge_grower': ('🌾', 'รวงทอง'),
+    'badge_champion': ('✨', 'วิ้งค์'),
+  };
+
+  Widget _buildBadgesSection() {
+    final earned = _badgeInfo.entries
+        .where((e) => _claimedRewards.contains(e.key))
+        .toList();
+    return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+      const Text('🏆  แบดจ์ที่ได้รับ',
+          style: TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.w700,
+              color: Colors.black87,
+              fontFamily: 'Inter')),
+      const SizedBox(height: 12),
+      Wrap(
+        spacing: 10,
+        runSpacing: 10,
+        children: earned.map((e) {
+          return Container(
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(14),
+              border: Border.all(color: _primary.withValues(alpha: 0.35)),
+              boxShadow: [
+                BoxShadow(color: _primary.withValues(alpha: 0.1), blurRadius: 8)
+              ],
+            ),
+            child: Row(mainAxisSize: MainAxisSize.min, children: [
+              Text(e.value.$1, style: const TextStyle(fontSize: 22)),
+              const SizedBox(width: 8),
+              Text(e.value.$2,
+                  style: const TextStyle(
+                      color: _primary,
+                      fontFamily: 'Inter',
+                      fontWeight: FontWeight.w700,
+                      fontSize: 13)),
+            ]),
+          );
+        }).toList(),
+      ),
+    ]);
+  }
 }
 
-// ─────────────────────────────────────────────────────────
-//  Rice Plant CustomPainter  (stage 0–5)  — cute redesign
-// ─────────────────────────────────────────────────────────
+// _RicePainter removed — UI redesigned to reward system
 class _RicePainter extends CustomPainter {
   final Color color;
   final int stage;
