@@ -51,10 +51,7 @@ if ($ApiBaseUrl -and !$ApiBaseUrl.StartsWith("http://") -and !$ApiBaseUrl.Starts
 
 $supabaseUrl = $values["SUPABASE_URL"]
 if ([string]::IsNullOrWhiteSpace($supabaseUrl)) {
-    $supabaseUrl = $values["SUPABASE_PROJECT_URL"]
-}
-if ([string]::IsNullOrWhiteSpace($supabaseUrl)) {
-    Write-Error "SUPABASE_URL (or SUPABASE_PROJECT_URL) is missing in $EnvFile"
+    Write-Error "SUPABASE_URL is missing in $EnvFile"
 }
 
 $supabaseAnon = $values["SUPABASE_ANON_KEY"]
@@ -89,7 +86,6 @@ finally {
 Write-Host "==> npx wrangler deploy (Worker: app-caloriesguard)..." -ForegroundColor Cyan
 Push-Location $flutterRoot
 try {
-    $env:NODE_TLS_REJECT_UNAUTHORIZED = "0"
     npx --yes wrangler@4 deploy
     if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 }

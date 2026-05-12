@@ -109,7 +109,7 @@ class _WelcomeScreenState extends State<WelcomeScreen>
         height: double.infinity,
         decoration: const BoxDecoration(
           gradient: LinearGradient(
-            colors: [Color(0xFF0D1B0F), Color(0xFF111E12), Color(0xFF0A1509)],
+            colors: [Color(0xFFF0F5E0), Color(0xFFE8EFCF), Color(0xFFDCE8B8)],
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
           ),
@@ -133,7 +133,7 @@ class _WelcomeScreenState extends State<WelcomeScreen>
                           fontFamily: 'Inter',
                           fontSize: 20,
                           fontWeight: FontWeight.w400,
-                          color: Color(0xFFB0C8A0),
+                          color: Color(0xFF5A5A5A),
                           letterSpacing: 0.5,
                         ),
                       ),
@@ -157,7 +157,7 @@ class _WelcomeScreenState extends State<WelcomeScreen>
                                   fontFamily: 'Karla',
                                   fontSize: 40,
                                   fontWeight: FontWeight.w300,
-                                  color: Color(0xFFCCDDB8),
+                                  color: Color(0xFF3D5A27),
                                   letterSpacing: 1,
                                 ),
                               ),
@@ -187,11 +187,11 @@ class _WelcomeScreenState extends State<WelcomeScreen>
                       padding: const EdgeInsets.symmetric(
                           horizontal: 14, vertical: 5),
                       decoration: BoxDecoration(
-                        color: const Color(0xFF628141).withValues(alpha: 0.18),
+                        color: const Color(0xFF628141).withValues(alpha: 0.12),
                         borderRadius: BorderRadius.circular(20),
                         border: Border.all(
                             color:
-                                const Color(0xFF628141).withValues(alpha: 0.5)),
+                                const Color(0xFF628141).withValues(alpha: 0.3)),
                       ),
                       child: const Text(
                         '🌿  ติดตามแคลอรี่ • ใส่ใจสุขภาพ',
@@ -199,7 +199,7 @@ class _WelcomeScreenState extends State<WelcomeScreen>
                           fontFamily: 'Inter',
                           fontSize: 12,
                           fontWeight: FontWeight.w500,
-                          color: Color(0xFF9DC06A),
+                          color: Color(0xFF4C6414),
                           letterSpacing: 0.3,
                         ),
                       ),
@@ -340,7 +340,7 @@ class _WelcomeScreenState extends State<WelcomeScreen>
                       style: TextStyle(
                         fontFamily: 'Inter',
                         fontSize: 12,
-                        color: Colors.grey.shade600,
+                        color: Colors.grey.shade500,
                       ),
                     ),
                   ),
