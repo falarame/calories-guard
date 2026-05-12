@@ -161,16 +161,26 @@ class AuthService {
         }
         return {'success': true, 'data': data};
       } else {
+        if (response.statusCode == 429) {
+          return {
+            'success': false,
+            'message': 'ลองใหม่เร็วเกินไป กรุณารอสักครู่แล้วลองอีกครั้ง',
+          };
+        }
         final errorData = _parseJson(response.body);
+        final detail = errorData?['detail'] as String?;
         return {
           'success': false,
-          'message': errorData?['detail'] as String? ??
-              'เข้าสู่ระบบล้มเหลว (${response.statusCode})',
+          'message': _toThaiLoginError(detail, response.statusCode),
         };
       }
     } on AuthException catch (e) {
       final backendResult = await _loginWithBackendPassword(email, password);
       if (backendResult['success'] == true) {
+        return backendResult;
+      }
+      // Backend 403 → email not verified
+      if (backendResult['needsEmailVerification'] == true) {
         return backendResult;
       }
       final lower = e.message.toLowerCase();
@@ -218,14 +228,53 @@ class AuthService {
         }
         return {'success': true, 'data': data};
       }
+      // 403 → email not verified, redirect to verify screen
+      if (response.statusCode == 403) {
+        return {
+          'success': false,
+          'needsEmailVerification': true,
+          'message': 'อีเมลนี้ยังไม่ได้ยืนยัน กรุณากรอกรหัสยืนยันจากอีเมล',
+        };
+      }
+      // 429 → slowapi returns {"error":"..."} not {"detail":"..."}
+      if (response.statusCode == 429) {
+        return {
+          'success': false,
+          'statusCode': 429,
+          'message': 'ลองใหม่เร็วเกินไป กรุณารอสักครู่แล้วลองอีกครั้ง',
+        };
+      }
+      final detail = data?['detail'] as String?;
+      final thaiMessage = _toThaiLoginError(detail, response.statusCode);
       return {
         'success': false,
         'statusCode': response.statusCode,
-        'message': data?['detail'] as String? ?? 'เข้าสู่ระบบล้มเหลว',
+        'message': thaiMessage,
       };
     } catch (_) {
-      return {'success': false, 'message': 'เข้าสู่ระบบล้มเหลว'};
+      return {
+        'success': false,
+        'message':
+            'ไม่สามารถเชื่อมต่อกับเซิร์ฟเวอร์ได้ กรุณาตรวจสอบอินเทอร์เน็ต',
+      };
     }
+  }
+
+  static String _toThaiLoginError(String? detail, int statusCode) {
+    if (detail == null) return 'เข้าสู่ระบบล้มเหลว ($statusCode)';
+    final lower = detail.toLowerCase();
+    if (lower.contains('invalid email or password') ||
+        lower.contains('invalid login')) {
+      return 'อีเมลหรือรหัสผ่านไม่ถูกต้อง';
+    }
+    if (lower.contains('email not verified') ||
+        lower.contains('not verified')) {
+      return 'อีเมลนี้ยังไม่ได้ยืนยัน กรุณากรอกรหัสยืนยันจากอีเมล';
+    }
+    if (lower.contains('login failed') || lower.contains('please try again')) {
+      return 'เกิดข้อผิดพลาดที่เซิร์ฟเวอร์ กรุณาลองใหม่ภายหลัง';
+    }
+    return detail;
   }
 
   // --- Social Login (Google / Facebook) ---
