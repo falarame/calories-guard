@@ -427,8 +427,7 @@ class _AppHomeScreenState extends ConsumerState<AppHomeScreen> {
             if (mounted) setState(() => _permissionDenied = denied);
           },
           child: Container(
-            padding:
-                const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
             decoration: BoxDecoration(
               color: const Color(0xFF856404),
               borderRadius: BorderRadius.circular(8),
@@ -604,24 +603,53 @@ class _AppHomeScreenState extends ConsumerState<AppHomeScreen> {
             const Icon(Icons.local_fire_department_rounded,
                 color: _green, size: 20),
             const SizedBox(width: 8),
-            const Text('แคลอรี่ที่ได้รับในวันนี้',
-                style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.black87)),
-            const Spacer(),
-            _actionChipButton(
-              label: 'สูตรคำนวณ',
-              icon: Icons.calculate_outlined,
-              onTap: () => Navigator.push(context,
-                  MaterialPageRoute(builder: (_) => const TdeeFormulaScreen())),
+            const Flexible(
+              child: Text('แคลอรี่วันนี้',
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.black87)),
             ),
-            const SizedBox(width: 8),
-            _actionChipButton(
-              label: 'กราฟ',
-              icon: Icons.bar_chart_rounded,
-              onTap: () => Navigator.push(context,
-                  MaterialPageRoute(builder: (_) => const ProgressScreen())),
+            const Spacer(),
+            Tooltip(
+              message: 'สูตรคำนวณ TDEE',
+              child: Material(
+                color: _greenLight,
+                borderRadius: BorderRadius.circular(20),
+                child: InkWell(
+                  borderRadius: BorderRadius.circular(20),
+                  onTap: () => Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                          builder: (_) => const TdeeFormulaScreen())),
+                  child: const Padding(
+                    padding: EdgeInsets.all(8),
+                    child:
+                        Icon(Icons.calculate_outlined, size: 18, color: _green),
+                  ),
+                ),
+              ),
+            ),
+            const SizedBox(width: 6),
+            Tooltip(
+              message: 'กราฟความคืบหน้า',
+              child: Material(
+                color: _greenLight,
+                borderRadius: BorderRadius.circular(20),
+                child: InkWell(
+                  borderRadius: BorderRadius.circular(20),
+                  onTap: () => Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                          builder: (_) => const ProgressScreen())),
+                  child: const Padding(
+                    padding: EdgeInsets.all(8),
+                    child:
+                        Icon(Icons.bar_chart_rounded, size: 18, color: _green),
+                  ),
+                ),
+              ),
             ),
           ]),
 
@@ -784,32 +812,6 @@ class _AppHomeScreenState extends ConsumerState<AppHomeScreen> {
                   fontSize: 10, color: Colors.grey.shade500, height: 1.2)),
       ]),
     ]);
-  }
-
-  Widget _actionChipButton({
-    required String label,
-    required IconData icon,
-    required VoidCallback onTap,
-  }) {
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(20),
-        child: Ink(
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-          decoration: BoxDecoration(
-              color: _greenLight, borderRadius: BorderRadius.circular(20)),
-          child: Row(mainAxisSize: MainAxisSize.min, children: [
-            Icon(icon, size: 14, color: _green),
-            const SizedBox(width: 4),
-            Text(label,
-                style: const TextStyle(
-                    fontSize: 12, color: _green, fontWeight: FontWeight.w600)),
-          ]),
-        ),
-      ),
-    );
   }
 
   // ─── Macro Row ────────────────────────────────────────────────────────────
@@ -1477,7 +1479,7 @@ class _AppHomeScreenState extends ConsumerState<AppHomeScreen> {
           ],
         ),
         child: Row(children: [
-          const Text('🌾', style: TextStyle(fontSize: 34)),
+          const Text('�', style: TextStyle(fontSize: 34)),
           const SizedBox(width: 14),
           const Expanded(
             child:
@@ -1500,7 +1502,7 @@ class _AppHomeScreenState extends ConsumerState<AppHomeScreen> {
               border: Border.all(
                   color: const Color(0xFF66BB6A).withValues(alpha: 0.5)),
             ),
-            child: const Text('ดูไร่ →',
+            child: const Text('เข้าร่วม →',
                 style: TextStyle(
                     color: Color(0xFFA5D6A7),
                     fontFamily: 'Inter',

@@ -103,64 +103,6 @@ class _Mission {
   });
 }
 
-final _missions = [
-  _Mission(
-    id: 'check_in',
-    emoji: '☀️',
-    title: 'เช็กอินวันนี้',
-    desc: 'เปิดแอปเพื่อรับ XP ประจำวัน',
-    baseXp: 10,
-    baseGems: 1,
-    autoCheck: (_) => true,
-  ),
-  _Mission(
-    id: 'log_meal',
-    emoji: '🍱',
-    title: 'บันทึกมื้ออาหาร',
-    desc: 'บันทึกอาหารอย่างน้อย 1 มื้อวันนี้',
-    baseXp: 25,
-    baseGems: 3,
-    autoCheck: (u) => u.consumedCalories > 0,
-  ),
-  _Mission(
-    id: 'hit_all_macros',
-    emoji: '💪',
-    title: 'ครบตามโภชนาการ',
-    desc: 'โปรตีน คาร์บ ไขมัน ครบตามเป้าทั้งหมด',
-    baseXp: 100,
-    baseGems: 10,
-    autoCheck: (u) =>
-        u.targetProtein > 0 &&
-        u.consumedProtein >= u.targetProtein &&
-        u.targetCarbs > 0 &&
-        u.consumedCarbs >= u.targetCarbs &&
-        u.targetFat > 0 &&
-        u.consumedFat >= u.targetFat,
-  ),
-  _Mission(
-    id: 'hit_calories',
-    emoji: '🎯',
-    title: 'แคลอรี่ตามเป้า',
-    desc: 'แคลอรี่อยู่ในช่วง 80–110% ของเป้า',
-    baseXp: 75,
-    baseGems: 8,
-    autoCheck: (u) {
-      if (u.targetCalories <= 0) return false;
-      final r = u.consumedCalories / u.targetCalories;
-      return r >= 0.8 && r <= 1.1;
-    },
-  ),
-  _Mission(
-    id: 'streak_3',
-    emoji: '🔥',
-    title: 'ใช้แอปต่อเนื่อง 3 วัน',
-    desc: 'บันทึกสุขภาพต่อเนื่องอย่างน้อย 3 วัน',
-    baseXp: 50,
-    baseGems: 5,
-    autoCheck: (u) => u.currentStreak >= 3,
-  ),
-];
-
 // ─────────────────────────────────────────────────────────
 //  Screen
 // ─────────────────────────────────────────────────────────
@@ -176,6 +118,76 @@ class _TamagotchiScreenState extends ConsumerState<TamagotchiScreen> {
   int _tierIdx = 0;
   Set<String> _claimedToday = {};
   Set<String> _claimedBadges = {};
+  int _waterGlasses = 0;
+
+  List<_Mission> get _missions => [
+        _Mission(
+            id: 'check_in',
+            emoji: '☀️',
+            title: 'เช็กอินวันนี้',
+            desc: 'เปิดแอปเพื่อรับ XP ประจำวัน',
+            baseXp: 10,
+            baseGems: 1,
+            autoCheck: (_) => true),
+        _Mission(
+            id: 'log_meal',
+            emoji: '🍱',
+            title: 'บันทึกมื้ออาหาร',
+            desc: 'บันทึกอาหารอย่างน้อย 1 มื้อวันนี้',
+            baseXp: 25,
+            baseGems: 3,
+            autoCheck: (u) => u.consumedCalories > 0),
+        _Mission(
+            id: 'drink_water',
+            emoji: '�',
+            title: 'ดื่มน้ำครบ 6 แก้ว',
+            desc: 'ดื่มน้ำอย่างน้อย 6 แก้ว (1,500 ml) ต่อวัน',
+            baseXp: 30,
+            baseGems: 3,
+            autoCheck: (_) => _waterGlasses >= 6),
+        _Mission(
+            id: 'log_exercise',
+            emoji: '🏃',
+            title: 'บันทึกออกกำลังกาย',
+            desc: 'บันทึก exercise อย่างน้อย 1 ครั้งวันนี้',
+            baseXp: 50,
+            baseGems: 5,
+            autoCheck: (u) => u.dailyCaloriesBurned > 0),
+        _Mission(
+            id: 'hit_calories',
+            emoji: '🎯',
+            title: 'แคลอรี่ตามเป้า',
+            desc: 'แคลอรี่อยู่ในช่วง 80–110% ของเป้า',
+            baseXp: 75,
+            baseGems: 8,
+            autoCheck: (u) {
+              if (u.targetCalories <= 0) return false;
+              final r = u.consumedCalories / u.targetCalories;
+              return r >= 0.8 && r <= 1.1;
+            }),
+        _Mission(
+            id: 'hit_all_macros',
+            emoji: '�',
+            title: 'ครบตามโภชนาการ',
+            desc: 'โปรตีน คาร์บ ไขมัน ครบตามเป้าทั้งหมด',
+            baseXp: 100,
+            baseGems: 10,
+            autoCheck: (u) =>
+                u.targetProtein > 0 &&
+                u.consumedProtein >= u.targetProtein &&
+                u.targetCarbs > 0 &&
+                u.consumedCarbs >= u.targetCarbs &&
+                u.targetFat > 0 &&
+                u.consumedFat >= u.targetFat),
+        _Mission(
+            id: 'streak_3',
+            emoji: '🔥',
+            title: 'ใช้แอปต่อเนื่อง 3 วัน',
+            desc: 'บันทึกสุขภาพต่อเนื่องอย่างน้อย 3 วัน',
+            baseXp: 50,
+            baseGems: 5,
+            autoCheck: (u) => u.currentStreak >= 3),
+      ];
 
   static const _bg = Color(0xFFF8FAFB);
   static const _primary = Color(0xFF1565C0);
@@ -214,6 +226,17 @@ class _TamagotchiScreenState extends ConsumerState<TamagotchiScreen> {
     final claimed = (prefs.getStringList(_claimedKey(uid)) ?? []).toSet();
 
     if (uid > 0) {
+      try {
+        final today =
+            '${DateTime.now().year}-${DateTime.now().month.toString().padLeft(2, '0')}-${DateTime.now().day.toString().padLeft(2, '0')}';
+        final waterRes = await ApiClient().get('/water_logs/$uid?date=$today');
+        if (waterRes.statusCode == 200) {
+          final wData = jsonDecode(waterRes.body);
+          final ml = (wData['amount_ml'] as num?)?.toInt() ?? 0;
+          if (mounted)
+            setState(() => _waterGlasses = (ml / 250).round().clamp(0, 20));
+        }
+      } catch (_) {}
       try {
         final res = await ApiClient().get('/users/$uid/tama-points');
         if (res.statusCode == 200) {
@@ -789,9 +812,9 @@ class _TamagotchiScreenState extends ConsumerState<TamagotchiScreen> {
 
   // ── Badges — 4 types (Achievement / Streak / Skill / Social) ──
   static const _badgeInfo = {
-    'badge_newbie': ('🌱', 'มือใหม่', 'Achievement'),
-    'badge_grower': ('🌾', 'รวงทอง', 'Achievement'),
-    'badge_champion': ('✨', 'วิ้งค์', 'Achievement'),
+    'badge_newbie': ('🔰', 'มือใหม่', 'Achievement'),
+    'badge_grower': ('�', 'ผู้มุ่งมั่น', 'Achievement'),
+    'badge_champion': ('✨', 'Champion', 'Achievement'),
   };
 
   Widget _buildBadgesSection() {

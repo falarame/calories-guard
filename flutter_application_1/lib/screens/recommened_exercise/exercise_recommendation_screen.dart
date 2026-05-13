@@ -5,53 +5,51 @@ import 'package:http/http.dart' as http;
 import 'package:flutter_application_1/constants/constants.dart';
 import '/providers/user_data_provider.dart';
 
-// ── Tier helper (mirrors tamagotchi_screen tiers) ───────────────
+// ── Badge helpers (mirrors new gamification system) ────────────
 String? _rewardBadge(List<dynamic> badges) {
   if (badges.contains('badge_champion')) return '✨';
-  if (badges.contains('badge_grower')) return '🌾';
-  if (badges.contains('badge_newbie')) return '🌱';
+  if (badges.contains('badge_grower')) return '�';
+  if (badges.contains('badge_newbie')) return '🔰';
   return null;
 }
 
 List<Color> _badgeGradient(String? badge) {
   if (badge == '✨') return [const Color(0xFFFFD700), const Color(0xFFFFA000)];
-  if (badge == '🌾') return [const Color(0xFF8BC34A), const Color(0xFF558B2F)];
-  if (badge == '🌱') return [const Color(0xFF4CAF50), const Color(0xFF2E7D32)];
+  if (badge == '�') return [const Color(0xFF1565C0), const Color(0xFF42A5F5)];
+  if (badge == '🔰') return [const Color(0xFF26A69A), const Color(0xFF80CBC4)];
   return [];
 }
 
 Color _badgeGlow(String? badge) {
   if (badge == '✨') return const Color(0xFFFFD700);
-  if (badge == '🌾') return const Color(0xFF8BC34A);
-  if (badge == '🌱') return const Color(0xFF4CAF50);
+  if (badge == '�') return const Color(0xFF1565C0);
+  if (badge == '🔰') return const Color(0xFF26A69A);
   return Colors.transparent;
 }
 
-String _tierEmoji(int streak) {
-  if (streak >= 90) return '✨';
-  if (streak >= 60) return '🌾';
-  if (streak >= 30) return '🌿';
-  if (streak >= 14) return '🪴';
-  if (streak >= 7) return '🌱';
-  return '🌰';
+// ── XP-based Tier helpers (5 tiers: Stone→Legend) ────────────
+String _xpTierEmoji(int xp) {
+  if (xp >= 50000) return '⚜️';
+  if (xp >= 15000) return '👑';
+  if (xp >= 5000) return '💎';
+  if (xp >= 1000) return '🔷';
+  return '🪨';
 }
 
-String _tierName(int streak) {
-  if (streak >= 90) return 'วิ้งค์';
-  if (streak >= 60) return 'พราว';
-  if (streak >= 30) return 'โต้ง';
-  if (streak >= 14) return 'แต้ว';
-  if (streak >= 7) return 'ต้อย';
-  return 'ติ๊ด';
+String _xpTierName(int xp) {
+  if (xp >= 50000) return 'Legend';
+  if (xp >= 15000) return 'Gold';
+  if (xp >= 5000) return 'Emerald';
+  if (xp >= 1000) return 'Crystal';
+  return 'Stone';
 }
 
-Color _tierColor(int streak) {
-  if (streak >= 90) return const Color(0xFFFFD600);
-  if (streak >= 60) return const Color(0xFF8BC34A);
-  if (streak >= 30) return const Color(0xFF2E7D32);
-  if (streak >= 14) return const Color(0xFF43A047);
-  if (streak >= 7) return const Color(0xFF66BB6A);
-  return const Color(0xFF8D6E63);
+Color _xpTierColor(int xp) {
+  if (xp >= 50000) return const Color(0xFFAB47BC);
+  if (xp >= 15000) return const Color(0xFFFFB300);
+  if (xp >= 5000) return const Color(0xFF26A69A);
+  if (xp >= 1000) return const Color(0xFF42A5F5);
+  return const Color(0xFF78909C);
 }
 
 class ExerciseRecommendationScreen extends ConsumerStatefulWidget {
@@ -223,14 +221,14 @@ class _ExerciseRecommendationScreenState
             const Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text('🌾 ไร่ข้าวทั่วประเทศ',
+                Text('� ลีดเดอร์บอร์ด',
                     style: TextStyle(
                         fontSize: 24,
                         fontWeight: FontWeight.bold,
                         fontFamily: 'Inter',
                         color: Color(0xFF1B5E20))),
                 SizedBox(height: 4),
-                Text('จัดอันดับตามวันแสงแดดต่อเนื่อง',
+                Text('จัดอันดับตาม Streak & XP',
                     style: TextStyle(fontSize: 13, color: Color(0xFF78909C))),
               ],
             ),
@@ -257,7 +255,7 @@ class _ExerciseRecommendationScreenState
           child: const Row(children: [
             Text('☀️', style: TextStyle(fontSize: 13)),
             SizedBox(width: 8),
-            Text('สะสมวันแสงแดดต่อเนื่องให้ต้นข้าวเติบโต!',
+            Text('สะสม XP ทำภารกิจทุกวัน — แข่งขันกับเพื่อน!',
                 style: TextStyle(
                     color: Color(0xFF558B5E),
                     fontSize: 12,
@@ -278,8 +276,8 @@ class _ExerciseRecommendationScreenState
         ),
         padding: const EdgeInsets.all(4),
         child: Row(children: [
-          _tabBtn(0, '☀️  วันแสงแดด'),
-          _tabBtn(1, '🌾  คะแนนสะสม'),
+          _tabBtn(0, '🔥  Streak วัน'),
+          _tabBtn(1, '⭐  XP สะสม'),
         ]),
       ),
     );
@@ -357,7 +355,7 @@ class _ExerciseRecommendationScreenState
         ],
       ),
       child: Column(children: [
-        Text('TOP 3 ชาวไร่',
+        Text('TOP 3',
             style: TextStyle(
                 fontSize: 11,
                 fontWeight: FontWeight.bold,
@@ -404,7 +402,8 @@ class _ExerciseRecommendationScreenState
   }) {
     final name = (user['username'] as String?) ?? 'ผู้ใช้';
     final streak = (user['current_streak'] as int?) ?? 0;
-    final tColor = _tierColor(streak);
+    final xp = (user['tama_points'] as int?) ?? 0;
+    final tColor = _xpTierColor(xp);
     final shortName = name.length > 8 ? '${name.substring(0, 7)}…' : name;
 
     return Column(children: [
@@ -451,7 +450,7 @@ class _ExerciseRecommendationScreenState
                 color: Colors.white,
                 border: Border.all(color: tColor.withValues(alpha: 0.5))),
             child: Center(
-                child: Text(_tierEmoji(streak),
+                child: Text(_xpTierEmoji(xp),
                     style: const TextStyle(fontSize: 10))),
           ),
         ),
@@ -465,12 +464,11 @@ class _ExerciseRecommendationScreenState
               color: isMe ? rankColor : Colors.black87)),
       const SizedBox(height: 2),
       Row(mainAxisSize: MainAxisSize.min, children: [
-        Text(_tabIndex == 1 ? '🌾' : '☀️',
-            style: const TextStyle(fontSize: 10)),
+        Text(_tabIndex == 1 ? '⭐' : '🔥', style: const TextStyle(fontSize: 10)),
         const SizedBox(width: 2),
         Text(
           _tabIndex == 1
-              ? '${(user['tama_points'] as int?) ?? 0} เมล็ด'
+              ? '${(user['tama_points'] as int?) ?? 0} XP'
               : '$streak วัน',
           style: TextStyle(
               fontSize: 10, color: rankColor, fontWeight: FontWeight.w600),
@@ -507,10 +505,11 @@ class _ExerciseRecommendationScreenState
   Widget _buildRankTile(Map<String, dynamic> user, int rank, int myUserId) {
     final name = (user['username'] as String?) ?? 'ผู้ใช้';
     final streak = (user['current_streak'] as int?) ?? 0;
+    final xp = (user['tama_points'] as int?) ?? 0;
     final totalDays = (user['total_login_days'] as int?) ?? 0;
     final badges = (user['claimed_badges'] as List?) ?? [];
     final isMe = user['user_id'] == myUserId;
-    final tColor = _tierColor(streak);
+    final tColor = _xpTierColor(xp);
     final badge = _rewardBadge(badges);
     final glowColor = _badgeGlow(badge);
     final grad = _badgeGradient(badge);
@@ -624,7 +623,7 @@ class _ExerciseRecommendationScreenState
                         borderRadius: BorderRadius.circular(6),
                         border:
                             Border.all(color: tColor.withValues(alpha: 0.4))),
-                    child: Text('${_tierEmoji(streak)} ${_tierName(streak)}',
+                    child: Text('${_xpTierEmoji(xp)} ${_xpTierName(xp)}',
                         style: TextStyle(
                             fontSize: 9,
                             color: tColor,
@@ -632,7 +631,7 @@ class _ExerciseRecommendationScreenState
                             fontWeight: FontWeight.w600)),
                   ),
                   const SizedBox(width: 6),
-                  Text('รดน้ำ $totalDays วัน',
+                  Text('เล่น $totalDays วัน',
                       style:
                           TextStyle(fontSize: 10, color: Colors.grey.shade500)),
                 ]),
@@ -710,14 +709,14 @@ class _ExerciseRecommendationScreenState
           border: Border.all(color: const Color(0xFFFFD84D)),
         ),
         child: Row(mainAxisSize: MainAxisSize.min, children: [
-          const Text('🌾', style: TextStyle(fontSize: 12)),
+          const Text('⭐', style: TextStyle(fontSize: 12)),
           const SizedBox(width: 4),
           Text('$pts',
               style: const TextStyle(
                   fontWeight: FontWeight.bold,
                   fontSize: 15,
                   fontFamily: 'Inter',
-                  color: Color(0xFF7A5500))),
+                  color: Color(0xFF1565C0))),
         ]),
       );
 }

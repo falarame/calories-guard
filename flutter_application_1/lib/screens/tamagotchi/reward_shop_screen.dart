@@ -24,14 +24,14 @@ class _Reward {
 const _rewards = [
   _Reward(
       id: 'badge_newbie',
-      emoji: '🌱',
+      emoji: '🔰',
       name: 'Badge: มือใหม่',
       desc: 'Achievement badge สำหรับผู้เริ่มต้นสะสม XP',
       cost: 30),
   _Reward(
       id: 'badge_grower',
-      emoji: '🌾',
-      name: 'Badge: รวงทอง',
+      emoji: '�',
+      name: 'Badge: ผู้มุ่งมั่น',
       desc: 'Achievement badge สำหรับผู้มุ่งมั่นทำภารกิจต่อเนื่อง',
       cost: 150),
   _Reward(

@@ -514,9 +514,9 @@ class _BadgesSectionState extends State<_BadgesSection> {
   Set<String> _claimed = {};
 
   static const _badgeInfo = {
-    'badge_newbie': ('🌱', 'ชาวนามือใหม่'),
-    'badge_grower': ('🌾', 'รวงทอง'),
-    'badge_champion': ('✨', 'วิ้งค์'),
+    'badge_newbie': ('🔰', 'มือใหม่'),
+    'badge_grower': ('�', 'ผู้มุ่งมั่น'),
+    'badge_champion': ('✨', 'Champion'),
   };
 
   @override
@@ -537,11 +537,11 @@ class _BadgesSectionState extends State<_BadgesSection> {
     return Padding(
       padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        const Text('🏆  บาดจ์ของฉัน',
+        const Text('🏆  Badge ของฉัน',
             style: TextStyle(
                 fontSize: 14,
                 fontWeight: FontWeight.w700,
-                color: Color(0xFF3D5A27),
+                color: Color(0xFF6A1B9A),
                 fontFamily: 'Inter')),
         const SizedBox(height: 10),
         Wrap(
@@ -554,17 +554,17 @@ class _BadgesSectionState extends State<_BadgesSection> {
                 padding:
                     const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                 decoration: BoxDecoration(
-                  color: const Color(0xFF628141).withValues(alpha: 0.1),
+                  color: const Color(0xFF6A1B9A).withValues(alpha: 0.08),
                   borderRadius: BorderRadius.circular(12),
                   border: Border.all(
-                      color: const Color(0xFF628141).withValues(alpha: 0.4)),
+                      color: const Color(0xFF6A1B9A).withValues(alpha: 0.35)),
                 ),
                 child: Row(mainAxisSize: MainAxisSize.min, children: [
                   Text(emoji, style: const TextStyle(fontSize: 18)),
                   const SizedBox(width: 6),
                   Text(label,
                       style: const TextStyle(
-                          color: Color(0xFF3D5A27),
+                          color: Color(0xFF6A1B9A),
                           fontFamily: 'Inter',
                           fontWeight: FontWeight.w600,
                           fontSize: 12)),
