@@ -659,7 +659,8 @@ def get_tama_points(user_id: int):
         with conn.cursor(cursor_factory=RealDictCursor) as cur:
             cur.execute(
                 """
-                SELECT tama_points, tier_level, claimed_badges
+                SELECT tama_points, tier_level, claimed_badges,
+                       COALESCE(gems, 0) AS gems
                 FROM cleangoal.user_gamification
                 WHERE user_id = %s
                 """,
@@ -671,8 +672,9 @@ def get_tama_points(user_id: int):
                 "tama_points": int(row.get("tama_points") or 0),
                 "tier_level": int(row.get("tier_level") or 0),
                 "claimed_badges": row.get("claimed_badges") or [],
+                "gems": int(row.get("gems") or 0),
             }
-        return {"tama_points": 0, "tier_level": 0, "claimed_badges": []}
+        return {"tama_points": 0, "tier_level": 0, "claimed_badges": [], "gems": 0}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
     finally:
@@ -686,11 +688,28 @@ def sync_tama_points(user_id: int, payload: dict):
     points  = int(payload.get("tama_points", 0))
     tier    = int(payload.get("tier_level", 0))
     badges  = payload.get("claimed_badges")  # list[str] or None
+    gems    = payload.get("gems")            # int or None
     conn = None
     try:
         conn = get_db_connection()
         with conn.cursor() as cur:
-            if badges is not None:
+            if badges is not None and gems is not None:
+                cur.execute(
+                    """
+                    INSERT INTO cleangoal.user_gamification
+                        (user_id, tama_points, tier_level, claimed_badges, gems, gems_updated_at, updated_at)
+                    VALUES (%s, %s, %s, %s, %s, NOW(), NOW())
+                    ON CONFLICT (user_id) DO UPDATE
+                      SET tama_points    = EXCLUDED.tama_points,
+                          tier_level     = EXCLUDED.tier_level,
+                          claimed_badges = EXCLUDED.claimed_badges,
+                          gems           = EXCLUDED.gems,
+                          gems_updated_at = NOW(),
+                          updated_at     = NOW()
+                    """,
+                    (user_id, points, tier, badges, int(gems)),
+                )
+            elif badges is not None:
                 cur.execute(
                     """
                     INSERT INTO cleangoal.user_gamification (user_id, tama_points, tier_level, claimed_badges, updated_at)
@@ -702,6 +721,20 @@ def sync_tama_points(user_id: int, payload: dict):
                           updated_at     = NOW()
                     """,
                     (user_id, points, tier, badges),
+                )
+            elif gems is not None:
+                cur.execute(
+                    """
+                    INSERT INTO cleangoal.user_gamification (user_id, tama_points, tier_level, gems, gems_updated_at, updated_at)
+                    VALUES (%s, %s, %s, %s, NOW(), NOW())
+                    ON CONFLICT (user_id) DO UPDATE
+                      SET tama_points     = EXCLUDED.tama_points,
+                          tier_level      = EXCLUDED.tier_level,
+                          gems            = EXCLUDED.gems,
+                          gems_updated_at = NOW(),
+                          updated_at      = NOW()
+                    """,
+                    (user_id, points, tier, int(gems)),
                 )
             else:
                 cur.execute(

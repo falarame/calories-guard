@@ -8,92 +8,109 @@ import '/screens/tamagotchi/reward_shop_screen.dart';
 import '/services/api_client.dart';
 
 // ─────────────────────────────────────────────────────────
-//  Tier data
+//  Tier System — 5 levels (Octalysis: Development & Accomplishment)
+//  Based on research: tier thresholds designed to be achievable
+//  but challenging (British Journal of Educational Technology, 2024)
 // ─────────────────────────────────────────────────────────
 class _Tier {
   final String name;
-  final int minPts;
-  final Color color;
-  final Color glow;
   final String emoji;
+  final int minXp;
+  final double xpBonus; // additive XP bonus (0.0 = +0%, 1.0 = +100%)
+  final Color color;
+  final String perks;
   const _Tier({
     required this.name,
-    required this.minPts,
-    required this.color,
-    required this.glow,
     required this.emoji,
+    required this.minXp,
+    required this.xpBonus,
+    required this.color,
+    required this.perks,
   });
 }
 
-/// Multiplier per tier index — ระดับสูงขึ้น ได้เมล็ดข้าวมากขึ้น
-const _tierMultipliers = [1.0, 1.2, 1.5, 1.8, 2.0, 2.5];
-
 const _tiers = [
   _Tier(
-      name: 'ติ๊ด',
-      minPts: 0,
-      color: Color(0xFF8D6E63),
-      glow: Color(0xFFEFEBE9),
-      emoji: '🌰'),
+      name: 'Stone',
+      emoji: '🪨',
+      minXp: 0,
+      xpBonus: 0.00,
+      color: Color(0xFF78909C),
+      perks: 'เริ่มต้น'),
   _Tier(
-      name: 'ต้อย',
-      minPts: 100,
-      color: Color(0xFF66BB6A),
-      glow: Color(0xFFE8F5E9),
-      emoji: '🌱'),
+      name: 'Crystal',
+      emoji: '🔷',
+      minXp: 1000,
+      xpBonus: 0.10,
+      color: Color(0xFF42A5F5),
+      perks: '+10% XP'),
   _Tier(
-      name: 'แต้ว',
-      minPts: 300,
-      color: Color(0xFF43A047),
-      glow: Color(0xFFF1F8E9),
-      emoji: '🪴'),
+      name: 'Emerald',
+      emoji: '💎',
+      minXp: 5000,
+      xpBonus: 0.25,
+      color: Color(0xFF26A69A),
+      perks: '+25% XP'),
   _Tier(
-      name: 'โต้ง',
-      minPts: 600,
-      color: Color(0xFF2E7D32),
-      glow: Color(0xFFE8F5E9),
-      emoji: '🌿'),
+      name: 'Gold',
+      emoji: '👑',
+      minXp: 15000,
+      xpBonus: 0.50,
+      color: Color(0xFFFFB300),
+      perks: '+50% XP'),
   _Tier(
-      name: 'พราว',
-      minPts: 1000,
-      color: Color(0xFF8BC34A),
-      glow: Color(0xFFF9FBE7),
-      emoji: '🌾'),
-  _Tier(
-      name: 'วิ้งค์',
-      minPts: 2000,
-      color: Color(0xFFFFD600),
-      glow: Color(0xFFFFFDE7),
-      emoji: '✨'),
+      name: 'Legend',
+      emoji: '⚜️',
+      minXp: 50000,
+      xpBonus: 1.00,
+      color: Color(0xFFAB47BC),
+      perks: '+100% XP'),
 ];
 
 // ─────────────────────────────────────────────────────────
-//  Mission model
+//  Streak Multiplier — Loss Aversion mechanic (Octalysis CD#8)
+//  Locke & Latham (2002): challenging-but-achievable goals
+// ─────────────────────────────────────────────────────────
+double _streakMult(int streak) {
+  if (streak >= 30) return 3.0;
+  if (streak >= 14) return 2.5;
+  if (streak >= 7) return 2.0;
+  if (streak >= 3) return 1.5;
+  return 1.0;
+}
+
+// ─────────────────────────────────────────────────────────
+//  Mission Model — dual reward (XP + Gems)
+//  XP = permanent, determines tier
+//  Gems = spendable currency, expire 30 days
 // ─────────────────────────────────────────────────────────
 class _Mission {
   final String id;
   final String emoji;
   final String title;
   final String desc;
-  final int points;
+  final int baseXp;
+  final int baseGems;
   final bool Function(UserData u) autoCheck;
   const _Mission({
     required this.id,
     required this.emoji,
     required this.title,
     required this.desc,
-    required this.points,
+    required this.baseXp,
+    required this.baseGems,
     required this.autoCheck,
   });
 }
 
 final _missions = [
   _Mission(
-    id: 'open_app',
+    id: 'check_in',
     emoji: '☀️',
     title: 'เช็กอินวันนี้',
-    desc: 'เปิดแอปเพื่อรับแต้มประจำวัน',
-    points: 2,
+    desc: 'เปิดแอปเพื่อรับ XP ประจำวัน',
+    baseXp: 10,
+    baseGems: 1,
     autoCheck: (_) => true,
   ),
   _Mission(
@@ -101,7 +118,8 @@ final _missions = [
     emoji: '🍱',
     title: 'บันทึกมื้ออาหาร',
     desc: 'บันทึกอาหารอย่างน้อย 1 มื้อวันนี้',
-    points: 5,
+    baseXp: 25,
+    baseGems: 3,
     autoCheck: (u) => u.consumedCalories > 0,
   ),
   _Mission(
@@ -109,7 +127,8 @@ final _missions = [
     emoji: '💪',
     title: 'ครบตามโภชนาการ',
     desc: 'โปรตีน คาร์บ ไขมัน ครบตามเป้าทั้งหมด',
-    points: 20,
+    baseXp: 100,
+    baseGems: 10,
     autoCheck: (u) =>
         u.targetProtein > 0 &&
         u.consumedProtein >= u.targetProtein &&
@@ -123,7 +142,8 @@ final _missions = [
     emoji: '🎯',
     title: 'แคลอรี่ตามเป้า',
     desc: 'แคลอรี่อยู่ในช่วง 80–110% ของเป้า',
-    points: 15,
+    baseXp: 75,
+    baseGems: 8,
     autoCheck: (u) {
       if (u.targetCalories <= 0) return false;
       final r = u.consumedCalories / u.targetCalories;
@@ -135,7 +155,8 @@ final _missions = [
     emoji: '🔥',
     title: 'ใช้แอปต่อเนื่อง 3 วัน',
     desc: 'บันทึกสุขภาพต่อเนื่องอย่างน้อย 3 วัน',
-    points: 10,
+    baseXp: 50,
+    baseGems: 5,
     autoCheck: (u) => u.currentStreak >= 3,
   ),
 ];
@@ -150,155 +171,150 @@ class TamagotchiScreen extends ConsumerStatefulWidget {
 }
 
 class _TamagotchiScreenState extends ConsumerState<TamagotchiScreen> {
-  int _totalPoints = 0;
-  int _maxTierIdx = 0;
+  int _xp = 0;
+  int _gems = 0;
+  int _tierIdx = 0;
   Set<String> _claimedToday = {};
-  Set<String> _claimedRewards = {};
+  Set<String> _claimedBadges = {};
 
-  static const _bg = Color(0xFFF5F8F2);
-  static const _primary = Color(0xFF628141);
+  static const _bg = Color(0xFFF8FAFB);
+  static const _primary = Color(0xFF1565C0);
 
-  int get _activeTierIdx => _maxTierIdx.clamp(0, _tiers.length - 1);
+  int get _activeTierIdx => _tierIdx.clamp(0, _tiers.length - 1);
 
-  int _missionPoints(_Mission m) =>
-      (m.points * _tierMultipliers[_activeTierIdx]).round();
+  // XP earned = baseXp × (1 + tierBonus) × streakMultiplier
+  int _calcXp(_Mission m, int streak) {
+    final bonus = 1.0 + _tiers[_activeTierIdx].xpBonus;
+    return (m.baseXp * bonus * _streakMult(streak)).round();
+  }
 
-  String get _multiplierLabel {
-    final m = _tierMultipliers[_activeTierIdx];
-    return m == 1.0
-        ? ''
-        : '×${m.toStringAsFixed(m == m.roundToDouble() ? 0 : 1)}';
+  String _xpKey(int uid) =>
+      'tama_points_$uid'; // keep old key for backward compat
+  String _gemsKey(int uid) => 'tama_gems_$uid';
+  String _tierKey(int uid) => 'tama_max_tier_$uid'; // keep old key
+  String _badgesKey(int uid) => 'tama_rewards_claimed_$uid';
+  String _claimedKey(int uid) {
+    final n = DateTime.now();
+    return 'tama_claimed_${uid}_${n.year}-${n.month}-${n.day}';
   }
 
   @override
   void initState() {
     super.initState();
-    SharedPreferences.getInstance().then((prefs) {
-      final uid = ref.read(userDataProvider).userId;
-      if (!mounted) return;
-      setState(() {
-        _totalPoints = prefs.getInt(_pointsKey(uid)) ?? 0;
-        _maxTierIdx = prefs.getInt(_maxTierKey(uid)) ?? 0;
-        _claimedToday = (prefs.getStringList(_claimedKey(uid)) ?? []).toSet();
-        _claimedRewards =
-            (prefs.getStringList('tama_rewards_claimed_$uid') ?? []).toSet();
-      });
-    });
     _load();
   }
 
-  @override
-  void dispose() {
-    super.dispose();
-  }
-
-  String get _todayKey {
-    final now = DateTime.now();
-    return '${now.year}-${now.month}-${now.day}';
-  }
-
-  String _pointsKey(int userId) => 'tama_points_$userId';
-  String _claimedKey(int userId) => 'tama_claimed_${userId}_$_todayKey';
-  String _maxTierKey(int userId) => 'tama_max_tier_$userId';
-
   Future<void> _load() async {
-    final userId = ref.read(userDataProvider).userId;
+    final uid = ref.read(userDataProvider).userId;
     final prefs = await SharedPreferences.getInstance();
-    final localPts = prefs.getInt(_pointsKey(userId)) ?? 0;
-    final localMaxTier = prefs.getInt(_maxTierKey(userId)) ?? 0;
-    final claimed = (prefs.getStringList(_claimedKey(userId)) ?? []).toSet();
 
-    int pts = localPts;
-    int maxTier = localMaxTier;
-    if (userId > 0) {
+    int xp = prefs.getInt(_xpKey(uid)) ?? 0;
+    int gems = prefs.getInt(_gemsKey(uid)) ?? 0;
+    int tier = prefs.getInt(_tierKey(uid)) ?? 0;
+    final claimed = (prefs.getStringList(_claimedKey(uid)) ?? []).toSet();
+
+    if (uid > 0) {
       try {
-        final res = await ApiClient().get('/users/$userId/tama-points');
+        final res = await ApiClient().get('/users/$uid/tama-points');
         if (res.statusCode == 200) {
-          final data = jsonDecode(res.body);
-          final backendPts = (data['tama_points'] as num?)?.toInt() ?? 0;
-          final backendTier = (data['tier_level'] as num?)?.toInt() ?? 0;
-          final backendBadges = (data['claimed_badges'] as List?)
+          final data = jsonDecode(res.body) as Map<String, dynamic>;
+          final bXp = (data['tama_points'] as num?)?.toInt() ?? 0;
+          final bTier = (data['tier_level'] as num?)?.toInt() ?? 0;
+          final bGems = (data['gems'] as num?)?.toInt() ?? 0;
+          final bBadges = (data['claimed_badges'] as List?)
                   ?.map((e) => e.toString())
                   .toList() ??
               [];
-          if (backendPts > localPts) {
-            pts = backendPts;
-            await prefs.setInt(_pointsKey(userId), pts);
+          if (bXp > xp) {
+            xp = bXp;
+            await prefs.setInt(_xpKey(uid), xp);
           }
-          if (backendTier > localMaxTier) {
-            maxTier = backendTier;
-            await prefs.setInt(_maxTierKey(userId), maxTier);
+          if (bTier > tier) {
+            tier = bTier;
+            await prefs.setInt(_tierKey(uid), tier);
           }
-          if (backendBadges.isNotEmpty) {
-            await prefs.setStringList(
-                'tama_rewards_claimed_$userId', backendBadges);
+          if (bGems > gems) {
+            gems = bGems;
+            await prefs.setInt(_gemsKey(uid), gems);
+          }
+          if (bBadges.isNotEmpty) {
+            await prefs.setStringList(_badgesKey(uid), bBadges);
           }
         }
       } catch (_) {}
     }
 
     if (mounted) {
-      final rewardKey = 'tama_rewards_claimed_$userId';
-      final claimedRewards = (prefs.getStringList(rewardKey) ?? []).toSet();
+      final updatedBadges =
+          (prefs.getStringList(_badgesKey(uid)) ?? []).toSet();
       setState(() {
-        _totalPoints = pts;
-        _maxTierIdx = maxTier;
+        _xp = xp;
+        _gems = gems;
+        _tierIdx = tier;
         _claimedToday = claimed;
-        _claimedRewards = claimedRewards;
+        _claimedBadges = updatedBadges;
       });
     }
   }
 
-  Future<void> _claimMission(_Mission m) async {
+  // Variable reward: 20% chance of ×2 Gems (Octalysis CD#7 Unpredictability / dopamine loop)
+  Future<void> _claimMission(_Mission m, int streak) async {
     if (_claimedToday.contains(m.id)) return;
-    final userId = ref.read(userDataProvider).userId;
-    final pts = _missionPoints(m);
+    final uid = ref.read(userDataProvider).userId;
     final prefs = await SharedPreferences.getInstance();
-    final newPts = _totalPoints + pts;
+
+    final earnedXp = _calcXp(m, streak);
+    final isBonus = math.Random().nextDouble() < 0.20;
+    final earnedGems = isBonus ? m.baseGems * 2 : m.baseGems;
+
+    final newXp = _xp + earnedXp;
+    final newGems = _gems + earnedGems;
     final newClaimed = {..._claimedToday, m.id};
-    final earnedTier = _tiers
-        .lastIndexWhere((t) => newPts >= t.minPts)
+    final newTier = (_tiers.lastIndexWhere((t) => newXp >= t.minXp))
         .clamp(0, _tiers.length - 1);
-    final newMaxTier = earnedTier > _maxTierIdx ? earnedTier : _maxTierIdx;
-    await prefs.setInt(_pointsKey(userId), newPts);
-    await prefs.setStringList(_claimedKey(userId), newClaimed.toList());
-    if (newMaxTier > _maxTierIdx) {
-      await prefs.setInt(_maxTierKey(userId), newMaxTier);
-    }
+    final newMaxTier = newTier > _tierIdx ? newTier : _tierIdx;
+
+    await prefs.setInt(_xpKey(uid), newXp);
+    await prefs.setInt(_gemsKey(uid), newGems);
+    await prefs.setStringList(_claimedKey(uid), newClaimed.toList());
+    if (newMaxTier > _tierIdx) await prefs.setInt(_tierKey(uid), newMaxTier);
+
     setState(() {
-      _totalPoints = newPts;
-      _maxTierIdx = newMaxTier;
+      _xp = newXp;
+      _gems = newGems;
+      _tierIdx = newMaxTier;
       _claimedToday = newClaimed;
     });
-    _syncPointsToBackend(newPts);
+
+    _syncToBackend(newXp, newGems, newMaxTier);
+
     if (mounted) {
+      final extra = isBonus ? '  🎉 โชคดี! 💎×2' : '';
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-        content: Text('${m.emoji} +$pts แต้ม! "${m.title}"'),
-        backgroundColor: _primary,
+        content: Text('${m.emoji} +$earnedXp XP  +$earnedGems 💎$extra'),
+        backgroundColor: _tiers[newMaxTier].color,
         duration: const Duration(seconds: 2),
       ));
     }
   }
 
-  void _syncPointsToBackend(int pts) {
+  void _syncToBackend(int xp, int gems, int tier) {
     if (!mounted) return;
-    final userId = ref.read(userDataProvider).userId;
-    if (userId <= 0) return;
-    ApiClient().patch(
-      '/users/$userId/tama-points',
-      body: {'tama_points': pts, 'tier_level': _maxTierIdx},
-    ).ignore();
+    final uid = ref.read(userDataProvider).userId;
+    if (uid <= 0) return;
+    ApiClient().patch('/users/$uid/tama-points',
+        body: {'tama_points': xp, 'gems': gems, 'tier_level': tier}).ignore();
   }
 
   @override
   Widget build(BuildContext context) {
     final userData = ref.watch(userDataProvider);
+    final streak = userData.currentStreak;
     final tier = _tiers[_activeTierIdx];
     final nextTier =
         _activeTierIdx < _tiers.length - 1 ? _tiers[_activeTierIdx + 1] : null;
     final progress = nextTier != null
-        ? ((_totalPoints - tier.minPts) / (nextTier.minPts - tier.minPts))
-            .clamp(0.0, 1.0)
+        ? ((_xp - tier.minXp) / (nextTier.minXp - tier.minXp)).clamp(0.0, 1.0)
         : 1.0;
 
     return Scaffold(
@@ -312,7 +328,7 @@ class _TamagotchiScreenState extends ConsumerState<TamagotchiScreen> {
               color: Colors.black87, size: 20),
           onPressed: () => Navigator.pop(context),
         ),
-        title: const Text('สะสมแต้มสุขภาพ',
+        title: const Text('สะสม XP & เจม',
             style: TextStyle(
                 color: Colors.black87,
                 fontFamily: 'Inter',
@@ -330,10 +346,9 @@ class _TamagotchiScreenState extends ConsumerState<TamagotchiScreen> {
                   MaterialPageRoute(
                     builder: (_) => RewardShopScreen(
                       userId: ref.read(userDataProvider).userId,
-                      currentPoints: _totalPoints,
-                      maxTierIdx: _maxTierIdx,
-                      onPointsUpdated: (pts) =>
-                          setState(() => _totalPoints = pts),
+                      currentGems: _gems,
+                      tierIdx: _tierIdx,
+                      onGemsUpdated: (g) => setState(() => _gems = g),
                     ),
                   ));
             },
@@ -344,11 +359,13 @@ class _TamagotchiScreenState extends ConsumerState<TamagotchiScreen> {
         padding: const EdgeInsets.fromLTRB(20, 16, 20, 40),
         child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
           _buildHeroCard(tier, nextTier, progress),
+          const SizedBox(height: 16),
+          _buildCurrencyRow(streak),
           const SizedBox(height: 20),
-          _buildTierRow(),
+          _buildTierRoadmap(),
           const SizedBox(height: 24),
-          _buildMissionsSection(userData),
-          if (_claimedRewards.isNotEmpty) ...[
+          _buildMissionsSection(userData, streak),
+          if (_claimedBadges.isNotEmpty) ...[
             const SizedBox(height: 24),
             _buildBadgesSection(),
           ],
@@ -364,35 +381,32 @@ class _TamagotchiScreenState extends ConsumerState<TamagotchiScreen> {
       padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
         gradient: LinearGradient(
-          colors: [
-            tier.color,
-            Color.lerp(tier.color, _primary, 0.5)!,
-          ],
+          colors: [tier.color, Color.lerp(tier.color, Colors.black, 0.3)!],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
         borderRadius: BorderRadius.circular(24),
         boxShadow: [
           BoxShadow(
-              color: tier.color.withValues(alpha: 0.4),
+              color: tier.color.withValues(alpha: 0.45),
               blurRadius: 20,
-              offset: const Offset(0, 8)),
+              offset: const Offset(0, 8))
         ],
       ),
       child: Column(children: [
         Row(children: [
-          Text(tier.emoji, style: const TextStyle(fontSize: 36)),
-          const SizedBox(width: 12),
+          Text(tier.emoji, style: const TextStyle(fontSize: 40)),
+          const SizedBox(width: 14),
           Expanded(
             child:
                 Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              Text('ระดับ ${tier.name}',
+              Text(tier.name,
                   style: const TextStyle(
                       color: Colors.white,
-                      fontSize: 20,
+                      fontSize: 22,
                       fontWeight: FontWeight.w800,
                       fontFamily: 'Inter')),
-              Text('สมาชิกสุขภาพ CaloriesGuard',
+              Text('${tier.perks} • CaloriesGuard',
                   style: TextStyle(
                       color: Colors.white.withValues(alpha: 0.75),
                       fontSize: 12,
@@ -402,26 +416,25 @@ class _TamagotchiScreenState extends ConsumerState<TamagotchiScreen> {
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
             decoration: BoxDecoration(
-              color: Colors.white.withValues(alpha: 0.2),
-              borderRadius: BorderRadius.circular(16),
-            ),
+                color: Colors.white.withValues(alpha: 0.2),
+                borderRadius: BorderRadius.circular(16)),
             child: Column(mainAxisSize: MainAxisSize.min, children: [
-              Text('$_totalPoints',
+              Text('$_xp',
                   style: const TextStyle(
                       color: Colors.white,
-                      fontSize: 24,
+                      fontSize: 22,
                       fontWeight: FontWeight.w800,
                       fontFamily: 'Inter')),
-              Text('แต้ม',
+              const Text('XP',
                   style: TextStyle(
-                      color: Colors.white.withValues(alpha: 0.8),
+                      color: Colors.white70,
                       fontSize: 11,
                       fontFamily: 'Inter')),
             ]),
           ),
         ]),
         if (nextTier != null) ...[
-          const SizedBox(height: 20),
+          const SizedBox(height: 18),
           ClipRRect(
             borderRadius: BorderRadius.circular(6),
             child: LinearProgressIndicator(
@@ -431,7 +444,7 @@ class _TamagotchiScreenState extends ConsumerState<TamagotchiScreen> {
               minHeight: 8,
             ),
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: 6),
           Row(children: [
             Text('${tier.emoji} ${tier.name}',
                 style: TextStyle(
@@ -440,7 +453,7 @@ class _TamagotchiScreenState extends ConsumerState<TamagotchiScreen> {
                     fontFamily: 'Inter')),
             const Spacer(),
             Text(
-                'อีก ${nextTier.minPts - _totalPoints} แต้ม → ${nextTier.emoji} ${nextTier.name}',
+                'อีก ${nextTier.minXp - _xp} XP → ${nextTier.emoji} ${nextTier.name}',
                 style: TextStyle(
                     color: Colors.white.withValues(alpha: 0.85),
                     fontSize: 11,
@@ -448,7 +461,7 @@ class _TamagotchiScreenState extends ConsumerState<TamagotchiScreen> {
           ]),
         ] else ...[
           const SizedBox(height: 16),
-          const Text('🏆 ระดับสูงสุดแล้ว!',
+          const Text('⚜️ Legend — ระดับสูงสุด!',
               style: TextStyle(
                   color: Colors.white,
                   fontSize: 14,
@@ -458,8 +471,81 @@ class _TamagotchiScreenState extends ConsumerState<TamagotchiScreen> {
     );
   }
 
-  // ── Tier Row ──────────────────────────────────────────────
-  Widget _buildTierRow() {
+  // ── Currency Row ─────────────────────────────────────────
+  Widget _buildCurrencyRow(int streak) {
+    final mult = _streakMult(streak);
+    return Row(children: [
+      Expanded(
+          child: _currencyCard(
+              label: 'XP สะสม',
+              value: '$_xp',
+              sub: 'ใช้ขึ้น Tier',
+              color: _primary)),
+      const SizedBox(width: 10),
+      Expanded(
+          child: _currencyCard(
+              label: 'เจม 💎',
+              value: '$_gems',
+              sub: 'ใช้แลกรางวัล',
+              color: const Color(0xFF6A1B9A),
+              warn: _gems > 0 ? 'หมดอายุ 30 วัน' : null)),
+      const SizedBox(width: 10),
+      Expanded(
+          child: _currencyCard(
+        label: 'Streak 🔥',
+        value: '$streak วัน',
+        sub: mult > 1.0 ? 'XP ×${mult.toStringAsFixed(1)}' : 'ทำต่อ 3 วัน',
+        color: mult > 1.0 ? const Color(0xFFE65100) : Colors.grey.shade500,
+      )),
+    ]);
+  }
+
+  Widget _currencyCard(
+      {required String label,
+      required String value,
+      required String sub,
+      required Color color,
+      String? warn}) {
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+              color: Colors.black.withValues(alpha: 0.05),
+              blurRadius: 8,
+              offset: const Offset(0, 2))
+        ],
+        border: Border.all(color: color.withValues(alpha: 0.18)),
+      ),
+      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Text(label,
+            style: TextStyle(
+                color: Colors.grey.shade500,
+                fontSize: 10,
+                fontFamily: 'Inter')),
+        const SizedBox(height: 4),
+        Text(value,
+            style: TextStyle(
+                color: color,
+                fontSize: 15,
+                fontWeight: FontWeight.w800,
+                fontFamily: 'Inter')),
+        const SizedBox(height: 2),
+        Text(sub,
+            style: TextStyle(
+                color: Colors.grey.shade400, fontSize: 9, fontFamily: 'Inter')),
+        if (warn != null)
+          Text(warn,
+              style: const TextStyle(
+                  color: Color(0xFFE65100), fontSize: 9, fontFamily: 'Inter')),
+      ]),
+    );
+  }
+
+  // ── Tier Roadmap ──────────────────────────────────────────
+  Widget _buildTierRoadmap() {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -473,7 +559,7 @@ class _TamagotchiScreenState extends ConsumerState<TamagotchiScreen> {
         ],
       ),
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        const Text('ระดับสมาชิก',
+        const Text('ระดับ Tier',
             style: TextStyle(
                 fontSize: 14,
                 fontWeight: FontWeight.w700,
@@ -483,14 +569,14 @@ class _TamagotchiScreenState extends ConsumerState<TamagotchiScreen> {
         Row(
           children: List.generate(_tiers.length, (i) {
             final t = _tiers[i];
-            final isUnlocked = i <= _maxTierIdx;
-            final isCurrent = i == _maxTierIdx;
+            final isUnlocked = i <= _tierIdx;
+            final isCurrent = i == _tierIdx;
             return Expanded(
               child: Column(children: [
                 AnimatedContainer(
                   duration: const Duration(milliseconds: 250),
-                  width: isCurrent ? 44 : 36,
-                  height: isCurrent ? 44 : 36,
+                  width: isCurrent ? 44 : 34,
+                  height: isCurrent ? 44 : 34,
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
                     color: isUnlocked
@@ -506,7 +592,7 @@ class _TamagotchiScreenState extends ConsumerState<TamagotchiScreen> {
                   ),
                   child: Center(
                       child: Text(t.emoji,
-                          style: TextStyle(fontSize: isCurrent ? 22 : 16))),
+                          style: TextStyle(fontSize: isCurrent ? 22 : 15))),
                 ),
                 const SizedBox(height: 4),
                 Text(t.name,
@@ -515,6 +601,12 @@ class _TamagotchiScreenState extends ConsumerState<TamagotchiScreen> {
                         fontWeight:
                             isCurrent ? FontWeight.w700 : FontWeight.w500,
                         color: isUnlocked ? t.color : Colors.grey.shade400,
+                        fontFamily: 'Inter')),
+                Text(
+                    '${t.minXp >= 1000 ? '${t.minXp ~/ 1000}k' : '${t.minXp}'}',
+                    style: TextStyle(
+                        fontSize: 8,
+                        color: Colors.grey.shade400,
                         fontFamily: 'Inter')),
               ]),
             );
@@ -525,41 +617,52 @@ class _TamagotchiScreenState extends ConsumerState<TamagotchiScreen> {
   }
 
   // ── Missions ──────────────────────────────────────────────
-  Widget _buildMissionsSection(UserData userData) {
+  Widget _buildMissionsSection(UserData userData, int streak) {
+    final mult = _streakMult(streak);
+    final tierBonus = _tiers[_activeTierIdx].xpBonus;
     return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
       Row(children: [
-        const Text('กิจกรรมรับแต้มวันนี้',
+        const Text('ภารกิจประจำวัน',
             style: TextStyle(
                 fontSize: 16,
                 fontWeight: FontWeight.w700,
                 color: Colors.black87,
                 fontFamily: 'Inter')),
         const Spacer(),
-        if (_multiplierLabel.isNotEmpty)
+        if (mult > 1.0 || tierBonus > 0)
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
             decoration: BoxDecoration(
-              color: _primary.withValues(alpha: 0.1),
+              color: const Color(0xFFE65100).withValues(alpha: 0.1),
               borderRadius: BorderRadius.circular(8),
-              border: Border.all(color: _primary.withValues(alpha: 0.3)),
             ),
-            child: Text('โบนัส $_multiplierLabel',
-                style: const TextStyle(
-                    color: _primary,
-                    fontSize: 11,
-                    fontFamily: 'Inter',
-                    fontWeight: FontWeight.w600)),
+            child: Text(
+              [
+                if (mult > 1.0) '🔥 ×${mult.toStringAsFixed(1)}',
+                if (tierBonus > 0) '+${(tierBonus * 100).toInt()}%'
+              ].join(' '),
+              style: const TextStyle(
+                  color: Color(0xFFE65100),
+                  fontSize: 11,
+                  fontFamily: 'Inter',
+                  fontWeight: FontWeight.w600),
+            ),
           ),
       ]),
+      const SizedBox(height: 4),
+      Text('💡 20% โอกาสได้ Gem โบนัส ×2  (Octalysis Variable Reward)',
+          style: TextStyle(
+              color: Colors.grey.shade400, fontSize: 10, fontFamily: 'Inter')),
       const SizedBox(height: 12),
-      ..._missions.map((m) => _buildMissionCard(m, userData)),
+      ..._missions.map((m) => _buildMissionCard(m, userData, streak)),
     ]);
   }
 
-  Widget _buildMissionCard(_Mission m, UserData userData) {
+  Widget _buildMissionCard(_Mission m, UserData userData, int streak) {
     final claimed = _claimedToday.contains(m.id);
     final canDo = m.autoCheck(userData);
-    final pts = _missionPoints(m);
+    final xp = _calcXp(m, streak);
+    final gems = m.baseGems;
 
     return Container(
       margin: const EdgeInsets.only(bottom: 10),
@@ -617,21 +720,27 @@ class _TamagotchiScreenState extends ConsumerState<TamagotchiScreen> {
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
             decoration: BoxDecoration(
-              color: _primary.withValues(alpha: 0.1),
-              borderRadius: BorderRadius.circular(10),
-            ),
-            child: Text('✅ +$pts',
-                style: const TextStyle(
-                    color: _primary,
-                    fontSize: 12,
-                    fontFamily: 'Inter',
-                    fontWeight: FontWeight.w600)),
+                color: _primary.withValues(alpha: 0.08),
+                borderRadius: BorderRadius.circular(10)),
+            child: Column(mainAxisSize: MainAxisSize.min, children: [
+              Text('✅ +$xp XP',
+                  style: const TextStyle(
+                      color: _primary,
+                      fontSize: 11,
+                      fontFamily: 'Inter',
+                      fontWeight: FontWeight.w600)),
+              Text('+$gems 💎',
+                  style: TextStyle(
+                      color: Colors.grey.shade500,
+                      fontSize: 10,
+                      fontFamily: 'Inter')),
+            ]),
           )
         else if (canDo)
           GestureDetector(
-            onTap: () => _claimMission(m),
+            onTap: () => _claimMission(m, streak),
             child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
               decoration: BoxDecoration(
                 color: _primary,
                 borderRadius: BorderRadius.circular(10),
@@ -640,44 +749,58 @@ class _TamagotchiScreenState extends ConsumerState<TamagotchiScreen> {
                       color: _primary.withValues(alpha: 0.35), blurRadius: 8)
                 ],
               ),
-              child: Text('+$pts แต้ม',
-                  style: const TextStyle(
-                      color: Colors.white,
-                      fontWeight: FontWeight.w700,
-                      fontFamily: 'Inter',
-                      fontSize: 13)),
+              child: Column(mainAxisSize: MainAxisSize.min, children: [
+                Text('+$xp XP',
+                    style: const TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.w700,
+                        fontFamily: 'Inter',
+                        fontSize: 12)),
+                Text('+$gems 💎',
+                    style: TextStyle(
+                        color: Colors.white.withValues(alpha: 0.8),
+                        fontSize: 10,
+                        fontFamily: 'Inter')),
+              ]),
             ),
           )
         else
           Container(
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
             decoration: BoxDecoration(
-              color: Colors.grey.shade100,
-              borderRadius: BorderRadius.circular(10),
-            ),
-            child: Text('+$pts แต้ม',
-                style: TextStyle(
-                    color: Colors.grey.shade400,
-                    fontSize: 12,
-                    fontFamily: 'Inter')),
+                color: Colors.grey.shade100,
+                borderRadius: BorderRadius.circular(10)),
+            child: Column(mainAxisSize: MainAxisSize.min, children: [
+              Text('+$xp XP',
+                  style: TextStyle(
+                      color: Colors.grey.shade400,
+                      fontSize: 12,
+                      fontFamily: 'Inter')),
+              Text('+$gems 💎',
+                  style: TextStyle(
+                      color: Colors.grey.shade300,
+                      fontSize: 10,
+                      fontFamily: 'Inter')),
+            ]),
           ),
       ]),
     );
   }
 
-  // ── Badges ────────────────────────────────────────────────
+  // ── Badges — 4 types (Achievement / Streak / Skill / Social) ──
   static const _badgeInfo = {
-    'badge_newbie': ('🌱', 'มือใหม่'),
-    'badge_grower': ('🌾', 'รวงทอง'),
-    'badge_champion': ('✨', 'วิ้งค์'),
+    'badge_newbie': ('🌱', 'มือใหม่', 'Achievement'),
+    'badge_grower': ('🌾', 'รวงทอง', 'Achievement'),
+    'badge_champion': ('✨', 'วิ้งค์', 'Achievement'),
   };
 
   Widget _buildBadgesSection() {
     final earned = _badgeInfo.entries
-        .where((e) => _claimedRewards.contains(e.key))
+        .where((e) => _claimedBadges.contains(e.key))
         .toList();
+    if (earned.isEmpty) return const SizedBox.shrink();
     return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-      const Text('🏆  แบดจ์ที่ได้รับ',
+      const Text('🏆 แบดจ์ที่ได้รับ',
           style: TextStyle(
               fontSize: 16,
               fontWeight: FontWeight.w700,
@@ -701,12 +824,19 @@ class _TamagotchiScreenState extends ConsumerState<TamagotchiScreen> {
             child: Row(mainAxisSize: MainAxisSize.min, children: [
               Text(e.value.$1, style: const TextStyle(fontSize: 22)),
               const SizedBox(width: 8),
-              Text(e.value.$2,
-                  style: const TextStyle(
-                      color: _primary,
-                      fontFamily: 'Inter',
-                      fontWeight: FontWeight.w700,
-                      fontSize: 13)),
+              Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                Text(e.value.$2,
+                    style: const TextStyle(
+                        color: _primary,
+                        fontFamily: 'Inter',
+                        fontWeight: FontWeight.w700,
+                        fontSize: 13)),
+                Text(e.value.$3,
+                    style: TextStyle(
+                        color: Colors.grey.shade500,
+                        fontSize: 9,
+                        fontFamily: 'Inter')),
+              ]),
             ]),
           );
         }).toList(),

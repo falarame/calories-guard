@@ -25,57 +25,57 @@ const _rewards = [
   _Reward(
       id: 'badge_newbie',
       emoji: '🌱',
-      name: 'แบดจ์ชาวนามือใหม่',
-      desc: 'ตราสัญลักษณ์แสดงความมุ่งมั่นในการดูแลสุขภาพ',
-      cost: 50),
+      name: 'Badge: มือใหม่',
+      desc: 'Achievement badge สำหรับผู้เริ่มต้นสะสม XP',
+      cost: 30),
   _Reward(
       id: 'badge_grower',
       emoji: '🌾',
-      name: 'แบดจ์รวงทอง',
-      desc: 'สำหรับผู้ที่ทำภารกิจต่อเนื่องจนต้นข้าวออกรวง',
-      cost: 300),
+      name: 'Badge: รวงทอง',
+      desc: 'Achievement badge สำหรับผู้มุ่งมั่นทำภารกิจต่อเนื่อง',
+      cost: 150),
   _Reward(
       id: 'badge_champion',
       emoji: '✨',
-      name: 'แบดจ์วิ้งค์',
-      desc: 'เกียรติยศสูงสุดของไร่ข้าว มีเพียงไม่กี่คน',
-      cost: 1000),
+      name: 'Badge: Champion',
+      desc: 'Achievement badge ระดับสูง — มีเพียงไม่กี่คน',
+      cost: 500),
   _Reward(
       id: 'food_coupon',
       emoji: '🍱',
       name: 'คูปองส่วนลดอาหาร 10%',
-      desc: 'ส่วนลดจากพาร์ทเนอร์ร้านอาหารเพื่อสุขภาพ',
-      cost: 500,
+      desc: 'Tangible reward — ส่วนลดจากพาร์ทเนอร์ร้านอาหารเพื่อสุขภาพ',
+      cost: 200,
       comingSoon: true),
   _Reward(
       id: 'gym_coupon',
       emoji: '💪',
       name: 'คูปองฟิตเนส 1 วัน',
-      desc: 'ใช้ฟิตเนสพาร์ทเนอร์ฟรี 1 วัน',
-      cost: 800,
+      desc: 'Tangible reward — ใช้ฟิตเนสพาร์ทเนอร์ฟรี 1 วัน',
+      cost: 350,
       comingSoon: true),
   _Reward(
       id: 'premium_week',
       emoji: '👑',
       name: 'Premium 7 วัน',
-      desc: 'ปลดล็อกฟีเจอร์พรีเมียมทั้งหมดเป็นเวลา 1 สัปดาห์',
-      cost: 1500,
+      desc: 'Tangible reward — ปลดล็อกฟีเจอร์พรีเมียมทั้งหมด 1 สัปดาห์',
+      cost: 600,
       comingSoon: true),
 ];
 
 // ─── Screen ───────────────────────────────────────────────
 class RewardShopScreen extends StatefulWidget {
   final int userId;
-  final int currentPoints;
-  final int maxTierIdx;
-  final void Function(int newPoints) onPointsUpdated;
+  final int currentGems;
+  final int tierIdx;
+  final void Function(int newGems) onGemsUpdated;
 
   const RewardShopScreen({
     super.key,
     required this.userId,
-    required this.currentPoints,
-    required this.maxTierIdx,
-    required this.onPointsUpdated,
+    required this.currentGems,
+    required this.tierIdx,
+    required this.onGemsUpdated,
   });
 
   @override
@@ -83,22 +83,21 @@ class RewardShopScreen extends StatefulWidget {
 }
 
 class _RewardShopScreenState extends State<RewardShopScreen> {
-  late int _points;
+  late int _gems;
   Set<String> _claimed = {};
 
-  static const _bg = Color(0xFF0A1A0E);
-  static const _card = Color(0xFF122018);
-  static const _green = Color(0xFF66BB6A);
+  static const _bg = Color(0xFFF8FAFB);
+  static const _primary = Color(0xFF6A1B9A);
 
   @override
   void initState() {
     super.initState();
-    _points = widget.currentPoints;
+    _gems = widget.currentGems;
     _loadClaimed();
   }
 
   String get _claimedKey => 'tama_rewards_claimed_${widget.userId}';
-  String get _pointsKey => 'tama_points_${widget.userId}';
+  String get _gemsKey => 'tama_gems_${widget.userId}';
 
   Future<void> _loadClaimed() async {
     final prefs = await SharedPreferences.getInstance();
@@ -107,28 +106,25 @@ class _RewardShopScreenState extends State<RewardShopScreen> {
   }
 
   Future<void> _redeem(_Reward r) async {
-    if (_claimed.contains(r.id) || _points < r.cost || r.comingSoon) return;
+    if (_claimed.contains(r.id) || _gems < r.cost || r.comingSoon) return;
     final confirm = await showDialog<bool>(
       context: context,
       builder: (_) => AlertDialog(
-        backgroundColor: const Color(0xFF1A2E20),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
         title: Text('แลก ${r.name}?',
             style: const TextStyle(
-                color: Colors.white,
-                fontFamily: 'Inter',
-                fontWeight: FontWeight.w700)),
-        content: Text('ใช้ ${r.cost} แต้ม',
-            style: TextStyle(color: Colors.white.withValues(alpha: 0.7))),
+                fontFamily: 'Inter', fontWeight: FontWeight.w700)),
+        content: Text('ใช้ ${r.cost} 💎 เจม',
+            style: TextStyle(color: Colors.grey.shade600)),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
-            child: Text('ยกเลิก',
-                style: TextStyle(color: Colors.white.withValues(alpha: 0.5))),
+            child:
+                Text('ยกเลิก', style: TextStyle(color: Colors.grey.shade500)),
           ),
           ElevatedButton(
             style: ElevatedButton.styleFrom(
-                backgroundColor: _green,
+                backgroundColor: _primary,
                 shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(10))),
             onPressed: () => Navigator.pop(context, true),
@@ -144,21 +140,20 @@ class _RewardShopScreenState extends State<RewardShopScreen> {
     if (confirm != true) return;
 
     final prefs = await SharedPreferences.getInstance();
-    final newPts = _points - r.cost;
+    final newGems = _gems - r.cost;
     final newClaimed = {..._claimed, r.id};
-    await prefs.setInt(_pointsKey, newPts);
+    await prefs.setInt(_gemsKey, newGems);
     await prefs.setStringList(_claimedKey, newClaimed.toList());
     setState(() {
-      _points = newPts;
+      _gems = newGems;
       _claimed = newClaimed;
     });
-    widget.onPointsUpdated(newPts);
-    // Sync deducted points + full badge list to backend
+    widget.onGemsUpdated(newGems);
     ApiClient().patch(
       '/users/${widget.userId}/tama-points',
       body: {
-        'tama_points': newPts,
-        'tier_level': widget.maxTierIdx,
+        'gems': newGems,
+        'tier_level': widget.tierIdx,
         'claimed_badges': newClaimed.toList(),
       },
     ).ignore();
@@ -166,7 +161,7 @@ class _RewardShopScreenState extends State<RewardShopScreen> {
       HapticFeedback.mediumImpact();
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(
         content: Text('${r.emoji} ได้รับ "${r.name}" แล้ว!'),
-        backgroundColor: const Color(0xFF2E7D32),
+        backgroundColor: _primary,
         duration: const Duration(seconds: 2),
       ));
     }
@@ -177,49 +172,71 @@ class _RewardShopScreenState extends State<RewardShopScreen> {
     return Scaffold(
       backgroundColor: _bg,
       appBar: AppBar(
-        backgroundColor: Colors.transparent,
+        backgroundColor: Colors.white,
         elevation: 0,
+        surfaceTintColor: Colors.transparent,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios_new, color: Colors.white70),
+          icon: const Icon(Icons.arrow_back_ios_new,
+              color: Colors.black87, size: 20),
           onPressed: () => Navigator.pop(context),
         ),
         title: const Text('แลกรางวัล',
             style: TextStyle(
-                color: Colors.white,
+                color: Colors.black87,
                 fontFamily: 'Inter',
-                fontWeight: FontWeight.w700)),
+                fontWeight: FontWeight.w700,
+                fontSize: 18)),
         centerTitle: true,
       ),
       body: Column(children: [
-        // ── Points banner ──
+        // ── Gems banner ──
         Container(
-          margin: const EdgeInsets.fromLTRB(20, 8, 20, 0),
+          margin: const EdgeInsets.fromLTRB(20, 12, 20, 0),
           padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
           decoration: BoxDecoration(
             gradient: const LinearGradient(
-                colors: [Color(0xFF1B5E20), Color(0xFF2E7D32)]),
+                colors: [Color(0xFF6A1B9A), Color(0xFF4A148C)],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight),
             borderRadius: BorderRadius.circular(18),
             boxShadow: [
               BoxShadow(
-                  color: _green.withValues(alpha: 0.2),
+                  color: _primary.withValues(alpha: 0.3),
                   blurRadius: 12,
                   offset: const Offset(0, 4))
             ],
           ),
           child: Row(children: [
-            const Text('🌾', style: TextStyle(fontSize: 28)),
+            const Text('💎', style: TextStyle(fontSize: 28)),
             const SizedBox(width: 12),
-            Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              const Text('แต้มสะสมของฉัน',
+            Expanded(
+              child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text('เจมของฉัน',
+                        style: TextStyle(
+                            color: Colors.white70,
+                            fontSize: 12,
+                            fontFamily: 'Inter')),
+                    Text('$_gems 💎',
+                        style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 22,
+                            fontWeight: FontWeight.w800,
+                            fontFamily: 'Inter')),
+                  ]),
+            ),
+            Column(crossAxisAlignment: CrossAxisAlignment.end, children: [
+              const Text('หมดอายุ 30 วัน',
+                  style: TextStyle(
+                      color: Colors.white54,
+                      fontSize: 10,
+                      fontFamily: 'Inter')),
+              const SizedBox(height: 2),
+              const Text('ใช้แลกรางวัลด้านล่าง',
                   style: TextStyle(
                       color: Colors.white70,
-                      fontSize: 12,
-                      fontFamily: 'Inter')),
-              Text('$_points แต้ม',
-                  style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 22,
-                      fontWeight: FontWeight.w800,
+                      fontSize: 10,
                       fontFamily: 'Inter')),
             ]),
           ]),
@@ -241,24 +258,29 @@ class _RewardShopScreenState extends State<RewardShopScreen> {
 
   Widget _buildCard(_Reward r) {
     final isClaimed = _claimed.contains(r.id);
-    final canAfford = _points >= r.cost;
+    final canAfford = _gems >= r.cost;
     final isAvailable = !r.comingSoon && !isClaimed && canAfford;
     final borderColor = isClaimed
-        ? _green.withValues(alpha: 0.5)
+        ? _primary.withValues(alpha: 0.4)
         : r.comingSoon
-            ? Colors.white.withValues(alpha: 0.08)
+            ? Colors.grey.shade200
             : canAfford
-                ? _green.withValues(alpha: 0.35)
-                : Colors.white.withValues(alpha: 0.1);
+                ? _primary.withValues(alpha: 0.3)
+                : Colors.grey.shade200;
 
     return Container(
       decoration: BoxDecoration(
-        color: _card,
+        color: Colors.white,
         borderRadius: BorderRadius.circular(18),
         border: Border.all(color: borderColor),
-        boxShadow: isClaimed
-            ? [BoxShadow(color: _green.withValues(alpha: 0.12), blurRadius: 10)]
-            : [],
+        boxShadow: [
+          BoxShadow(
+              color: isClaimed
+                  ? _primary.withValues(alpha: 0.08)
+                  : Colors.black.withValues(alpha: 0.04),
+              blurRadius: 8,
+              offset: const Offset(0, 2))
+        ],
       ),
       child: Padding(
         padding: const EdgeInsets.all(14),
@@ -269,10 +291,10 @@ class _RewardShopScreenState extends State<RewardShopScreen> {
             height: 52,
             decoration: BoxDecoration(
               color: isClaimed
-                  ? _green.withValues(alpha: 0.15)
+                  ? _primary.withValues(alpha: 0.1)
                   : r.comingSoon
-                      ? Colors.white.withValues(alpha: 0.04)
-                      : Colors.white.withValues(alpha: 0.07),
+                      ? Colors.grey.shade100
+                      : _primary.withValues(alpha: 0.07),
               borderRadius: BorderRadius.circular(14),
             ),
             child: Center(
@@ -283,44 +305,45 @@ class _RewardShopScreenState extends State<RewardShopScreen> {
           // text
           Expanded(
               child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(children: [
-                Text(r.name,
-                    style: TextStyle(
-                        color: isClaimed
-                            ? _green
-                            : Colors.white
-                                .withValues(alpha: r.comingSoon ? 0.4 : 0.95),
-                        fontFamily: 'Inter',
-                        fontWeight: FontWeight.w700,
-                        fontSize: 13)),
-                if (r.comingSoon) ...[
-                  const SizedBox(width: 6),
-                  Container(
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                    decoration: BoxDecoration(
-                        color: Colors.amber.withValues(alpha: 0.15),
-                        borderRadius: BorderRadius.circular(6),
-                        border: Border.all(
-                            color: Colors.amber.withValues(alpha: 0.4))),
-                    child: const Text('เร็วๆ นี้',
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                Row(children: [
+                  Flexible(
+                    child: Text(r.name,
                         style: TextStyle(
-                            color: Colors.amber,
-                            fontSize: 9,
+                            color: isClaimed
+                                ? _primary
+                                : r.comingSoon
+                                    ? Colors.grey.shade400
+                                    : Colors.black87,
                             fontFamily: 'Inter',
-                            fontWeight: FontWeight.w600)),
+                            fontWeight: FontWeight.w700,
+                            fontSize: 13)),
                   ),
-                ],
-              ]),
-              const SizedBox(height: 3),
-              Text(r.desc,
-                  style: TextStyle(
-                      color: Colors.white.withValues(alpha: 0.4),
-                      fontSize: 11)),
-            ],
-          )),
+                  if (r.comingSoon) ...[
+                    const SizedBox(width: 6),
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 6, vertical: 2),
+                      decoration: BoxDecoration(
+                          color: Colors.amber.withValues(alpha: 0.12),
+                          borderRadius: BorderRadius.circular(6),
+                          border: Border.all(
+                              color: Colors.amber.withValues(alpha: 0.4))),
+                      child: const Text('เร็วๆ นี้',
+                          style: TextStyle(
+                              color: Colors.amber,
+                              fontSize: 9,
+                              fontFamily: 'Inter',
+                              fontWeight: FontWeight.w600)),
+                    ),
+                  ],
+                ]),
+                const SizedBox(height: 3),
+                Text(r.desc,
+                    style:
+                        TextStyle(color: Colors.grey.shade500, fontSize: 11)),
+              ])),
           const SizedBox(width: 10),
 
           // action
@@ -328,12 +351,12 @@ class _RewardShopScreenState extends State<RewardShopScreen> {
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
               decoration: BoxDecoration(
-                  color: _green.withValues(alpha: 0.15),
+                  color: _primary.withValues(alpha: 0.08),
                   borderRadius: BorderRadius.circular(10),
-                  border: Border.all(color: _green.withValues(alpha: 0.4))),
+                  border: Border.all(color: _primary.withValues(alpha: 0.3))),
               child: const Text('✅ ได้แล้ว',
                   style: TextStyle(
-                      color: Color(0xFF81C784),
+                      color: Color(0xFF6A1B9A),
                       fontSize: 11,
                       fontFamily: 'Inter',
                       fontWeight: FontWeight.w600)),
@@ -346,21 +369,12 @@ class _RewardShopScreenState extends State<RewardShopScreen> {
                 padding:
                     const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                 decoration: BoxDecoration(
-                  gradient: isAvailable
-                      ? const LinearGradient(
-                          colors: [Color(0xFF388E3C), Color(0xFF1B5E20)])
-                      : null,
-                  color:
-                      isAvailable ? null : Colors.white.withValues(alpha: 0.06),
+                  color: isAvailable ? _primary : Colors.grey.shade100,
                   borderRadius: BorderRadius.circular(10),
-                  border: Border.all(
-                      color: isAvailable
-                          ? Colors.transparent
-                          : Colors.white.withValues(alpha: 0.1)),
                   boxShadow: isAvailable
                       ? [
                           BoxShadow(
-                              color: _green.withValues(alpha: 0.35),
+                              color: _primary.withValues(alpha: 0.35),
                               blurRadius: 8)
                         ]
                       : [],
@@ -371,16 +385,17 @@ class _RewardShopScreenState extends State<RewardShopScreen> {
                           color: isAvailable
                               ? Colors.white
                               : r.comingSoon
-                                  ? Colors.white.withValues(alpha: 0.2)
+                                  ? Colors.grey.shade300
                                   : const Color(0xFFEF9A9A),
                           fontWeight: FontWeight.w800,
                           fontFamily: 'Inter',
                           fontSize: 14)),
-                  Text('🌾',
+                  Text('💎',
                       style: TextStyle(
                           fontSize: 10,
-                          color: Colors.white
-                              .withValues(alpha: isAvailable ? 1.0 : 0.3))),
+                          color: isAvailable
+                              ? Colors.white
+                              : Colors.grey.shade400)),
                 ]),
               ),
             ),

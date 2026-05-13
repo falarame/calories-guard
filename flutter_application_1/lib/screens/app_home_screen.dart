@@ -155,8 +155,8 @@ class _AppHomeScreenState extends ConsumerState<AppHomeScreen> {
         queryParams: {'date_record': dateStr},
       );
       if (response.statusCode == 200) {
-        var summaryData =
-            json.decode(utf8.decode(response.bodyBytes)) as Map<String, dynamic>;
+        var summaryData = json.decode(utf8.decode(response.bodyBytes))
+            as Map<String, dynamic>;
         summaryData = await ensureDailySummaryMealItems(
           userId: userId,
           dateStr: dateStr,
@@ -380,14 +380,8 @@ class _AppHomeScreenState extends ConsumerState<AppHomeScreen> {
                         if (_permissionDenied) _buildPermissionBanner(),
                         _buildDateHeader(),
                         const SizedBox(height: 16),
-                        _buildCalorieCard(
-                            ringCal,
-                            grossIntake,
-                            burned,
-                            targetCal,
-                            progress,
-                            isOver,
-                            userData),
+                        _buildCalorieCard(ringCal, grossIntake, burned,
+                            targetCal, progress, isOver, userData),
                         const SizedBox(height: 12),
                         _buildMacroRow(userData),
                         const SizedBox(height: 12),
@@ -585,14 +579,8 @@ class _AppHomeScreenState extends ConsumerState<AppHomeScreen> {
 
   // ─── Calorie Card ─────────────────────────────────────────────────────────
 
-  Widget _buildCalorieCard(
-      int ringCal,
-      int grossIntake,
-      int burned,
-      int targetCal,
-      double progress,
-      bool isOver,
-      dynamic userData) {
+  Widget _buildCalorieCard(int ringCal, int grossIntake, int burned,
+      int targetCal, double progress, bool isOver, dynamic userData) {
     final ringColor = isOver ? Colors.red : _green;
     final advice = _getAdvice(ringCal, targetCal, isOver);
 
@@ -851,8 +839,9 @@ class _AppHomeScreenState extends ConsumerState<AppHomeScreen> {
   Widget _macroCard(String label, int current, int target, Color color,
       String emoji, String macroType,
       {bool isEstimated = false}) {
-    final gramCurrent =
-        isEstimated ? NutritionApprox.tildeRound(current.toDouble()) : '${current.round()}';
+    final gramCurrent = isEstimated
+        ? NutritionApprox.tildeRound(current.toDouble())
+        : '${current.round()}';
     final gramTarget = isEstimated
         ? '${NutritionApprox.tildeRound(target.toDouble())} g'
         : '${target.round()} g';
@@ -1299,8 +1288,8 @@ class _AppHomeScreenState extends ConsumerState<AppHomeScreen> {
     List<HomeLoggedFoodItem>? richItems,
   ) {
     final bool hasRich = richItems != null && richItems.isNotEmpty;
-    final bool hasMenu = hasRich ||
-        (menuText.isNotEmpty && menuText != '-' && menuText != '');
+    final bool hasMenu =
+        hasRich || (menuText.isNotEmpty && menuText != '-' && menuText != '');
     final List<String> items = !hasRich && hasMenu
         ? menuText
             .split(RegExp(r',\s*'))
@@ -1370,8 +1359,7 @@ class _AppHomeScreenState extends ConsumerState<AppHomeScreen> {
                     c.toDouble(),
                     fVal.toDouble());
                 return InkWell(
-                  onTap: () =>
-                      ref.read(navIndexProvider.notifier).state = 1,
+                  onTap: () => ref.read(navIndexProvider.notifier).state = 1,
                   borderRadius: BorderRadius.circular(8),
                   child: Padding(
                     padding:
@@ -1399,8 +1387,7 @@ class _AppHomeScreenState extends ConsumerState<AppHomeScreen> {
                                     color: _greenLight,
                                     alignment: Alignment.center,
                                     child: Icon(Icons.restaurant_outlined,
-                                        color:
-                                            _green.withValues(alpha: 0.65),
+                                        color: _green.withValues(alpha: 0.65),
                                         size: 26),
                                   ),
                           ),
@@ -1440,12 +1427,11 @@ class _AppHomeScreenState extends ConsumerState<AppHomeScreen> {
             else if (items.isNotEmpty)
               for (final name in items)
                 InkWell(
-                  onTap: () =>
-                      ref.read(navIndexProvider.notifier).state = 1,
+                  onTap: () => ref.read(navIndexProvider.notifier).state = 1,
                   borderRadius: BorderRadius.circular(8),
                   child: Padding(
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 8, vertical: 8),
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
                     child: Row(children: [
                       const Icon(Icons.fiber_manual_record,
                           size: 8, color: _green),
@@ -1496,13 +1482,13 @@ class _AppHomeScreenState extends ConsumerState<AppHomeScreen> {
           const Expanded(
             child:
                 Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              Text('ไร่ข้าวของฉัน',
+              Text('สะสม XP & เจม',
                   style: TextStyle(
                       color: Colors.white,
                       fontFamily: 'Inter',
                       fontWeight: FontWeight.w700,
                       fontSize: 15)),
-              Text('รดน้ำต้นข้าววันนี้ — สะสมเมล็ดข้าว',
+              Text('ทำภารกิจรายวัน — ขึ้น Tier รับรางวัล',
                   style: TextStyle(color: Colors.white60, fontSize: 12)),
             ]),
           ),
