@@ -19,10 +19,8 @@ CI jobs without a DB service still go green on unit-only runs.
 """
 from __future__ import annotations
 
-import os
 import uuid
 import pytest
-import psycopg2
 
 
 def _can_connect() -> bool:

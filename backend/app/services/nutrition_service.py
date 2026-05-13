@@ -1,7 +1,6 @@
 from datetime import date, datetime
 from typing import Optional, List
 
-from database import get_db_connection
 
 
 def _age_from_birth(birth_date: Optional[date]) -> int:

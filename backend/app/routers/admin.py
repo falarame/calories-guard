@@ -1,11 +1,10 @@
-import json
 
 from fastapi import APIRouter, HTTPException, Depends
 from psycopg2.extras import RealDictCursor
 
 from database import get_db_connection
 from auth.dependencies import get_current_admin
-from app.models.schemas import AdminFoodReview, RegionalNameApprove, TempFoodApprove
+from app.models.schemas import RegionalNameApprove, TempFoodApprove
 
 router = APIRouter()
 
@@ -262,15 +261,20 @@ def admin_approve_temp_food(tf_id: int, req: TempFoodApprove, current_user: dict
         updates = []
         vals = []
         if req.food_name is not None:
-            updates.append("food_name = %s"); vals.append(req.food_name)
+            updates.append("food_name = %s")
+            vals.append(req.food_name)
         if req.calories is not None:
-            updates.append("calories = %s"); vals.append(req.calories)
+            updates.append("calories = %s")
+            vals.append(req.calories)
         if req.protein is not None:
-            updates.append("protein = %s"); vals.append(req.protein)
+            updates.append("protein = %s")
+            vals.append(req.protein)
         if req.carbs is not None:
-            updates.append("carbs = %s"); vals.append(req.carbs)
+            updates.append("carbs = %s")
+            vals.append(req.carbs)
         if req.fat is not None:
-            updates.append("fat = %s"); vals.append(req.fat)
+            updates.append("fat = %s")
+            vals.append(req.fat)
         if updates:
             vals.append(tf_id)
             cur.execute(f"UPDATE temp_food SET {', '.join(updates)} WHERE tf_id = %s", tuple(vals))

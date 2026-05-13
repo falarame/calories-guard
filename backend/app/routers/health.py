@@ -7,7 +7,7 @@ from slowapi.util import get_remote_address
 
 from database import get_db_connection
 from supabase_storage import upload_to_supabase, upload_avatar_to_supabase, food_range_folder
-from app.core.config import ALLOWED_MIME_TYPES, MAX_UPLOAD_SIZE, API_VERSION
+from app.core.config import MAX_UPLOAD_SIZE, API_VERSION
 
 router = APIRouter()
 limiter = Limiter(key_func=get_remote_address)

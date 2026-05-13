@@ -1,4 +1,3 @@
-from typing import List
 
 from fastapi import APIRouter, HTTPException, Depends
 from psycopg2.extras import RealDictCursor

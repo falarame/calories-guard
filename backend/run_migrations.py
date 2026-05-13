@@ -202,7 +202,7 @@ def run_migrations():
                 cur.execute(sql)
                 record_migration(cur, filename)
                 conn.commit()
-                print(f"        OK")
+                print("        OK")
                 success += 1
 
             except Exception as e:

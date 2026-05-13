@@ -71,7 +71,7 @@ def eval_estimate() -> dict:
                 k: float(result.get(k, 0) or 0)
                 for k in ("calories", "protein", "carbs", "fat")
             }
-        except Exception as e:
+        except Exception:
             failures += 1
             predicted = {k: 0.0 for k in ("calories", "protein", "carbs", "fat")}
         rows.append({"predicted": predicted, "expected": ex["expected"]})

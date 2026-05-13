@@ -4,6 +4,7 @@ Calories Guard API — thin entry point.
 All endpoint logic lives in app/routers/*.
 Shared models, services, and config are in app/.
 """
+# ruff: noqa: E402  — load_dotenv() must run before framework imports
 
 import os
 
@@ -20,7 +21,6 @@ from slowapi.util import get_remote_address
 from slowapi.errors import RateLimitExceeded
 
 from database import get_db_connection
-from psycopg2.extras import RealDictCursor
 from app.core.config import ALLOWED_ORIGINS, IMAGEDIR, API_VERSION
 
 # ── Sentry (optional: only if SENTRY_DSN is set) ──────────────────────────────
@@ -104,7 +104,6 @@ async def update_last_active(request, call_next):
     try:
         user_id = int(m.group(1))
         from database import get_db_connection
-        from datetime import datetime, timezone, timedelta
 
         conn = get_db_connection()
         if conn:

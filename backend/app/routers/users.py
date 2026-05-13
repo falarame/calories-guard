@@ -11,7 +11,6 @@ from app.core.dependencies import check_ownership
 from app.models.schemas import FcmTokenUpdate, NotificationPrefsUpdate, UserRegionUpdate, UserUpdate
 from app.services.nutrition_service import (
     _compute_target_calories, _compute_target_macros,
-    _check_1700_calorie_warning,
 )
 
 router = APIRouter()
@@ -56,33 +55,47 @@ def update_user(user_id: int, user_update: UserUpdate, current_user: dict = Depe
         user_fields = []
         user_values = []
         if user_update.username:
-            user_fields.append("username=%s"); user_values.append(user_update.username)
+            user_fields.append("username=%s")
+            user_values.append(user_update.username)
         if user_update.goal_type:
-            user_fields.append("goal_type=%s"); user_values.append(user_update.goal_type)
+            user_fields.append("goal_type=%s")
+            user_values.append(user_update.goal_type)
         if user_update.target_weight_kg:
-            user_fields.append("target_weight_kg=%s"); user_values.append(user_update.target_weight_kg)
+            user_fields.append("target_weight_kg=%s")
+            user_values.append(user_update.target_weight_kg)
         if user_update.target_calories:
-            user_fields.append("target_calories=%s"); user_values.append(user_update.target_calories)
+            user_fields.append("target_calories=%s")
+            user_values.append(user_update.target_calories)
         if user_update.target_protein is not None:
-            user_fields.append("target_protein=%s"); user_values.append(user_update.target_protein)
+            user_fields.append("target_protein=%s")
+            user_values.append(user_update.target_protein)
         if user_update.target_carbs is not None:
-            user_fields.append("target_carbs=%s"); user_values.append(user_update.target_carbs)
+            user_fields.append("target_carbs=%s")
+            user_values.append(user_update.target_carbs)
         if user_update.target_fat is not None:
-            user_fields.append("target_fat=%s"); user_values.append(user_update.target_fat)
+            user_fields.append("target_fat=%s")
+            user_values.append(user_update.target_fat)
         if user_update.activity_level:
-            user_fields.append("activity_level=%s"); user_values.append(user_update.activity_level)
+            user_fields.append("activity_level=%s")
+            user_values.append(user_update.activity_level)
         if user_update.gender:
-            user_fields.append("gender=%s"); user_values.append(user_update.gender)
+            user_fields.append("gender=%s")
+            user_values.append(user_update.gender)
         if user_update.birth_date:
-            user_fields.append("birth_date=%s"); user_values.append(user_update.birth_date)
+            user_fields.append("birth_date=%s")
+            user_values.append(user_update.birth_date)
         if user_update.height_cm:
-            user_fields.append("height_cm=%s"); user_values.append(user_update.height_cm)
+            user_fields.append("height_cm=%s")
+            user_values.append(user_update.height_cm)
         if user_update.current_weight_kg:
-            user_fields.append("current_weight_kg=%s"); user_values.append(user_update.current_weight_kg)
+            user_fields.append("current_weight_kg=%s")
+            user_values.append(user_update.current_weight_kg)
         if user_update.goal_target_date:
-            user_fields.append("goal_target_date=%s"); user_values.append(user_update.goal_target_date)
+            user_fields.append("goal_target_date=%s")
+            user_values.append(user_update.goal_target_date)
         if user_update.avatar_url is not None:
-            user_fields.append("avatar_url=%s"); user_values.append(user_update.avatar_url)
+            user_fields.append("avatar_url=%s")
+            user_values.append(user_update.avatar_url)
 
         if user_fields:
             user_values.append(user_id)
@@ -381,8 +394,10 @@ def lifecycle_check(user_id: int, current_user: dict = Depends(get_current_user)
         if user["goal_target_date"] and user["goal_start_date"]:
             gtd = user["goal_target_date"]
             gsd = user["goal_start_date"]
-            if hasattr(gtd, 'date'): gtd = gtd.date()
-            if hasattr(gsd, 'date'): gsd = gsd.date()
+            if hasattr(gtd, 'date'):
+                gtd = gtd.date()
+            if hasattr(gsd, 'date'):
+                gsd = gsd.date()
             goal_days_left = (gtd - today).days
             total_days = (gtd - gsd).days
             days_elapsed = (today - gsd).days

@@ -12,7 +12,7 @@ every helper becomes a no-op — keeps the import cost zero in dev.
 from __future__ import annotations
 
 from contextlib import contextmanager
-from typing import Any, Iterator, Optional
+from typing import Any, Iterator
 
 try:
     import sentry_sdk  # type: ignore

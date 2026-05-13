@@ -24,7 +24,12 @@ TODAY = date.today().isoformat()
 # ─── shared mock builder ─────────────────────────────────────────────────────
 
 def _make_mock_conn(fetchone_seq=None, fetchall_val=None):
-    """Return (conn, cur) where cur.fetchone pops from fetchone_seq each call."""
+    """Return (conn, cur) where cur.fetchone pops from fetchone_seq each call.
+
+    fetchall_val: returned for the first fetchall() call; subsequent calls
+    return [] so that secondary queries (e.g. exercise_logs) don't bleed
+    meal-item dicts into the wrong handler.
+    """
     conn = MagicMock()
     cur = MagicMock()
     conn.cursor.return_value = cur
@@ -35,8 +40,13 @@ def _make_mock_conn(fetchone_seq=None, fetchall_val=None):
     def _fetchone():
         return seq.pop(0) if seq else None
 
+    fetchall_seq = [fetchall_val or []]
+
+    def _fetchall():
+        return fetchall_seq.pop(0) if fetchall_seq else []
+
     cur.fetchone.side_effect = _fetchone
-    cur.fetchall.return_value = fetchall_val or []
+    cur.fetchall.side_effect = _fetchall
     return conn, cur
 
 

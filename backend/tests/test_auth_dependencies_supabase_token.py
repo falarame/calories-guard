@@ -8,11 +8,11 @@ class _Cursor:
         return None
 
     def fetchone(self):
-        return (103, 1)
+        return {"user_id": 103, "role_id": 1}
 
 
 class _Connection:
-    def cursor(self):
+    def cursor(self, **_kwargs):
         return _Cursor()
 
     def close(self):

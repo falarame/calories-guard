@@ -23,7 +23,6 @@ import logging
 import os
 import sys
 from datetime import datetime, timezone, timedelta
-from pathlib import Path
 
 logger = logging.getLogger(__name__)
 logging.basicConfig(level=logging.INFO,
@@ -121,7 +120,6 @@ def run() -> None:
         sys.exit(1)
 
     cutoff_2d = datetime.now(timezone.utc) - timedelta(days=2)
-    cutoff_5d = datetime.now(timezone.utc) - timedelta(days=5)
 
     try:
         cur = conn.cursor()

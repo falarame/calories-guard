@@ -13,7 +13,10 @@ sync_food_images.py
   python sync_food_images.py --folder food --apply
 """
 
-import os, re, sys, httpx
+import os
+import re
+import sys
+import httpx
 from dotenv import load_dotenv
 from database import get_db_connection
 

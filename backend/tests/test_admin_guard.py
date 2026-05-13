@@ -8,7 +8,6 @@ rejects non-admin tokens with 403. In the app_client fixture we override
 only the regular-user override should 403.
 """
 import pytest
-from unittest.mock import patch
 
 
 ADMIN_ENDPOINTS = [

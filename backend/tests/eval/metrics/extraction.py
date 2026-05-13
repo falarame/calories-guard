@@ -37,7 +37,9 @@ def average_f1(rows: list[dict]) -> dict:
     ps, rs, fs = [], [], []
     for row in rows:
         p, r, f = precision_recall_f1(row["predicted"], row["expected"])
-        ps.append(p); rs.append(r); fs.append(f)
+        ps.append(p)
+        rs.append(r)
+        fs.append(f)
     return {
         "precision": sum(ps) / len(ps),
         "recall": sum(rs) / len(rs),

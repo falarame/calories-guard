@@ -9,9 +9,8 @@ from pydantic import ValidationError
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, ROOT)
 
-from app.models.schemas import (
-    UserRegister, UserLogin, FoodCreate, FoodAutoAdd,
-    TempFoodApprove, ChatMessage, GoalType, ActivityLevel,
+from app.models.schemas import (  # noqa: E402
+    UserRegister, FoodCreate, TempFoodApprove, ChatMessage, GoalType, ActivityLevel,
     WeightLogEntry, WaterLogUpdate,
 )
 
