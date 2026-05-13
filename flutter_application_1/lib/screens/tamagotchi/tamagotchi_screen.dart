@@ -139,7 +139,7 @@ class _TamagotchiScreenState extends ConsumerState<TamagotchiScreen> {
             autoCheck: (u) => u.consumedCalories > 0),
         _Mission(
             id: 'drink_water',
-            emoji: '�',
+            emoji: '💧',
             title: 'ดื่มน้ำครบ 6 แก้ว',
             desc: 'ดื่มน้ำอย่างน้อย 6 แก้ว (1,500 ml) ต่อวัน',
             baseXp: 30,
@@ -167,7 +167,7 @@ class _TamagotchiScreenState extends ConsumerState<TamagotchiScreen> {
             }),
         _Mission(
             id: 'hit_all_macros',
-            emoji: '�',
+            emoji: '💪',
             title: 'ครบตามโภชนาการ',
             desc: 'โปรตีน คาร์บ ไขมัน ครบตามเป้าทั้งหมด',
             baseXp: 100,
@@ -813,7 +813,7 @@ class _TamagotchiScreenState extends ConsumerState<TamagotchiScreen> {
   // ── Badges — 4 types (Achievement / Streak / Skill / Social) ──
   static const _badgeInfo = {
     'badge_newbie': ('🔰', 'มือใหม่', 'Achievement'),
-    'badge_grower': ('�', 'ผู้มุ่งมั่น', 'Achievement'),
+    'badge_grower': ('🏅', 'ผู้มุ่งมั่น', 'Achievement'),
     'badge_champion': ('✨', 'Champion', 'Achievement'),
   };
 

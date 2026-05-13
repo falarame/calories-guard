@@ -690,7 +690,7 @@ class _ExerciseRecommendationScreenState
           border: Border.all(color: color.withValues(alpha: 0.35)),
         ),
         child: Row(mainAxisSize: MainAxisSize.min, children: [
-          const Text('☀️', style: TextStyle(fontSize: 12)),
+          const Text('🔥', style: TextStyle(fontSize: 12)),
           const SizedBox(width: 4),
           Text('$streak',
               style: TextStyle(

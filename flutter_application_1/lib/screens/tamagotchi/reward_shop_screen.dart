@@ -30,7 +30,7 @@ const _rewards = [
       cost: 30),
   _Reward(
       id: 'badge_grower',
-      emoji: '�',
+      emoji: '🏅',
       name: 'Badge: ผู้มุ่งมั่น',
       desc: 'Achievement badge สำหรับผู้มุ่งมั่นทำภารกิจต่อเนื่อง',
       cost: 150),

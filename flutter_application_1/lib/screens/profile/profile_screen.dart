@@ -515,7 +515,7 @@ class _BadgesSectionState extends State<_BadgesSection> {
 
   static const _badgeInfo = {
     'badge_newbie': ('🔰', 'มือใหม่'),
-    'badge_grower': ('�', 'ผู้มุ่งมั่น'),
+    'badge_grower': ('🏅', 'ผู้มุ่งมั่น'),
     'badge_champion': ('✨', 'Champion'),
   };
 

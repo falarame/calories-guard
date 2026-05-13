@@ -604,7 +604,7 @@ class _AppHomeScreenState extends ConsumerState<AppHomeScreen> {
                 color: _green, size: 20),
             const SizedBox(width: 8),
             const Flexible(
-              child: Text('แคลอรี่วันนี้',
+              child: Text('แคลอรี่ที่ได้รับวันนี้',
                   overflow: TextOverflow.ellipsis,
                   style: TextStyle(
                       fontSize: 16,
@@ -1479,12 +1479,12 @@ class _AppHomeScreenState extends ConsumerState<AppHomeScreen> {
           ],
         ),
         child: Row(children: [
-          const Text('�', style: TextStyle(fontSize: 34)),
+          const Text('🎮', style: TextStyle(fontSize: 34)),
           const SizedBox(width: 14),
           const Expanded(
             child:
                 Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              Text('สะสม XP & เจม',
+              Text('สะสม XP & Gem',
                   style: TextStyle(
                       color: Colors.white,
                       fontFamily: 'Inter',
