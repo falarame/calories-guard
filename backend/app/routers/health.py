@@ -122,6 +122,8 @@ async def upload_image_alt(request: Request, file: UploadFile = File(...)):
 def get_units():
     """คืนรายการหน่วยทั้งหมด พร้อม quantity"""
     conn = get_db_connection()
+    if not conn:
+        raise HTTPException(status_code=503, detail="Database unavailable")
     try:
         cur = conn.cursor(cursor_factory=RealDictCursor)
         cur.execute("SELECT unit_id, name, quantity FROM units ORDER BY unit_id")
@@ -136,6 +138,8 @@ def get_units():
 def get_unit_conversions(from_unit_id: Optional[int] = None):
     """คืนตาราง unit_conversions ทั้งหมด หรือกรองด้วย from_unit_id"""
     conn = get_db_connection()
+    if not conn:
+        raise HTTPException(status_code=503, detail="Database unavailable")
     try:
         cur = conn.cursor(cursor_factory=RealDictCursor)
         if from_unit_id:

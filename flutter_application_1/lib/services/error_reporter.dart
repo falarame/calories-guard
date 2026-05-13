@@ -31,4 +31,21 @@ class ErrorReporter {
       // Never let error reporting itself throw.
     }
   }
+
+  /// Record a structured analytics event as a Sentry breadcrumb.
+  /// Call-sites include notification lifecycle hooks (scheduled, shown, tapped).
+  /// Never throws — analytics should never break production flows.
+  static void event(String name, {Map<String, dynamic>? data}) {
+    if (kDebugMode) {
+      debugPrint('[event:$name] ${data ?? {}}');
+    }
+    try {
+      Sentry.addBreadcrumb(Breadcrumb(
+        category: 'notification',
+        message: name,
+        data: data,
+        level: SentryLevel.info,
+      ));
+    } catch (_) {}
+  }
 }

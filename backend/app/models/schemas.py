@@ -97,6 +97,22 @@ class FoodAutoAdd(BaseModel):
     fat: float | None = 0
 
 
+class FcmTokenUpdate(BaseModel):
+    """PUT /users/{id}/fcm_token request body."""
+    fcm_token: str
+
+
+class NotificationPrefsUpdate(BaseModel):
+    """PUT /users/{id}/notification_prefs request body.
+    All fields are optional so callers can do partial updates."""
+    enabled: bool | None = None
+    categories: dict | None = None          # {"meal": bool, "water": bool, ...}
+    quiet_hours: dict | None = None          # {"enabled": bool, "startMin": int, "endMin": int}
+    meal_times: dict | None = None           # {"breakfastHm": int, "lunchHm": int, "dinnerHm": int}
+    water_times_hh: list[int] | None = None  # [10, 14, 16, 20]
+    weigh_in_day: int | None = None          # DateTime.monday(1) .. sunday(7)
+
+
 class AdminFoodReview(BaseModel):
     admin_id: int
     status: str  # 'approved' or 'rejected'

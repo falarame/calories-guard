@@ -12,6 +12,8 @@ router = APIRouter()
 def get_notifications(user_id: int, current_user: dict = Depends(get_current_user), limit: int = 50):
     check_ownership(current_user, user_id)
     conn = get_db_connection()
+    if not conn:
+        raise HTTPException(status_code=503, detail="Database unavailable")
     try:
         cur = conn.cursor(cursor_factory=RealDictCursor)
         cur.execute("""
@@ -38,6 +40,8 @@ def get_notifications(user_id: int, current_user: dict = Depends(get_current_use
 def get_unread_count(user_id: int, current_user: dict = Depends(get_current_user)):
     check_ownership(current_user, user_id)
     conn = get_db_connection()
+    if not conn:
+        raise HTTPException(status_code=503, detail="Database unavailable")
     try:
         cur = conn.cursor()
         cur.execute("SELECT COUNT(*) FROM notifications WHERE user_id = %s AND is_read = FALSE", (user_id,))
@@ -53,6 +57,8 @@ def get_unread_count(user_id: int, current_user: dict = Depends(get_current_user
 def mark_all_read(user_id: int, current_user: dict = Depends(get_current_user)):
     check_ownership(current_user, user_id)
     conn = get_db_connection()
+    if not conn:
+        raise HTTPException(status_code=503, detail="Database unavailable")
     try:
         cur = conn.cursor()
         cur.execute("UPDATE notifications SET is_read = TRUE WHERE user_id = %s AND is_read = FALSE", (user_id,))

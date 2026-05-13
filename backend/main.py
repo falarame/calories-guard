@@ -82,6 +82,56 @@ async def add_api_version_header(request, call_next):
     return response
 
 
+# ── last_active_at updater ────────────────────────────────────────────────────
+# Update the user's last_active_at on every authenticated request (debounced:
+# only writes if the previous update was >5 minutes ago) so the server-side
+# re-engagement job can find truly inactive users.
+import re as _re
+_AUTH_PATH_RE = _re.compile(r"^/users/(\d+)/")
+
+@app.middleware("http")
+async def update_last_active(request, call_next):
+    response = await call_next(request)
+
+    # Only act on successful authenticated requests that carry a user_id in path
+    if response.status_code >= 400:
+        return response
+
+    m = _AUTH_PATH_RE.match(request.url.path)
+    if not m:
+        return response
+
+    try:
+        user_id = int(m.group(1))
+        from database import get_db_connection
+        from datetime import datetime, timezone, timedelta
+
+        conn = get_db_connection()
+        if conn:
+            try:
+                cur = conn.cursor()
+                # Debounce: only write if last update was >5 minutes ago
+                cur.execute(
+                    """
+                    UPDATE users
+                    SET last_active_at = NOW()
+                    WHERE user_id = %s
+                      AND (last_active_at IS NULL
+                           OR last_active_at < NOW() - INTERVAL '5 minutes')
+                    """,
+                    (user_id,),
+                )
+                conn.commit()
+            except Exception:
+                conn.rollback()
+            finally:
+                conn.close()
+    except Exception:
+        pass  # Never let middleware crash the request
+
+    return response
+
+
 @app.get("/robots.txt", include_in_schema=False)
 def robots_txt():
     return PlainTextResponse(

@@ -86,26 +86,34 @@ class Activity {
   final String emoji;
   final int durationMin;
   final double caloriesBurned;
+  final String intensity;
   Activity({
     this.logId,
     required this.name,
     required this.emoji,
     required this.durationMin,
     required this.caloriesBurned,
+    this.intensity = 'moderate',
   });
 }
 
 /// Emoji เวลาโหลดกิจกรรมจาก API (ไม่มีฟิลด์ emoji ใน DB)
 const Map<String, String> _kActivityEmojiByName = {
   'เดิน': '🚶',
+  'เดินเร็ว': '🚶‍♂️',
   'วิ่ง': '🏃',
   'ปั่นจักรยาน': '🚴',
   'ว่ายน้ำ': '🏊',
   'เต้น Zumba': '💃',
+  'แอโรบิก': '🤸',
   'โยคะ': '🧘',
+  'ยืดกล้ามเนื้อ': '🧎',
   'ยกน้ำหนัก': '🏋️',
   'ฟุตบอล': '⚽',
   'บาสเกตบอล': '🏀',
+  'แบดมินตัน': '🏸',
+  'เทนนิส': '🎾',
+  'วอลเลย์บอล': '🏐',
   'กระโดดเชือก': '🪢',
   'HIIT': '🔥',
   'เดินขึ้นบันได': '🪜',
@@ -338,7 +346,7 @@ class _FoodLogScreenState extends ConsumerState<FoodLogScreen>
         'activity_name': act.name,
         'duration_minutes': act.durationMin,
         'calories_burned': act.caloriesBurned,
-        'intensity': 'moderate',
+        'intensity': act.intensity,
       });
       if (!_isHttpSuccess(res.statusCode)) {
         if (mounted) {
@@ -2549,19 +2557,27 @@ class _AddActivitySheetState extends State<_AddActivitySheet> {
   static const _green = Color(0xFF628141);
   static const _greenL = Color(0xFFE8EFCF);
 
+  // MET values from: Herrmann et al. (2024) 2024 Adult Compendium of Physical Activities,
+  // J Sport Health Sci 13:6-12. DOI: 10.1016/j.jshs.2023.10.010
   static const _presets = [
-    {'name': 'เดิน', 'emoji': '🚶', 'met': 3.5},
-    {'name': 'วิ่ง', 'emoji': '🏃', 'met': 9.8},
-    {'name': 'ปั่นจักรยาน', 'emoji': '🚴', 'met': 7.5},
-    {'name': 'ว่ายน้ำ', 'emoji': '🏊', 'met': 8.0},
-    {'name': 'เต้น Zumba', 'emoji': '💃', 'met': 6.0},
-    {'name': 'โยคะ', 'emoji': '🧘', 'met': 3.0},
-    {'name': 'ยกน้ำหนัก', 'emoji': '🏋️', 'met': 5.0},
-    {'name': 'ฟุตบอล', 'emoji': '⚽', 'met': 7.0},
-    {'name': 'บาสเกตบอล', 'emoji': '🏀', 'met': 6.5},
-    {'name': 'กระโดดเชือก', 'emoji': '🪢', 'met': 11.0},
-    {'name': 'HIIT', 'emoji': '🔥', 'met': 12.0},
-    {'name': 'เดินขึ้นบันได', 'emoji': '🪜', 'met': 4.0},
+    {'name': 'เดิน', 'emoji': '🚶', 'met': 3.5},          // walking slow-moderate 2-3 mph
+    {'name': 'เดินเร็ว', 'emoji': '🚶‍♂️', 'met': 4.3},   // brisk walking 3.5 mph
+    {'name': 'วิ่ง', 'emoji': '🏃', 'met': 8.3},           // jogging general ~5 mph
+    {'name': 'ปั่นจักรยาน', 'emoji': '🚴', 'met': 7.5},    // cycling moderate 12-14 mph
+    {'name': 'ว่ายน้ำ', 'emoji': '🏊', 'met': 6.0},        // swimming general moderate
+    {'name': 'เต้น Zumba', 'emoji': '💃', 'met': 6.0},     // aerobic dance general
+    {'name': 'แอโรบิก', 'emoji': '🤸', 'met': 7.3},        // aerobics general
+    {'name': 'โยคะ', 'emoji': '🧘', 'met': 3.0},           // Hatha yoga
+    {'name': 'ยืดกล้ามเนื้อ', 'emoji': '🧎', 'met': 2.3}, // stretching light
+    {'name': 'ยกน้ำหนัก', 'emoji': '🏋️', 'met': 3.5},    // weight lifting general
+    {'name': 'ฟุตบอล', 'emoji': '⚽', 'met': 7.0},         // soccer general
+    {'name': 'บาสเกตบอล', 'emoji': '🏀', 'met': 6.5},      // basketball general
+    {'name': 'แบดมินตัน', 'emoji': '🏸', 'met': 5.5},      // badminton general
+    {'name': 'เทนนิส', 'emoji': '🎾', 'met': 7.3},         // tennis general
+    {'name': 'วอลเลย์บอล', 'emoji': '🏐', 'met': 4.0},    // volleyball general
+    {'name': 'กระโดดเชือก', 'emoji': '🪢', 'met': 11.8},   // jump rope moderate
+    {'name': 'HIIT', 'emoji': '🔥', 'met': 8.0},           // circuit training vigorous
+    {'name': 'เดินขึ้นบันได', 'emoji': '🪜', 'met': 4.0}, // stair climbing slow
   ];
 
   Map<String, dynamic>? _selectedPreset;
@@ -2571,10 +2587,21 @@ class _AddActivitySheetState extends State<_AddActivitySheet> {
   bool _isCustom = false;
   double _customMET = 4.0;
 
-  double get _caloriesBurned {
-    final met =
-        _isCustom ? _customMET : (_selectedPreset?['met'] as double? ?? 4.0);
-    return met * _userWeight * (_duration / 60);
+  double get _activeMet =>
+      _isCustom ? _customMET : (_selectedPreset?['met'] as double? ?? 4.0);
+
+  double get _caloriesBurned => _activeMet * _userWeight * (_duration / 60);
+
+  String _intensityLabel(double met) {
+    if (met < 3.0) return 'เบา';
+    if (met < 6.0) return 'ปานกลาง';
+    return 'หนัก';
+  }
+
+  String _intensityToBackend(double met) {
+    if (met < 3.0) return 'low';
+    if (met < 6.0) return 'moderate';
+    return 'high';
   }
 
   @override
@@ -2623,29 +2650,54 @@ class _AddActivitySheetState extends State<_AddActivitySheet> {
                     begin: Alignment.topLeft,
                     end: Alignment.bottomRight),
                 borderRadius: BorderRadius.circular(16)),
-            child: Row(children: [
-              const Text('🔥', style: TextStyle(fontSize: 28)),
-              const SizedBox(width: 12),
-              Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                const Text('คาดว่าจะเผาผลาญ',
-                    style: TextStyle(color: Colors.white70, fontSize: 11)),
-                Text(NutritionApprox.kcal(_caloriesBurned),
-                    style: const TextStyle(
-                        color: Colors.white,
-                        fontFamily: 'Inter',
-                        fontSize: 26,
-                        fontWeight: FontWeight.w800)),
-              ]),
-              const Spacer(),
-              Column(crossAxisAlignment: CrossAxisAlignment.end, children: [
-                Text('น้ำหนัก $_userWeight kg',
-                    style:
-                        const TextStyle(color: Colors.white70, fontSize: 11)),
-                Text('$_duration นาที',
-                    style:
-                        const TextStyle(color: Colors.white70, fontSize: 11)),
-              ]),
-            ]),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(children: [
+                  const Text('🔥', style: TextStyle(fontSize: 28)),
+                  const SizedBox(width: 12),
+                  Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                    const Text('คาดว่าจะเผาผลาญ',
+                        style: TextStyle(color: Colors.white70, fontSize: 11)),
+                    Text(NutritionApprox.kcal(_caloriesBurned),
+                        style: const TextStyle(
+                            color: Colors.white,
+                            fontFamily: 'Inter',
+                            fontSize: 26,
+                            fontWeight: FontWeight.w800)),
+                  ]),
+                  const Spacer(),
+                  Column(crossAxisAlignment: CrossAxisAlignment.end, children: [
+                    Text('น้ำหนัก $_userWeight kg',
+                        style: const TextStyle(
+                            color: Colors.white70, fontSize: 11)),
+                    Text('$_duration นาที',
+                        style: const TextStyle(
+                            color: Colors.white70, fontSize: 11)),
+                  ]),
+                ]),
+                const SizedBox(height: 8),
+                Row(children: [
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 8, vertical: 3),
+                    decoration: BoxDecoration(
+                        color: Colors.white24,
+                        borderRadius: BorderRadius.circular(99)),
+                    child: Text(
+                      '⚡ ${_intensityLabel(_activeMet)} · MET ${_activeMet.toStringAsFixed(1)}',
+                      style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 11,
+                          fontWeight: FontWeight.w600),
+                    ),
+                  ),
+                  const Spacer(),
+                  const Text('อ้างอิง: 2024 Adult Compendium',
+                      style: TextStyle(color: Colors.white54, fontSize: 9)),
+                ]),
+              ],
+            ),
           ),
           const SizedBox(height: 16),
           const Text('เลือกกิจกรรม',
@@ -2821,6 +2873,7 @@ class _AddActivitySheetState extends State<_AddActivitySheet> {
                         emoji: emoji,
                         durationMin: _duration,
                         caloriesBurned: _caloriesBurned,
+                        intensity: _intensityToBackend(_activeMet),
                       ));
                     },
               style: ElevatedButton.styleFrom(

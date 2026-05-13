@@ -8,7 +8,7 @@ from psycopg2.extras import RealDictCursor
 from database import get_db_connection
 from auth.dependencies import get_current_user
 from app.core.dependencies import check_ownership
-from app.models.schemas import UserRegionUpdate, UserUpdate
+from app.models.schemas import FcmTokenUpdate, NotificationPrefsUpdate, UserRegionUpdate, UserUpdate
 from app.services.nutrition_service import (
     _compute_target_calories, _compute_target_macros,
     _check_1700_calorie_warning,
@@ -407,6 +407,157 @@ def lifecycle_check(user_id: int, current_user: dict = Depends(get_current_user)
     except HTTPException:
         raise
     except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+    finally:
+        if conn:
+            conn.close()
+
+
+@router.put("/users/{user_id}/fcm_token")
+def upsert_fcm_token(
+    user_id: int,
+    body: FcmTokenUpdate,
+    current_user: dict = Depends(get_current_user),
+):
+    """Store or refresh the device FCM token for this user.
+
+    Called by the Flutter client on login and on token refresh. The
+    server-side re-engagement cron picks tokens from this column.
+    """
+    check_ownership(current_user, user_id)
+    token = (body.fcm_token or "").strip()
+    if not token:
+        raise HTTPException(status_code=400, detail="fcm_token must not be empty")
+    conn = get_db_connection()
+    if not conn:
+        raise HTTPException(status_code=503, detail="DB unavailable")
+    try:
+        cur = conn.cursor()
+        cur.execute(
+            "UPDATE users SET fcm_token = %s, fcm_token_updated_at = NOW() "
+            "WHERE user_id = %s AND deleted_at IS NULL",
+            (token, user_id),
+        )
+        if cur.rowcount == 0:
+            conn.rollback()
+            raise HTTPException(status_code=404, detail="User not found")
+        conn.commit()
+        return {"message": "FCM token updated"}
+    except HTTPException:
+        raise
+    except Exception as e:
+        conn.rollback()
+        raise HTTPException(status_code=500, detail=str(e))
+    finally:
+        if conn:
+            conn.close()
+
+
+@router.delete("/users/{user_id}/fcm_token")
+def clear_fcm_token(
+    user_id: int,
+    current_user: dict = Depends(get_current_user),
+):
+    """Clear the device FCM token. Called on logout / account deletion."""
+    check_ownership(current_user, user_id)
+    conn = get_db_connection()
+    if not conn:
+        raise HTTPException(status_code=503, detail="DB unavailable")
+    try:
+        cur = conn.cursor()
+        cur.execute(
+            "UPDATE users SET fcm_token = NULL, fcm_token_updated_at = NOW() "
+            "WHERE user_id = %s",
+            (user_id,),
+        )
+        conn.commit()
+        return {"message": "FCM token cleared"}
+    except Exception as e:
+        conn.rollback()
+        raise HTTPException(status_code=500, detail=str(e))
+    finally:
+        if conn:
+            conn.close()
+
+
+@router.get("/users/{user_id}/notification_prefs")
+def get_notification_prefs(
+    user_id: int,
+    current_user: dict = Depends(get_current_user),
+):
+    """Return the stored notification_prefs JSONB for this user."""
+    check_ownership(current_user, user_id)
+    conn = get_db_connection()
+    if not conn:
+        raise HTTPException(status_code=503, detail="DB unavailable")
+    try:
+        cur = conn.cursor(cursor_factory=RealDictCursor)
+        cur.execute(
+            "SELECT notification_prefs FROM users WHERE user_id = %s AND deleted_at IS NULL",
+            (user_id,),
+        )
+        row = cur.fetchone()
+        if not row:
+            raise HTTPException(status_code=404, detail="User not found")
+        prefs = row["notification_prefs"] or {}
+        return {"user_id": user_id, "notification_prefs": prefs}
+    finally:
+        if conn:
+            conn.close()
+
+
+@router.put("/users/{user_id}/notification_prefs")
+def update_notification_prefs(
+    user_id: int,
+    body: NotificationPrefsUpdate,
+    current_user: dict = Depends(get_current_user),
+):
+    """Upsert the notification_prefs JSONB.  Merges with existing prefs so
+    callers can do partial updates without clobbering unrelated fields."""
+    check_ownership(current_user, user_id)
+    conn = get_db_connection()
+    if not conn:
+        raise HTTPException(status_code=503, detail="DB unavailable")
+    try:
+        cur = conn.cursor(cursor_factory=RealDictCursor)
+        # Build only the fields that were actually provided
+        patch: dict = {}
+        if body.enabled is not None:
+            patch["enabled"] = body.enabled
+        if body.categories is not None:
+            patch["categories"] = body.categories
+        if body.quiet_hours is not None:
+            patch["quietHours"] = body.quiet_hours
+        if body.meal_times is not None:
+            patch["mealTimes"] = body.meal_times
+        if body.water_times_hh is not None:
+            patch["waterTimesHH"] = body.water_times_hh
+        if body.weigh_in_day is not None:
+            patch["weighInDay"] = body.weigh_in_day
+
+        if not patch:
+            return {"message": "No changes"}
+
+        # Merge into existing JSONB column (|| operator)
+        cur.execute(
+            """
+            UPDATE users
+            SET notification_prefs = COALESCE(notification_prefs, '{}'::jsonb) || %s::jsonb
+            WHERE user_id = %s AND deleted_at IS NULL
+            RETURNING notification_prefs
+            """,
+            (json.dumps(patch), user_id),
+        )
+        row = cur.fetchone()
+        if not row:
+            conn.rollback()
+            raise HTTPException(status_code=404, detail="User not found")
+        conn.commit()
+        return {"user_id": user_id, "notification_prefs": row["notification_prefs"]}
+    except HTTPException:
+        raise
+    except Exception as e:
+        conn.rollback()
         raise HTTPException(status_code=500, detail=str(e))
     finally:
         if conn:

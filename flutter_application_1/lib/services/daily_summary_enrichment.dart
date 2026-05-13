@@ -1,6 +1,7 @@
 import 'dart:convert';
 
 import 'package:flutter_application_1/services/api_client.dart';
+import 'package:flutter_application_1/services/error_reporter.dart';
 
 /// True when [meals] has at least one non-empty menu but [meal_items] is
 /// missing entries or lists are empty for any of those meal types.
@@ -66,7 +67,9 @@ Future<Map<String, dynamic>> ensureDailySummaryMealItems({
       if (items is List && items.isNotEmpty) {
         merged[mt] = List<dynamic>.from(items);
       }
-    } catch (_) {}
+    } catch (e, st) {
+      ErrorReporter.report('home.fetch_daily_summary.$mt', e, st);
+    }
   }
 
   final tasks = <Future<void>>[];

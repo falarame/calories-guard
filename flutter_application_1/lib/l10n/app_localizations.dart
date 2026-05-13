@@ -250,6 +250,33 @@ const Map<String, Map<String, String>> _catalogue = {
         'The AI coach is temporarily unavailable. We\'ll be back shortly.',
     'error.upgrade_required':
         'Your app is out of date. Please update to continue.',
+
+    // notification settings UI
+    'settings.notifications.preferences': 'Notification preferences',
+    'settings.notifications.preferences.subtitle': 'Manage categories & timing',
+    'settings.notifications.category.meal': 'Meal reminders',
+    'settings.notifications.category.water': 'Water reminders',
+    'settings.notifications.category.motivation': 'Morning motivation',
+    'settings.notifications.category.recap': 'Daily recap',
+    'settings.notifications.category.weight': 'Weekly weigh-in',
+    'settings.notifications.category.streak': 'Streak warning',
+    'settings.notifications.category.reEngagement': 'Re-engagement',
+    'settings.notifications.quiet_hours': 'Quiet hours',
+    'settings.notifications.quiet_hours.subtitle':
+        'Mute notifications between {start} and {end}',
+    'settings.notifications.quiet_hours.start': 'Start',
+    'settings.notifications.quiet_hours.end': 'End',
+    'settings.notifications.meal_times': 'Meal reminder times',
+    'settings.notifications.breakfast_time': 'Breakfast',
+    'settings.notifications.lunch_time': 'Lunch',
+    'settings.notifications.dinner_time': 'Dinner',
+    'settings.notifications.water_times': 'Water reminder times',
+    'settings.notifications.sheet_title': 'Notification Preferences',
+    'settings.notifications.categories_section': 'Categories',
+    'settings.notifications.timing_section': 'Timing',
+    'settings.notifications.debug.title': 'Debug Notifications',
+    'settings.notifications.debug.pending': 'Pending notifications',
+    'settings.notifications.debug.trigger': 'Trigger test',
   },
   'th': {
     // app-wide
@@ -438,5 +465,33 @@ const Map<String, Map<String, String>> _catalogue = {
         'ผู้ช่วย AI ไม่พร้อมให้บริการชั่วคราว เราจะกลับมาให้ใช้เร็วๆ นี้',
     'error.upgrade_required':
         'เวอร์ชันแอปของคุณเก่าเกินไป กรุณาอัปเดตแอปเพื่อใช้งานต่อ',
+
+    // notification settings UI
+    'settings.notifications.preferences': 'ตั้งค่าการแจ้งเตือน',
+    'settings.notifications.preferences.subtitle':
+        'จัดการหมวดหมู่และเวลา',
+    'settings.notifications.category.meal': 'เตือนมื้ออาหาร',
+    'settings.notifications.category.water': 'เตือนดื่มน้ำ',
+    'settings.notifications.category.motivation': 'แรงบันดาลใจยามเช้า',
+    'settings.notifications.category.recap': 'สรุปประจำวัน',
+    'settings.notifications.category.weight': 'เตือนชั่งน้ำหนักรายสัปดาห์',
+    'settings.notifications.category.streak': 'เตือน Streak',
+    'settings.notifications.category.reEngagement': 'เตือนกลับมาใช้แอป',
+    'settings.notifications.quiet_hours': 'ชั่วโมงเงียบ',
+    'settings.notifications.quiet_hours.subtitle':
+        'ปิดเสียงแจ้งเตือนระหว่าง {start} ถึง {end}',
+    'settings.notifications.quiet_hours.start': 'เริ่ม',
+    'settings.notifications.quiet_hours.end': 'สิ้นสุด',
+    'settings.notifications.meal_times': 'เวลาเตือนมื้ออาหาร',
+    'settings.notifications.breakfast_time': 'มื้อเช้า',
+    'settings.notifications.lunch_time': 'มื้อเที่ยง',
+    'settings.notifications.dinner_time': 'มื้อเย็น',
+    'settings.notifications.water_times': 'เวลาเตือนดื่มน้ำ',
+    'settings.notifications.sheet_title': 'ตั้งค่าการแจ้งเตือน',
+    'settings.notifications.categories_section': 'หมวดหมู่',
+    'settings.notifications.timing_section': 'เวลา',
+    'settings.notifications.debug.title': 'Debug การแจ้งเตือน',
+    'settings.notifications.debug.pending': 'การแจ้งเตือนที่รอ',
+    'settings.notifications.debug.trigger': 'ทดสอบส่ง',
   },
 };

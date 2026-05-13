@@ -11,6 +11,7 @@ import '../../services/lifecycle_service.dart';
 import '../../services/streak_service.dart';
 import '../../services/fcm_service.dart';
 import '../../services/error_reporter.dart';
+import '../../services/notification_prefs_service.dart';
 import '../../utils/bmi_utils.dart';
 import '../../constants/constants.dart';
 import '../../utils/nutrition_approx.dart';
@@ -18,6 +19,7 @@ import '/screens/restaurant_map_screen.dart';
 import '/screens/bmi/bmi_detail_screen.dart';
 import '/screens/tamagotchi/tamagotchi_screen.dart';
 import '/screens/weight/weight_chart_screen.dart';
+import 'package:permission_handler/permission_handler.dart';
 
 class AppHomeScreen extends ConsumerStatefulWidget {
   const AppHomeScreen({super.key});
@@ -35,6 +37,7 @@ class _AppHomeScreenState extends ConsumerState<AppHomeScreen> {
   bool _isLoading = true;
   bool _hasError = false;
   bool _hasWarnedCalories = false;
+  bool _permissionDenied = false;
   late DateTime _viewDate;
   int _streak = 0;
 
@@ -94,10 +97,19 @@ class _AppHomeScreenState extends ConsumerState<AppHomeScreen> {
       NotificationHelper.scheduleReEngagementGuard();
       // P4: upload FCM token ถ้ายังไม่เคย หรือ token refresh
       FcmService.uploadToken(userId);
+      // Tier 3.4: pull notification prefs from backend → sync to SharedPrefs
+      NotificationPrefsService.pull(userId);
       // P3: schedule streak warning ถ้ายังไม่ได้บันทึกวันนี้ + โหลด streak
       StreakService.scheduleWarningIfNeeded();
       final streak = await StreakService.getStreak();
-      if (mounted) setState(() => _streak = streak);
+      // Tier 2.5: check permission denied flag
+      final permDenied = await NotificationHelper.isPermissionDenied();
+      if (mounted) {
+        setState(() {
+          _streak = streak;
+          _permissionDenied = permDenied;
+        });
+      }
     } catch (_) {
       if (mounted) setState(() => _hasError = true);
     }
@@ -151,6 +163,19 @@ class _AppHomeScreenState extends ConsumerState<AppHomeScreen> {
           summaryData: summaryData,
         );
         ref.read(userDataProvider.notifier).setDailySummaryFromApi(summaryData);
+
+        // Tier 2.4: Smart suppression — cancel meal reminders for meals already logged today
+        if (_isToday(forDate)) {
+          final mealItems =
+              summaryData['meal_items'] as Map<String, dynamic>? ?? {};
+          for (final mealType in ['breakfast', 'lunch', 'dinner']) {
+            final items = mealItems[mealType];
+            final hasItems = items is List && items.isNotEmpty;
+            if (hasItems) {
+              NotificationHelper.suppressTodayMealReminder(mealType);
+            }
+          }
+        }
       }
     } catch (e) {
       debugPrint("Error fetching daily summary: $e");
@@ -351,6 +376,8 @@ class _AppHomeScreenState extends ConsumerState<AppHomeScreen> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
+                        // Tier 2.5: Permission denied banner
+                        if (_permissionDenied) _buildPermissionBanner(),
                         _buildDateHeader(),
                         const SizedBox(height: 16),
                         _buildCalorieCard(
@@ -376,6 +403,55 @@ class _AppHomeScreenState extends ConsumerState<AppHomeScreen> {
                     ),
                   ),
                 ),
+    );
+  }
+
+  // ─── Permission Banner (Tier 2.5) ────────────────────────────────────────
+
+  Widget _buildPermissionBanner() {
+    return Container(
+      color: const Color(0xFFFFF3CD),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+      child: Row(children: [
+        const Icon(Icons.notifications_off_outlined,
+            size: 18, color: Color(0xFF856404)),
+        const SizedBox(width: 10),
+        const Expanded(
+          child: Text(
+            'เปิดการแจ้งเตือนเพื่อใช้งานเต็มประสิทธิภาพ',
+            style: TextStyle(
+                fontSize: 13,
+                color: Color(0xFF856404),
+                fontWeight: FontWeight.w500),
+          ),
+        ),
+        GestureDetector(
+          onTap: () async {
+            await openAppSettings();
+            // Re-check after returning from settings
+            final denied = await NotificationHelper.isPermissionDenied();
+            if (mounted) setState(() => _permissionDenied = denied);
+          },
+          child: Container(
+            padding:
+                const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+            decoration: BoxDecoration(
+              color: const Color(0xFF856404),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: const Text('ตั้งค่า',
+                style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600)),
+          ),
+        ),
+        const SizedBox(width: 4),
+        GestureDetector(
+          onTap: () => setState(() => _permissionDenied = false),
+          child: const Icon(Icons.close, size: 16, color: Color(0xFF856404)),
+        ),
+      ]),
     );
   }
 
