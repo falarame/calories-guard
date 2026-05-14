@@ -119,6 +119,7 @@ class _TamagotchiScreenState extends ConsumerState<TamagotchiScreen> {
   Set<String> _claimedToday = {};
   Set<String> _claimedBadges = {};
   int _waterGlasses = 0;
+  bool _loggedWeightToday = false;
 
   List<_Mission> get _missions => [
         _Mission(
@@ -180,6 +181,14 @@ class _TamagotchiScreenState extends ConsumerState<TamagotchiScreen> {
                 u.targetFat > 0 &&
                 u.consumedFat >= u.targetFat),
         _Mission(
+            id: 'log_weight',
+            emoji: '⚖️',
+            title: 'ชั่งน้ำหนักวันนี้',
+            desc: 'บันทึกน้ำหนักเพื่อติดตามความคืบหน้าของตัวเอง',
+            baseXp: 40,
+            baseGems: 4,
+            autoCheck: (_) => _loggedWeightToday),
+        _Mission(
             id: 'streak_3',
             emoji: '🔥',
             title: 'ใช้แอปต่อเนื่อง 3 วัน',
@@ -226,15 +235,24 @@ class _TamagotchiScreenState extends ConsumerState<TamagotchiScreen> {
     final claimed = (prefs.getStringList(_claimedKey(uid)) ?? []).toSet();
 
     if (uid > 0) {
+      final today =
+          '${DateTime.now().year}-${DateTime.now().month.toString().padLeft(2, '0')}-${DateTime.now().day.toString().padLeft(2, '0')}';
       try {
-        final today =
-            '${DateTime.now().year}-${DateTime.now().month.toString().padLeft(2, '0')}-${DateTime.now().day.toString().padLeft(2, '0')}';
         final waterRes = await ApiClient().get('/water_logs/$uid?date=$today');
         if (waterRes.statusCode == 200) {
           final wData = jsonDecode(waterRes.body);
           final ml = (wData['amount_ml'] as num?)?.toInt() ?? 0;
           if (mounted)
             setState(() => _waterGlasses = (ml / 250).round().clamp(0, 20));
+        }
+      } catch (_) {}
+      try {
+        final wlogRes = await ApiClient().get('/users/$uid/weight_logs');
+        if (wlogRes.statusCode == 200) {
+          final wList = jsonDecode(wlogRes.body) as List;
+          if (mounted)
+            setState(() =>
+                _loggedWeightToday = wList.any((e) => e['date'] == today));
         }
       } catch (_) {}
       try {
@@ -291,11 +309,16 @@ class _TamagotchiScreenState extends ConsumerState<TamagotchiScreen> {
     final earnedGems = isBonus ? m.baseGems * 2 : m.baseGems;
 
     final newXp = _xp + earnedXp;
-    final newGems = _gems + earnedGems;
+    int newGems = _gems + earnedGems;
     final newClaimed = {..._claimedToday, m.id};
     final newTier = (_tiers.lastIndexWhere((t) => newXp >= t.minXp))
         .clamp(0, _tiers.length - 1);
+    final oldTierIdx = _tierIdx;
     final newMaxTier = newTier > _tierIdx ? newTier : _tierIdx;
+
+    // Perfect Day: all missions done → +50 XP +10 💎 bonus
+    final allDone = _missions.every((ms) => newClaimed.contains(ms.id));
+    if (allDone) newGems += 10;
 
     await prefs.setInt(_xpKey(uid), newXp);
     await prefs.setInt(_gemsKey(uid), newGems);
@@ -312,13 +335,107 @@ class _TamagotchiScreenState extends ConsumerState<TamagotchiScreen> {
     _syncToBackend(newXp, newGems, newMaxTier);
 
     if (mounted) {
-      final extra = isBonus ? '  🎉 โชคดี! 💎×2' : '';
+      final extra = isBonus
+          ? '  \ud83c\udf89 \u0e42\u0e0a\u0e04\u0e14\u0e35! \ud83d\udc8e\xd72'
+          : '';
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-        content: Text('${m.emoji} +$earnedXp XP  +$earnedGems 💎$extra'),
+        content:
+            Text('${m.emoji} +$earnedXp XP  +$earnedGems \ud83d\udc8e$extra'),
         backgroundColor: _tiers[newMaxTier].color,
         duration: const Duration(seconds: 2),
       ));
+
+      // Perfect Day notification
+      if (allDone) {
+        await Future.delayed(const Duration(milliseconds: 500));
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+            content: Text(
+                '\ud83c\udf1f Perfect Day! \u0e17\u0e33\u0e04\u0e23\u0e1a\u0e17\u0e38\u0e01\u0e20\u0e32\u0e23\u0e01\u0e34\u0e08 \u2192 +10 \ud83d\udc8e \u0e42\u0e1a\u0e19\u0e31\u0e2a!'),
+            backgroundColor: Color(0xFFE65100),
+            duration: Duration(seconds: 3),
+          ));
+        }
+      }
+
+      // Tier-Up celebration
+      if (newMaxTier > oldTierIdx) {
+        await Future.delayed(const Duration(milliseconds: 800));
+        if (mounted) _showTierUpDialog(newMaxTier);
+      }
     }
+  }
+
+  void _showTierUpDialog(int tierIdx) {
+    final t = _tiers[tierIdx];
+    showDialog(
+      context: context,
+      builder: (_) => Dialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28)),
+        child: Container(
+          padding: const EdgeInsets.fromLTRB(28, 36, 28, 24),
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              colors: [t.color, Color.lerp(t.color, Colors.black, 0.35)!],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
+            borderRadius: BorderRadius.circular(28),
+          ),
+          child: Column(mainAxisSize: MainAxisSize.min, children: [
+            Text(t.emoji, style: const TextStyle(fontSize: 64)),
+            const SizedBox(height: 12),
+            const Text('\ud83c\udf89 TIER UP!',
+                style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 26,
+                    fontWeight: FontWeight.w800,
+                    fontFamily: 'Inter',
+                    letterSpacing: 1)),
+            const SizedBox(height: 8),
+            Text(t.name,
+                style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 22,
+                    fontWeight: FontWeight.w700,
+                    fontFamily: 'Inter')),
+            const SizedBox(height: 6),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+              decoration: BoxDecoration(
+                  color: Colors.white.withValues(alpha: 0.2),
+                  borderRadius: BorderRadius.circular(12)),
+              child: Text(t.perks,
+                  style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 14,
+                      fontFamily: 'Inter',
+                      fontWeight: FontWeight.w600)),
+            ),
+            const SizedBox(height: 24),
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.white,
+                  foregroundColor: t.color,
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(14)),
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                ),
+                onPressed: () => Navigator.pop(context),
+                child: const Text(
+                    '\ud83d\ude80 \u0e2a\u0e38\u0e14\u0e22\u0e2d\u0e14!',
+                    style: TextStyle(
+                        fontWeight: FontWeight.w700,
+                        fontSize: 16,
+                        fontFamily: 'Inter')),
+              ),
+            ),
+          ]),
+        ),
+      ),
+    );
   }
 
   void _syncToBackend(int xp, int gems, int tier) {

@@ -41,6 +41,12 @@ const _rewards = [
       desc: 'Achievement badge ระดับสูง — มีเพียงไม่กี่คน',
       cost: 500),
   _Reward(
+      id: 'streak_freeze',
+      emoji: '🛡️',
+      name: 'Streak Freeze',
+      desc: 'ป้องกัน streak ไม่ให้รีเซ็ตในวันที่ขาดไป 1 วัน',
+      cost: 20),
+  _Reward(
       id: 'food_coupon',
       emoji: '🍱',
       name: 'คูปองส่วนลดอาหาร 10%',
@@ -89,15 +95,22 @@ class _RewardShopScreenState extends State<RewardShopScreen> {
   static const _bg = Color(0xFFF8FAFB);
   static const _primary = Color(0xFF6A1B9A);
 
+  DateTime? _freezeUntil;
+
   @override
   void initState() {
     super.initState();
     _gems = widget.currentGems;
     _loadClaimed();
+    _loadFreeze();
   }
 
   String get _claimedKey => 'tama_rewards_claimed_${widget.userId}';
   String get _gemsKey => 'tama_gems_${widget.userId}';
+  String get _freezeKey => 'streak_freeze_until_${widget.userId}';
+
+  bool get _freezeActive =>
+      _freezeUntil != null && _freezeUntil!.isAfter(DateTime.now());
 
   Future<void> _loadClaimed() async {
     final prefs = await SharedPreferences.getInstance();
@@ -105,8 +118,20 @@ class _RewardShopScreenState extends State<RewardShopScreen> {
     setState(() => _claimed = list.toSet());
   }
 
+  Future<void> _loadFreeze() async {
+    final prefs = await SharedPreferences.getInstance();
+    final ms = prefs.getInt(_freezeKey);
+    if (ms != null && mounted)
+      setState(() => _freezeUntil = DateTime.fromMillisecondsSinceEpoch(ms));
+  }
+
   Future<void> _redeem(_Reward r) async {
-    if (_claimed.contains(r.id) || _gems < r.cost || r.comingSoon) return;
+    final isFreeze = r.id == 'streak_freeze';
+    final alreadyFrozen = isFreeze && _freezeActive;
+    if ((!isFreeze && _claimed.contains(r.id)) ||
+        _gems < r.cost ||
+        r.comingSoon ||
+        alreadyFrozen) return;
     final confirm = await showDialog<bool>(
       context: context,
       builder: (_) => AlertDialog(
@@ -141,8 +166,32 @@ class _RewardShopScreenState extends State<RewardShopScreen> {
 
     final prefs = await SharedPreferences.getInstance();
     final newGems = _gems - r.cost;
-    final newClaimed = {..._claimed, r.id};
     await prefs.setInt(_gemsKey, newGems);
+
+    if (isFreeze) {
+      final until = DateTime.now().add(const Duration(days: 2));
+      await prefs.setInt(_freezeKey, until.millisecondsSinceEpoch);
+      if (mounted)
+        setState(() {
+          _gems = newGems;
+          _freezeUntil = until;
+        });
+      widget.onGemsUpdated(newGems);
+      ApiClient().patch('/users/${widget.userId}/tama-points',
+          body: {'gems': newGems, 'tier_level': widget.tierIdx}).ignore();
+      if (mounted) {
+        HapticFeedback.mediumImpact();
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+          content: Text(
+              '\ud83d\udee1\ufe0f Streak Freeze \u0e40\u0e1b\u0e34\u0e14\u0e43\u0e0a\u0e49\u0e07\u0e32\u0e19\u0e41\u0e25\u0e49\u0e27! \u0e1b\u0e49\u0e2d\u0e07\u0e01\u0e31\u0e19 2 \u0e27\u0e31\u0e19'),
+          backgroundColor: Color(0xFF1565C0),
+          duration: Duration(seconds: 2),
+        ));
+      }
+      return;
+    }
+
+    final newClaimed = {..._claimed, r.id};
     await prefs.setStringList(_claimedKey, newClaimed.toList());
     setState(() {
       _gems = newGems;
@@ -257,7 +306,8 @@ class _RewardShopScreenState extends State<RewardShopScreen> {
   }
 
   Widget _buildCard(_Reward r) {
-    final isClaimed = _claimed.contains(r.id);
+    final isFreeze = r.id == 'streak_freeze';
+    final isClaimed = isFreeze ? _freezeActive : _claimed.contains(r.id);
     final canAfford = _gems >= r.cost;
     final isAvailable = !r.comingSoon && !isClaimed && canAfford;
     final borderColor = isClaimed
