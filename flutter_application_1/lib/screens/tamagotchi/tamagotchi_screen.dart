@@ -17,6 +17,7 @@ class _Tier {
   final String emoji;
   final int minXp;
   final double xpBonus; // additive XP bonus (0.0 = +0%, 1.0 = +100%)
+  final double gemsBonus; // additive Gems bonus per mission
   final Color color;
   final String perks;
   const _Tier({
@@ -24,6 +25,7 @@ class _Tier {
     required this.emoji,
     required this.minXp,
     required this.xpBonus,
+    required this.gemsBonus,
     required this.color,
     required this.perks,
   });
@@ -35,6 +37,7 @@ const _tiers = [
       emoji: '🪨',
       minXp: 0,
       xpBonus: 0.00,
+      gemsBonus: 0.00,
       color: Color(0xFF78909C),
       perks: 'เริ่มต้น'),
   _Tier(
@@ -42,29 +45,33 @@ const _tiers = [
       emoji: '🔷',
       minXp: 1000,
       xpBonus: 0.10,
+      gemsBonus: 0.10,
       color: Color(0xFF42A5F5),
-      perks: '+10% XP'),
+      perks: '+10% XP & 💎'),
   _Tier(
       name: 'Emerald',
       emoji: '💎',
       minXp: 5000,
       xpBonus: 0.25,
+      gemsBonus: 0.25,
       color: Color(0xFF26A69A),
-      perks: '+25% XP'),
+      perks: '+25% XP & 💎'),
   _Tier(
       name: 'Gold',
       emoji: '👑',
       minXp: 15000,
       xpBonus: 0.50,
+      gemsBonus: 0.50,
       color: Color(0xFFFFB300),
-      perks: '+50% XP'),
+      perks: '+50% XP & 💎'),
   _Tier(
       name: 'Legend',
       emoji: '⚜️',
       minXp: 50000,
       xpBonus: 1.00,
+      gemsBonus: 1.00,
       color: Color(0xFFAB47BC),
-      perks: '+100% XP'),
+      perks: '+100% XP & 💎'),
 ];
 
 // ─────────────────────────────────────────────────────────
@@ -209,6 +216,12 @@ class _TamagotchiScreenState extends ConsumerState<TamagotchiScreen> {
     return (m.baseXp * bonus * _streakMult(streak)).round();
   }
 
+  // Gems earned = baseGems × (1 + tierGemsBonus)  [streak affects XP only]
+  int _calcGems(_Mission m) {
+    final bonus = 1.0 + _tiers[_activeTierIdx].gemsBonus;
+    return (m.baseGems * bonus).round();
+  }
+
   String _xpKey(int uid) =>
       'tama_points_$uid'; // keep old key for backward compat
   String _gemsKey(int uid) => 'tama_gems_$uid';
@@ -306,7 +319,8 @@ class _TamagotchiScreenState extends ConsumerState<TamagotchiScreen> {
 
     final earnedXp = _calcXp(m, streak);
     final isBonus = math.Random().nextDouble() < 0.20;
-    final earnedGems = isBonus ? m.baseGems * 2 : m.baseGems;
+    final baseEarnedGems = _calcGems(m);
+    final earnedGems = isBonus ? baseEarnedGems * 2 : baseEarnedGems;
 
     final newXp = _xp + earnedXp;
     int newGems = _gems + earnedGems;
