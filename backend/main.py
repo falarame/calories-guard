@@ -77,7 +77,11 @@ app.add_middleware(
 # a major bump and prompt the user to update. See docs/CHANGELOG_API.md.
 @app.middleware("http")
 async def add_api_version_header(request, call_next):
-    response = await call_next(request)
+    try:
+        response = await call_next(request)
+    except Exception:
+        from starlette.responses import Response
+        return Response(status_code=503)
     response.headers["X-Api-Version"] = API_VERSION
     return response
 
@@ -91,7 +95,12 @@ _AUTH_PATH_RE = _re.compile(r"^/users/(\d+)/")
 
 @app.middleware("http")
 async def update_last_active(request, call_next):
-    response = await call_next(request)
+    try:
+        response = await call_next(request)
+    except Exception:
+        return
+    if response is None:
+        return
 
     # Only act on successful authenticated requests that carry a user_id in path
     if response.status_code >= 400:
