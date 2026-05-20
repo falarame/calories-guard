@@ -8,7 +8,7 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 /// can apply them automatically.
 ///
 /// Two link forms are supported:
-///   * Universal link:  https://caloriesguard.app/invite/{code-or-token}
+///   * Universal link:  https://app.caloriesguard.com/invite/{code-or-token}
 ///   * Custom scheme:   com.caloriesguard.app://invite/{code-or-token}
 ///
 /// The captured value is stored in flutter_secure_storage so it survives

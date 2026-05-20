@@ -15,7 +15,8 @@ from __future__ import annotations
 import os
 import secrets
 from datetime import datetime, timedelta, timezone
-from typing import Optional, List, Literal
+from typing import List, Literal, Optional
+from urllib.parse import urlparse
 
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Form, Query
 from pydantic import BaseModel, EmailStr, Field
@@ -35,7 +36,24 @@ _INVITE_TOKEN_BYTES = 24          # → 32-char URL-safe token
 _INVITE_TTL_DAYS = 14
 _OFFLINE_AFTER_SECONDS = 90
 
-_APP_PUBLIC_URL = os.getenv("APP_PUBLIC_URL", "https://caloriesguard.app").rstrip("/")
+_DEFAULT_APP_PUBLIC_URL = "https://app.caloriesguard.com"
+_UNROUTED_APP_PUBLIC_HOSTS = {"caloriesguard.app", "www.caloriesguard.app"}
+
+
+def _normalize_app_public_url(raw_url: str | None) -> str:
+    raw = (raw_url or _DEFAULT_APP_PUBLIC_URL).strip()
+    if not raw:
+        raw = _DEFAULT_APP_PUBLIC_URL
+    if not raw.startswith(("http://", "https://")):
+        raw = f"https://{raw}"
+
+    parsed = urlparse(raw)
+    if parsed.netloc.lower() in _UNROUTED_APP_PUBLIC_HOSTS:
+        return _DEFAULT_APP_PUBLIC_URL
+    return raw.rstrip("/")
+
+
+_APP_PUBLIC_URL = _normalize_app_public_url(os.getenv("APP_PUBLIC_URL"))
 
 
 def _invite_share_url(code: str) -> str:

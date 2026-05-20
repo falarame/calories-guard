@@ -55,7 +55,7 @@
                 <action android:name="android.intent.action.VIEW_PERMISSION_USAGE"/>
                 <category android:name="android.intent.category.HEALTH_PERMISSIONS"/>
             </intent-filter>
-            <!-- Universal App Link for friend invites. Keep hosts in sync with APP_PUBLIC_URL. -->
+            <!-- Universal App Link for friend invites. app.caloriesguard.com is the live public host. -->
             <intent-filter android:autoVerify="true">
                 <action android:name="android.intent.action.VIEW"/>
                 <category android:name="android.intent.category.DEFAULT"/>
