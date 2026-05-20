@@ -171,6 +171,45 @@ def send_food_request_notification(food_name: str, tf_id: int, submitted_by: str
     return any(results)
 
 
+def send_invite_email(email: str, inviter_name: str, invite_url: str) -> bool:
+    """Send a referral invite to a friend on behalf of `inviter_name`."""
+    subject = f"{inviter_name} ชวนคุณมาใช้ Calories Guard 🎁"
+    html = f"""
+    <html>
+    <body style="font-family: sans-serif; padding: 20px; background: #f9f9f9;">
+      <div style="max-width: 520px; margin: auto; background: white; border-radius: 12px;
+                  padding: 28px; box-shadow: 0 2px 8px rgba(0,0,0,0.08);">
+        <h2 style="color: #628141; margin-top: 0;">🎉 {inviter_name} ส่งคำเชิญถึงคุณ!</h2>
+        <p style="font-size: 15px; color: #333; line-height: 1.6;">
+          คุณได้รับเชิญให้มาใช้ <strong>Calories Guard</strong> —
+          แอปดูแลโภชนาการและสุขภาพ ที่ช่วยบันทึกแคลอรี่และเป้าหมายของคุณได้ง่ายๆ
+        </p>
+        <div style="background: #E8EFCF; padding: 14px 18px; border-radius: 10px; margin: 20px 0;
+                    color: #3D5A27; font-size: 14px;">
+          ✨ สมัครผ่านลิงก์นี้รับ <strong>20 gems ฟรี</strong> เริ่มต้นทันที!
+        </div>
+        <div style="text-align: center; margin: 28px 0;">
+          <a href="{invite_url}" target="_blank"
+             style="display: inline-block; background: #628141; color: white;
+                    text-decoration: none; padding: 14px 32px; border-radius: 10px;
+                    font-size: 16px; font-weight: bold;">
+            เปิดลิงก์เชิญ
+          </a>
+        </div>
+        <p style="color: #888; font-size: 12px; word-break: break-all;">
+          ถ้ากดปุ่มไม่ได้ คัดลอกลิงก์นี้ไปวางในเบราว์เซอร์:<br>
+          {invite_url}
+        </p>
+        <p style="color: #aaa; font-size: 12px; margin-top: 24px;">
+          ลิงก์นี้จะหมดอายุภายใน 14 วัน
+        </p>
+      </div>
+    </body>
+    </html>
+    """
+    return send_email(email, subject, html)
+
+
 def send_password_reset_email(email: str, username: str, code: str) -> bool:
     subject = "รีเซ็ตรหัสผ่าน - Calories Guard"
     html = f"""

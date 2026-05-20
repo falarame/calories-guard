@@ -1,0 +1,944 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>CaloriesGuard — ER Diagram แบ่งตาม Role</title>
+  <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Segoe UI', Tahoma, sans-serif;
+      background: #f1f5f9;
+      color: #1e293b;
+      line-height: 1.6;
+    }
+    /* ── Header ── */
+    .site-header {
+      background: linear-gradient(135deg, #0f172a 0%, #1e3a5f 100%);
+      color: white;
+      padding: 32px 24px 28px;
+      text-align: center;
+    }
+    .site-header h1 { font-size: 2rem; font-weight: 700; letter-spacing: -0.5px; }
+    .site-header p  { margin-top: 6px; opacity: .75; font-size: .95rem; }
+    /* ── Legend ── */
+    .legend {
+      display: flex; flex-wrap: wrap; gap: 14px;
+      justify-content: center;
+      padding: 18px 24px;
+      background: white;
+      border-bottom: 1px solid #e2e8f0;
+    }
+    .legend-item {
+      display: flex; align-items: center; gap: 8px;
+      font-size: .85rem; font-weight: 600;
+    }
+    .dot {
+      width: 14px; height: 14px; border-radius: 50%;
+      flex-shrink: 0;
+    }
+    .dot-blue   { background: #2563eb; }
+    .dot-orange { background: #ea580c; }
+    .dot-rose   { background: #e11d48; }
+    .dot-gray   { background: #64748b; }
+    /* ── Main layout ── */
+    .main { max-width: 1600px; margin: 0 auto; padding: 32px 20px 60px; }
+    /* ── Section panels ── */
+    .panel {
+      border-radius: 12px;
+      overflow: hidden;
+      margin-bottom: 36px;
+      box-shadow: 0 2px 8px rgba(0,0,0,.08);
+    }
+    .panel-header {
+      padding: 18px 24px;
+      color: white;
+    }
+    .panel-header h2  { font-size: 1.25rem; font-weight: 700; }
+    .panel-header p   { margin-top: 4px; font-size: .85rem; opacity: .85; }
+    .panel-body {
+      padding: 24px;
+    }
+    /* panel colours */
+    .user-panel   .panel-header { background: #1d4ed8; }
+    .user-panel   .panel-body   { background: #eff6ff; }
+    .admin-panel  .panel-header { background: #c2410c; }
+    .admin-panel  .panel-body   { background: #fff7ed; }
+    .mod-panel    .panel-header { background: #be123c; }
+    .mod-panel    .panel-body   { background: #fff1f2; }
+    .matrix-panel .panel-header { background: #475569; }
+    .matrix-panel .panel-body   { background: white; }
+    /* ── Mermaid diagram wrapper ── */
+    .diagram-wrap {
+      background: white;
+      border-radius: 8px;
+      padding: 16px;
+      overflow-x: auto;
+      box-shadow: inset 0 0 0 1px #e2e8f0;
+    }
+    .diagram-wrap .mermaid { min-width: 600px; }
+    /* ── Caption ── */
+    .caption {
+      margin-top: 14px;
+      padding: 12px 16px;
+      background: rgba(0,0,0,.04);
+      border-left: 4px solid;
+      border-radius: 0 6px 6px 0;
+      font-size: .83rem;
+      color: #374151;
+    }
+    .user-panel  .caption { border-color: #2563eb; }
+    .admin-panel .caption { border-color: #ea580c; }
+    .mod-panel   .caption { border-color: #e11d48; }
+    /* ── Role Access Matrix table ── */
+    .matrix-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: .82rem;
+    }
+    .matrix-table thead th {
+      background: #1e293b;
+      color: white;
+      padding: 10px 14px;
+      text-align: left;
+      font-weight: 600;
+      position: sticky;
+      top: 0;
+      z-index: 1;
+    }
+    .matrix-table tbody tr:nth-child(even) { background: #f8fafc; }
+    .matrix-table tbody tr:hover           { background: #f1f5f9; }
+    .matrix-table td {
+      padding: 8px 14px;
+      border-bottom: 1px solid #e2e8f0;
+      vertical-align: top;
+    }
+    .matrix-table td:first-child {
+      font-weight: 700;
+      color: #475569;
+      font-size: .75rem;
+      text-transform: uppercase;
+      letter-spacing: .05em;
+      white-space: nowrap;
+    }
+    .matrix-table td:nth-child(2) {
+      font-family: 'Consolas', monospace;
+      font-size: .78rem;
+      color: #1e293b;
+    }
+    .badge {
+      display: inline-block;
+      padding: 2px 8px;
+      border-radius: 20px;
+      font-size: .75rem;
+      font-weight: 600;
+      margin: 2px 2px 2px 0;
+      white-space: nowrap;
+    }
+    .b-full   { background: #dcfce7; color: #166534; }
+    .b-own    { background: #fef9c3; color: #713f12; }
+    .b-read   { background: #dbeafe; color: #1e40af; }
+    .b-create { background: #ede9fe; color: #5b21b6; }
+    .b-none   { background: #f1f5f9; color: #94a3b8; }
+    .b-admin  { background: #fee2e2; color: #991b1b; }
+    /* ── Cross-domain note ── */
+    .crossref {
+      background: #fefce8;
+      border: 1px solid #fde68a;
+      border-radius: 8px;
+      padding: 14px 18px;
+      margin-bottom: 28px;
+      font-size: .83rem;
+    }
+    .crossref h3 { font-size: .9rem; color: #92400e; margin-bottom: 8px; }
+    .crossref ul { padding-left: 18px; }
+    .crossref li { margin-bottom: 4px; }
+    code { background: #f1f5f9; padding: 1px 5px; border-radius: 3px; font-size: .85em; }
+    /* ── Loading note ── */
+    .loading-note {
+      text-align: center;
+      color: #64748b;
+      font-size: .8rem;
+      margin-bottom: 20px;
+    }
+  </style>
+</head>
+<body>
+
+<!-- ── HEADER ── -->
+<header class="site-header">
+  <h1>🥗 CaloriesGuard — ER Diagram แบ่งตาม Role</h1>
+  <p>แสดงความสัมพันธ์ระหว่างตารางฐานข้อมูล พร้อมสิทธิ์การเข้าถึงของ User และ Admin</p>
+</header>
+
+<!-- ── LEGEND ── -->
+<div class="legend">
+  <div class="legend-item"><div class="dot dot-blue"></div>   ฝั่ง User — ข้อมูลส่วนตัวและการใช้งานรายวัน</div>
+  <div class="legend-item"><div class="dot dot-orange"></div> ฝั่ง Admin — จัดการข้อมูลกลางของระบบ</div>
+  <div class="legend-item"><div class="dot dot-rose"></div>   Moderation Workflow — Admin อนุมัติข้อมูลจาก User</div>
+  <div class="legend-item"><div class="dot dot-gray"></div>   Role Access Matrix — สรุปสิทธิ์ทุกตาราง</div>
+</div>
+
+<div class="main">
+  <p class="loading-note">⏳ กำลังโหลด Mermaid diagrams จาก CDN...</p>
+
+  <!-- ══════════════════════════════════════════════════
+       PANEL 1 — USER SIDE
+  ══════════════════════════════════════════════════ -->
+  <div class="panel user-panel">
+    <div class="panel-header">
+      <h2>👤 ฝั่ง User — ข้อมูลส่วนตัวและการใช้งานรายวัน</h2>
+      <p>ตารางที่ User สร้าง อ่าน และจัดการได้ (เฉพาะข้อมูลตัวเอง) • role_id = 2</p>
+    </div>
+    <div class="panel-body">
+      <div class="diagram-wrap">
+        <div class="mermaid">
+erDiagram
+    ROLES {
+        int role_id PK
+        varchar role_name
+    }
+    USERS {
+        bigint user_id PK
+        int role_id FK
+        varchar email
+        varchar username
+        gender_type gender
+        date birth_date
+        numeric height_cm
+        numeric current_weight_kg
+        goal_type_enum goal_type
+        numeric target_weight_kg
+        int target_calories
+        int target_protein
+        int target_carbs
+        int target_fat
+        activity_level activity_level
+        thai_region region
+        boolean is_email_verified
+        timestamptz deleted_at
+        varchar avatar_url
+    }
+    MEALS {
+        bigint meal_id PK
+        bigint user_id FK
+        meal_type meal_type
+        timestamptz meal_time
+        numeric total_amount
+    }
+    DETAIL_ITEMS {
+        bigint item_id PK
+        bigint meal_id FK
+        bigint food_id FK
+        bigint food_version_id FK
+        int unit_id FK
+        varchar food_name
+        numeric amount
+        numeric cal_per_unit
+        numeric protein_per_unit
+        numeric carbs_per_unit
+        numeric fat_per_unit
+        jsonb food_snapshot
+    }
+    DAILY_SUMMARIES {
+        bigint summary_id PK
+        bigint user_id FK
+        date date_record
+        numeric total_calories_intake
+        numeric total_protein
+        numeric total_carbs
+        numeric total_fat
+        int water_glasses
+        int goal_calories
+        boolean is_goal_met
+    }
+    WATER_LOGS {
+        bigint log_id PK
+        bigint user_id FK
+        date date_record
+        int amount_ml
+        int glasses
+    }
+    WEIGHT_LOGS {
+        bigint log_id PK
+        bigint user_id FK
+        date recorded_date
+        numeric weight_kg
+    }
+    EXERCISE_LOGS {
+        bigint log_id PK
+        bigint user_id FK
+        date date_record
+        varchar activity_name
+        int duration_minutes
+        numeric calories_burned
+        varchar intensity
+    }
+    NOTIFICATIONS {
+        bigint notification_id PK
+        bigint user_id FK
+        varchar title
+        text message
+        varchar type
+        boolean is_read
+    }
+    USER_ALLERGY_PREFERENCES {
+        bigint user_id PK
+        int flag_id PK
+    }
+    ALLERGY_FLAGS {
+        int flag_id PK
+        varchar name
+        varchar description
+    }
+    FOODS {
+        bigint food_id PK
+        varchar food_name
+        food_type food_type
+        numeric calories
+        numeric protein
+        numeric carbs
+        numeric fat
+        int serving_unit_id FK
+    }
+    USER_FAVORITES {
+        bigint id PK
+        bigint user_id FK
+        bigint food_id FK
+    }
+    USER_GAMIFICATION {
+        bigint user_id PK
+        int tama_points
+        smallint tier_level
+        int current_streak
+        int total_login_days
+        jsonb claimed_badges
+    }
+    RECIPES {
+        bigint recipe_id PK
+        bigint food_id FK
+        text instructions
+        int prep_time_min
+        int cook_time_min
+        int servings
+    }
+    RECIPE_REVIEWS {
+        bigint review_id PK
+        bigint recipe_id FK
+        bigint user_id FK
+        int rating
+        text comment
+    }
+    RECIPE_FAVORITES {
+        bigint fav_id PK
+        bigint recipe_id FK
+        bigint user_id FK
+    }
+
+    ROLES ||--o{ USERS : "role_id (2=user)"
+    USERS ||--o{ MEALS : "logs meals"
+    MEALS ||--o{ DETAIL_ITEMS : "contains items"
+    FOODS ||--o{ DETAIL_ITEMS : "food selected"
+    USERS ||--o{ DAILY_SUMMARIES : "daily summary"
+    USERS ||--o{ WATER_LOGS : "water intake"
+    USERS ||--o{ WEIGHT_LOGS : "weight tracking"
+    USERS ||--o{ EXERCISE_LOGS : "activity log"
+    USERS ||--o{ NOTIFICATIONS : "receives"
+    USERS ||--o{ USER_ALLERGY_PREFERENCES : "allergy prefs"
+    ALLERGY_FLAGS ||--o{ USER_ALLERGY_PREFERENCES : "flag type"
+    USERS ||--o{ USER_FAVORITES : "favorites food"
+    FOODS ||--o{ USER_FAVORITES : "favorited by"
+    USERS ||--o| USER_GAMIFICATION : "game state"
+    FOODS ||--o| RECIPES : "has recipe"
+    RECIPES ||--o{ RECIPE_REVIEWS : "reviewed"
+    USERS ||--o{ RECIPE_REVIEWS : "writes review"
+    RECIPES ||--o{ RECIPE_FAVORITES : "saved recipe"
+    USERS ||--o{ RECIPE_FAVORITES : "saves recipe"
+        </div>
+      </div>
+      <div class="caption">
+        <strong>User ทำอะไรได้:</strong>
+        สมัครสมาชิกและตั้งค่าโปรไฟล์สุขภาพ → บันทึกอาหารรายวัน (<code>meals</code> + <code>detail_items</code>) →
+        บันทึกน้ำ น้ำหนัก และออกกำลังกาย → ตั้งค่า allergy preference →
+        ดู recipe, ให้คะแนน, และ save ของโปรด → สะสม tama points และ streak ใน gamification •
+        <strong>ข้อมูลทั้งหมดเป็นของตัวเอง (ownership check)</strong> — ไม่สามารถเข้าถึงข้อมูลของ user อื่นได้
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════════════
+       PANEL 2 — ADMIN SIDE
+  ══════════════════════════════════════════════════ -->
+  <div class="panel admin-panel">
+    <div class="panel-header">
+      <h2>🛡️ ฝั่ง Admin — จัดการข้อมูลกลางของระบบ</h2>
+      <p>Admin คือ row ในตาราง users ที่มี role_id = 1 • เข้าถึงได้ผ่าน endpoint /admin/* เท่านั้น</p>
+    </div>
+    <div class="panel-body">
+      <div class="diagram-wrap">
+        <div class="mermaid">
+erDiagram
+    ROLES {
+        int role_id PK
+        varchar role_name
+    }
+    ADMINS {
+        bigint user_id PK
+        int role_id FK
+        varchar email
+        varchar username
+    }
+    FOODS {
+        bigint food_id PK
+        varchar food_name
+        food_type food_type
+        numeric calories
+        numeric protein
+        numeric carbs
+        numeric fat
+        numeric sodium
+        numeric sugar
+        numeric fiber_g
+        int serving_unit_id FK
+        bigint dish_id FK
+        bigint current_version_id FK
+        timestamptz deleted_at
+    }
+    FOOD_VERSIONS {
+        bigint food_version_id PK
+        bigint food_id FK
+        int version_number
+        varchar food_name
+        numeric calories
+        boolean is_current
+        bigint created_by FK
+        text change_reason
+    }
+    DISH_CATEGORIES {
+        bigint dish_category_id PK
+        varchar category_name
+        food_type canonical_food_type
+    }
+    DISHES {
+        bigint dish_id PK
+        bigint dish_category_id FK
+        varchar dish_name
+        food_type canonical_food_type
+        varchar cuisine
+    }
+    UNITS {
+        int unit_id PK
+        varchar name
+        varchar symbol
+    }
+    ALLERGY_FLAGS {
+        int flag_id PK
+        varchar name
+        varchar description
+    }
+    FOOD_ALLERGY_FLAGS {
+        bigint food_id PK
+        int flag_id PK
+    }
+    INGREDIENTS {
+        bigint ingredient_id PK
+        varchar name
+        varchar category
+        int default_unit_id FK
+        numeric calories_per_unit
+        numeric protein_per_unit
+        numeric carbs_per_unit
+        numeric fat_per_unit
+    }
+    FOOD_INGREDIENTS {
+        bigint food_ing_id PK
+        bigint food_id FK
+        bigint ingredient_id FK
+        numeric amount
+        int unit_id FK
+        numeric calculated_grams
+    }
+    RECIPES {
+        bigint recipe_id PK
+        bigint food_id FK
+        text instructions
+        int prep_time_min
+        int cook_time_min
+        int servings
+        varchar source
+    }
+    RECIPE_STEPS {
+        bigint step_id PK
+        bigint recipe_id FK
+        int step_number
+        text instruction
+    }
+    RECIPE_INGREDIENTS {
+        bigint ing_id PK
+        bigint recipe_id FK
+        bigint ingredient_id FK
+        int unit_id FK
+        numeric quantity
+    }
+    FOOD_REGIONAL_NAMES {
+        bigint variant_id PK
+        bigint food_id FK
+        thai_region region
+        varchar name_th
+        boolean is_primary
+        bigint approved_by FK
+    }
+    FOOD_REGIONAL_POPULARITY {
+        bigint food_id PK
+        thai_region region PK
+        smallint popularity
+    }
+    HEALTH_CONTENTS {
+        bigint content_id PK
+        varchar title
+        content_type type
+        varchar category_tag
+        boolean is_published
+    }
+
+    ROLES ||--o{ ADMINS : "role_id (1=admin)"
+    DISH_CATEGORIES ||--o{ DISHES : "categorizes"
+    DISHES ||--o{ FOODS : "groups food"
+    UNITS ||--o{ FOODS : "serving unit"
+    FOODS ||--o{ FOOD_VERSIONS : "version history"
+    ADMINS ||--o{ FOOD_VERSIONS : "creates version"
+    ALLERGY_FLAGS ||--o{ FOOD_ALLERGY_FLAGS : "allergy type"
+    FOODS ||--o{ FOOD_ALLERGY_FLAGS : "has allergy"
+    INGREDIENTS ||--o{ FOOD_INGREDIENTS : "ingredient"
+    FOODS ||--o{ FOOD_INGREDIENTS : "composed of"
+    UNITS ||--o{ FOOD_INGREDIENTS : "ingredient unit"
+    FOODS ||--o| RECIPES : "has recipe"
+    RECIPES ||--o{ RECIPE_STEPS : "cooking steps"
+    INGREDIENTS ||--o{ RECIPE_INGREDIENTS : "ingredient"
+    RECIPES ||--o{ RECIPE_INGREDIENTS : "uses"
+    FOODS ||--o{ FOOD_REGIONAL_NAMES : "regional alias"
+    ADMINS ||--o{ FOOD_REGIONAL_NAMES : "approves"
+    FOODS ||--o{ FOOD_REGIONAL_POPULARITY : "popularity by region"
+        </div>
+      </div>
+      <div class="caption">
+        <strong>Admin ทำอะไรได้:</strong>
+        สร้าง/แก้ไข/ลบ (soft) อาหารใน <code>foods</code> พร้อม version history →
+        จัดการ <code>dish_categories</code>, <code>dishes</code>, <code>units</code>, <code>ingredients</code> →
+        กำหนด allergy flag ให้อาหาร → จัดการ recipe และขั้นตอนการทำ →
+        อนุมัติชื่ออาหารตามภูมิภาค (<code>food_regional_names</code>) →
+        จัดการ <code>health_contents</code> → ดูและแก้ไขข้อมูล users ทุกคน → ลบ user แบบ hard-delete •
+        <strong>Admin มองเห็นข้อมูลทุก user</strong> — ไม่ถูก ownership check จำกัด
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════════════
+       CROSS-DOMAIN REFERENCES NOTE
+  ══════════════════════════════════════════════════ -->
+  <div class="crossref">
+    <h3>🔗 ความสัมพันธ์ข้ามฝั่ง (Cross-Domain FK)</h3>
+    <ul>
+      <li><code>detail_items.food_id</code> → <code>foods.food_id</code> — User log เชื่อมกับ Admin-managed catalog</li>
+      <li><code>detail_items.food_version_id</code> → <code>food_versions.food_version_id</code> — snapshot ณ เวลาบันทึก</li>
+      <li><code>user_allergy_preferences.flag_id</code> → <code>allergy_flags.flag_id</code> — User เลือก flag ที่ Admin ดูแล</li>
+      <li><code>user_favorites.food_id</code> → <code>foods.food_id</code> — User mark favorite บนอาหารที่ Admin สร้าง</li>
+      <li><code>recipe_reviews / recipe_favorites</code> → <code>recipes</code> — User interact กับ recipe ที่ Admin จัดการ</li>
+      <li><code>food_versions.created_by</code> → <code>users.user_id</code> (role=admin) — ติดตามว่า Admin คนไหนแก้ไข</li>
+    </ul>
+  </div>
+
+  <!-- ══════════════════════════════════════════════════
+       PANEL 3 — MODERATION WORKFLOW
+  ══════════════════════════════════════════════════ -->
+  <div class="panel mod-panel">
+    <div class="panel-header">
+      <h2>🔄 Moderation Workflow — Admin อนุมัติข้อมูลจาก User</h2>
+      <p>User ส่งข้อมูลเข้า temp tables → Admin ตรวจสอบ → Approve เข้า production tables</p>
+    </div>
+    <div class="panel-body">
+      <div class="diagram-wrap">
+        <div class="mermaid">
+erDiagram
+    USERS {
+        bigint user_id PK
+        varchar email
+        int role_id
+    }
+    ADMINS {
+        bigint user_id PK
+        varchar email
+        varchar role
+    }
+    TEMP_FOOD {
+        bigint tf_id PK
+        bigint user_id FK
+        varchar food_name
+        numeric calories
+        numeric protein
+        numeric carbs
+        numeric fat
+        varchar image_url
+        request_status status
+        bigint reviewed_by FK
+        timestamptz reviewed_at
+    }
+    VERIFIED_FOOD {
+        bigint vf_id PK
+        bigint tf_id FK
+        bigint food_id FK
+        bigint verified_by FK
+        timestamptz verified_at
+    }
+    FOODS {
+        bigint food_id PK
+        varchar food_name
+        numeric calories
+        numeric protein
+        numeric carbs
+        numeric fat
+        timestamptz deleted_at
+    }
+    FOOD_REGIONAL_NAME_SUBMISSIONS {
+        bigint submission_id PK
+        bigint food_id FK
+        bigint user_id FK
+        thai_region region
+        varchar name_th
+        request_status status
+        bigint reviewed_by FK
+        timestamptz reviewed_at
+    }
+    FOOD_REGIONAL_NAMES {
+        bigint variant_id PK
+        bigint food_id FK
+        thai_region region
+        varchar name_th
+        boolean is_primary
+        bigint approved_by FK
+    }
+
+    USERS ||--o{ TEMP_FOOD : "submit food"
+    ADMINS ||--o{ TEMP_FOOD : "review (approve/reject)"
+    TEMP_FOOD ||--o| VERIFIED_FOOD : "on approve"
+    VERIFIED_FOOD ||--o| FOODS : "inserts into"
+    USERS ||--o{ FOOD_REGIONAL_NAME_SUBMISSIONS : "submit regional name"
+    FOODS ||--o{ FOOD_REGIONAL_NAME_SUBMISSIONS : "name submission for"
+    ADMINS ||--o{ FOOD_REGIONAL_NAME_SUBMISSIONS : "review"
+    FOOD_REGIONAL_NAME_SUBMISSIONS ||--o| FOOD_REGIONAL_NAMES : "on approve"
+    FOODS ||--o{ FOOD_REGIONAL_NAMES : "approved regional alias"
+        </div>
+      </div>
+      <div class="caption">
+        <strong>Workflow:</strong>
+        (1) User พบอาหารที่ไม่มีในระบบ → ส่งผ่าน <code>POST /foods/auto-add</code> → เข้า <code>temp_food</code> สถานะ <code>pending</code> →
+        (2) Admin เห็นที่ <code>GET /admin/temp-foods</code> → อนุมัติ (<code>POST /admin/temp-foods/{id}/approve</code>) → ระบบ insert เข้า <code>foods</code> และสร้าง <code>verified_food</code> record → backfill <code>detail_items</code> ของ User ที่รอ →
+        (3) ถ้า Admin ปฏิเสธ → <code>DELETE /admin/temp-foods/{id}</code> → สถานะ <code>rejected</code> •
+        กระบวนการเดียวกันใช้สำหรับ <code>food_regional_name_submissions</code>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════════════
+       PANEL 4 — ROLE ACCESS MATRIX
+  ══════════════════════════════════════════════════ -->
+  <div class="panel matrix-panel">
+    <div class="panel-header">
+      <h2>📋 Role Access Matrix — สิทธิ์การเข้าถึงแต่ละตาราง</h2>
+      <p>สรุปสิทธิ์ CRUD ของแต่ละ Role ตามที่ enforce จริงใน backend</p>
+    </div>
+    <div class="panel-body">
+      <!-- Legend badges -->
+      <div style="display:flex; flex-wrap:wrap; gap:8px; margin-bottom:16px; font-size:.8rem;">
+        <span class="badge b-full">🟢 CRUD เต็ม</span>
+        <span class="badge b-own">🟡 เฉพาะของตัวเอง</span>
+        <span class="badge b-read">🔵 อ่านได้ (Public)</span>
+        <span class="badge b-create">🟣 CREATE only</span>
+        <span class="badge b-admin">🔴 Admin เท่านั้น</span>
+        <span class="badge b-none">⚪ ไม่มีสิทธิ์โดยตรง</span>
+      </div>
+      <div style="overflow-x:auto;">
+        <table class="matrix-table">
+          <thead>
+            <tr>
+              <th>กลุ่ม</th>
+              <th>ตาราง (Table)</th>
+              <th>👤 User (role_id=2)</th>
+              <th>🛡️ Admin (role_id=1)</th>
+              <th>หมายเหตุ</th>
+            </tr>
+          </thead>
+          <tbody>
+            <!-- Identity -->
+            <tr>
+              <td>Identity</td>
+              <td>users</td>
+              <td><span class="badge b-own">READ own</span> <span class="badge b-own">UPDATE own</span> <span class="badge b-own">soft DELETE</span></td>
+              <td><span class="badge b-admin">READ all</span> <span class="badge b-admin">UPDATE any</span> <span class="badge b-admin">hard DELETE</span></td>
+              <td>User ลบบัญชีตัวเองได้ (soft, 30วัน), Admin ลบจริง (cascade)</td>
+            </tr>
+            <tr>
+              <td>Identity</td>
+              <td>roles</td>
+              <td><span class="badge b-read">READ (implicit)</span></td>
+              <td><span class="badge b-admin">READ / UPDATE user's role_id</span></td>
+              <td>Admin เปลี่ยน role_id ของ user ได้ผ่าน PATCH /admin/users/{id}</td>
+            </tr>
+            <!-- Auth -->
+            <tr>
+              <td>Auth</td>
+              <td>email_verification_codes</td>
+              <td><span class="badge b-create">CREATE (request)</span> <span class="badge b-own">READ own</span></td>
+              <td><span class="badge b-none">—</span></td>
+              <td>ส่ง OTP ผ่าน POST /verify-email</td>
+            </tr>
+            <tr>
+              <td>Auth</td>
+              <td>password_reset_codes</td>
+              <td><span class="badge b-create">CREATE (request)</span> <span class="badge b-own">READ own</span></td>
+              <td><span class="badge b-none">—</span></td>
+              <td>Flow: request → verify (birth_date) → confirm new password</td>
+            </tr>
+            <!-- Food Catalog -->
+            <tr>
+              <td>Food Catalog</td>
+              <td>foods</td>
+              <td><span class="badge b-read">READ (public)</span></td>
+              <td><span class="badge b-admin">CREATE / UPDATE / soft DELETE</span></td>
+              <td>GET /foods เป็น public; POST /foods admin-only</td>
+            </tr>
+            <tr>
+              <td>Food Catalog</td>
+              <td>food_versions</td>
+              <td><span class="badge b-read">READ (via food)</span></td>
+              <td><span class="badge b-admin">CREATE (on food edit)</span></td>
+              <td>เก็บประวัติการแก้ไขอาหาร, backfill detail_items ที่เชื่อม food นั้น</td>
+            </tr>
+            <tr>
+              <td>Food Catalog</td>
+              <td>dish_categories, dishes</td>
+              <td><span class="badge b-read">READ (public)</span></td>
+              <td><span class="badge b-admin">CRUD</span></td>
+              <td>ใช้จัด category ของอาหาร</td>
+            </tr>
+            <tr>
+              <td>Food Catalog</td>
+              <td>units</td>
+              <td><span class="badge b-read">READ (public)</span></td>
+              <td><span class="badge b-admin">CRUD</span></td>
+              <td>หน่วยวัด เช่น กรัม, ช้อนโต๊ะ, ถ้วย</td>
+            </tr>
+            <tr>
+              <td>Food Catalog</td>
+              <td>allergy_flags</td>
+              <td><span class="badge b-read">READ (select prefs)</span></td>
+              <td><span class="badge b-admin">CRUD</span></td>
+              <td>Master list ของ allergy เช่น gluten, dairy, nuts</td>
+            </tr>
+            <tr>
+              <td>Food Catalog</td>
+              <td>food_allergy_flags</td>
+              <td><span class="badge b-read">READ (implicit)</span></td>
+              <td><span class="badge b-admin">CREATE / DELETE</span></td>
+              <td>กำหนดว่าอาหารนั้นมี allergy ใดบ้าง</td>
+            </tr>
+            <tr>
+              <td>Food Catalog</td>
+              <td>ingredients, food_ingredients</td>
+              <td><span class="badge b-read">READ (via recipe)</span></td>
+              <td><span class="badge b-admin">CRUD</span></td>
+              <td>ส่วนผสมของอาหาร ใช้คำนวณโภชนาการ</td>
+            </tr>
+            <tr>
+              <td>Food Catalog</td>
+              <td>food_regional_names</td>
+              <td><span class="badge b-read">READ (search)</span></td>
+              <td><span class="badge b-admin">CREATE (on approve) / DELETE</span></td>
+              <td>ชื่ออาหารตามภูมิภาคไทย เช่น "ข้าวมันไก่" ต่างจังหวัด</td>
+            </tr>
+            <tr>
+              <td>Food Catalog</td>
+              <td>food_regional_popularity</td>
+              <td><span class="badge b-read">READ (search weight)</span></td>
+              <td><span class="badge b-admin">UPDATE</span></td>
+              <td>ความนิยมของชื่ออาหารในแต่ละภูมิภาค</td>
+            </tr>
+            <!-- Recipes -->
+            <tr>
+              <td>Recipes</td>
+              <td>recipes</td>
+              <td><span class="badge b-read">READ</span></td>
+              <td><span class="badge b-admin">CREATE / UPDATE</span></td>
+              <td>สูตรอาหาร ผูกกับ foods</td>
+            </tr>
+            <tr>
+              <td>Recipes</td>
+              <td>recipe_steps, recipe_tips, recipe_tools</td>
+              <td><span class="badge b-read">READ</span></td>
+              <td><span class="badge b-admin">CRUD</span></td>
+              <td>รายละเอียดวิธีทำและอุปกรณ์</td>
+            </tr>
+            <tr>
+              <td>Recipes</td>
+              <td>recipe_ingredients</td>
+              <td><span class="badge b-read">READ</span></td>
+              <td><span class="badge b-admin">CRUD</span></td>
+              <td>ส่วนผสมของสูตรอาหาร</td>
+            </tr>
+            <tr>
+              <td>Recipes</td>
+              <td>recipe_reviews</td>
+              <td><span class="badge b-own">CREATE / READ / UPDATE (own)</span></td>
+              <td><span class="badge b-admin">READ all / DELETE (moderate)</span></td>
+              <td>User ให้คะแนนและ comment recipe</td>
+            </tr>
+            <tr>
+              <td>Recipes</td>
+              <td>recipe_favorites</td>
+              <td><span class="badge b-own">CREATE / DELETE (own)</span></td>
+              <td><span class="badge b-none">—</span></td>
+              <td>User bookmark recipe ที่ชอบ</td>
+            </tr>
+            <!-- Logging -->
+            <tr>
+              <td>Logging</td>
+              <td>meals</td>
+              <td><span class="badge b-own">CREATE / READ / UPDATE / DELETE (own)</span></td>
+              <td><span class="badge b-none">—</span></td>
+              <td>POST /meals/{user_id}, PUT /meals/{user_id}/{meal_id}</td>
+            </tr>
+            <tr>
+              <td>Logging</td>
+              <td>detail_items</td>
+              <td><span class="badge b-own">CREATE (via meal) / READ (own)</span></td>
+              <td><span class="badge b-none">—</span></td>
+              <td>เก็บ food_snapshot ป้องกัน data drift เมื่ออาหารถูกแก้ไข</td>
+            </tr>
+            <tr>
+              <td>Logging</td>
+              <td>daily_summaries</td>
+              <td><span class="badge b-own">READ (own, auto-gen)</span></td>
+              <td><span class="badge b-admin">READ all</span></td>
+              <td>ระบบ generate ให้อัตโนมัติ User ไม่ต้องสร้างเอง</td>
+            </tr>
+            <tr>
+              <td>Logging</td>
+              <td>water_logs</td>
+              <td><span class="badge b-own">CREATE / READ / UPDATE (own)</span></td>
+              <td><span class="badge b-none">—</span></td>
+              <td>unique(user_id, date_record) — 1 record ต่อวัน</td>
+            </tr>
+            <tr>
+              <td>Logging</td>
+              <td>weight_logs</td>
+              <td><span class="badge b-own">CREATE / READ (own)</span></td>
+              <td><span class="badge b-none">—</span></td>
+              <td>ใช้คำนวณ BMI trend และ goal progress</td>
+            </tr>
+            <tr>
+              <td>Logging</td>
+              <td>exercise_logs</td>
+              <td><span class="badge b-own">CREATE / READ (own)</span></td>
+              <td><span class="badge b-none">—</span></td>
+              <td>ใช้หักแคลอรี่ที่เผาผลาญออกจาก net intake</td>
+            </tr>
+            <!-- Preferences -->
+            <tr>
+              <td>Preferences</td>
+              <td>user_allergy_preferences</td>
+              <td><span class="badge b-own">CREATE / READ / DELETE (own)</span></td>
+              <td><span class="badge b-none">—</span></td>
+              <td>ใช้กรองอาหารที่เสี่ยงต่อ allergy ใน recommended foods</td>
+            </tr>
+            <tr>
+              <td>Preferences</td>
+              <td>user_favorites</td>
+              <td><span class="badge b-own">CREATE / READ / DELETE (own)</span></td>
+              <td><span class="badge b-none">—</span></td>
+              <td>bookmark อาหารที่ชอบ</td>
+            </tr>
+            <!-- Gamification -->
+            <tr>
+              <td>Gamification</td>
+              <td>user_gamification</td>
+              <td><span class="badge b-own">READ own</span> <span class="badge b-own">UPDATE (sync tama points)</span></td>
+              <td><span class="badge b-admin">READ all / UPDATE any (points, tier, badges)</span></td>
+              <td>PATCH /admin/users/{id}/tama — Admin ปรับแต้มได้โดยตรง</td>
+            </tr>
+            <!-- Notifications -->
+            <tr>
+              <td>Notifications</td>
+              <td>notifications</td>
+              <td><span class="badge b-own">READ own / UPDATE (mark read)</span></td>
+              <td><span class="badge b-admin">CREATE (system push) / READ all</span></td>
+              <td>ใช้ FCM token สำหรับ push notification</td>
+            </tr>
+            <!-- Content -->
+            <tr>
+              <td>Content</td>
+              <td>health_contents</td>
+              <td><span class="badge b-read">READ (published only)</span></td>
+              <td><span class="badge b-admin">CRUD / PUBLISH</span></td>
+              <td>บทความสุขภาพ ระบบกรองเฉพาะที่ is_published=true ให้ User</td>
+            </tr>
+            <!-- Moderation -->
+            <tr>
+              <td>Moderation</td>
+              <td>temp_food</td>
+              <td><span class="badge b-create">CREATE (submit)</span></td>
+              <td><span class="badge b-admin">READ all / DELETE (reject)</span></td>
+              <td>POST /foods/auto-add → pending → Admin review</td>
+            </tr>
+            <tr>
+              <td>Moderation</td>
+              <td>verified_food</td>
+              <td><span class="badge b-none">—</span></td>
+              <td><span class="badge b-admin">CREATE (on approve)</span></td>
+              <td>สร้างอัตโนมัติเมื่อ Admin approve temp_food</td>
+            </tr>
+            <tr>
+              <td>Moderation</td>
+              <td>food_regional_name_submissions</td>
+              <td><span class="badge b-create">CREATE (submit)</span></td>
+              <td><span class="badge b-admin">READ all / APPROVE / REJECT</span></td>
+              <td>User submit ชื่ออาหารภาษาท้องถิ่น → Admin ตรวจสอบ</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- Footer -->
+  <div style="text-align:center; color:#94a3b8; font-size:.75rem; margin-top:8px;">
+    CaloriesGuard — ER Diagram Role-Based View •
+    Source: <code>docs/ER_DIAGRAM_USER_ADMIN_SLIDE_VERSION_TH.md</code> +
+    <code>docs/ER_DIAGRAM_FULL_VERSION_2026_05_05.md</code>
+  </div>
+</div>
+
+<script>
+  mermaid.initialize({
+    startOnLoad: true,
+    theme: 'default',
+    er: {
+      layoutDirection: 'TB',
+      useMaxWidth: true,
+      diagramPadding: 20,
+      entityPadding: 15,
+      minEntityWidth: 100,
+      minEntityHeight: 75
+    }
+  });
+
+  // Remove loading note once Mermaid finishes
+  document.addEventListener('DOMContentLoaded', function () {
+    setTimeout(function () {
+      var note = document.querySelector('.loading-note');
+      if (note) note.style.display = 'none';
+    }, 3000);
+  });
+</script>
+</body>
+</html>

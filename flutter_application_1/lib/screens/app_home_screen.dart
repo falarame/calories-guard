@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../providers/user_data_provider.dart';
 import 'dart:convert';
+import 'dart:async';
 import '/screens/profile/subprofile_screen/progress_screen.dart';
 import '/screens/profile/subprofile_screen/tdee_formula_screen.dart';
 import '../../services/api_client.dart';
@@ -41,6 +42,9 @@ class _AppHomeScreenState extends ConsumerState<AppHomeScreen> {
   late DateTime _viewDate;
   int _streak = 0;
 
+  // Feature 2: copy-yesterday notification action listener
+  VoidCallback? _payloadListener;
+
   @override
   void initState() {
     super.initState();
@@ -48,6 +52,23 @@ class _AppHomeScreenState extends ConsumerState<AppHomeScreen> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _syncViewDateFromProvider();
       _fetchAllData();
+      // Feature 2: listen for copy_yesterday notification action
+      _payloadListener = () {
+        final payload = NotificationHelper.pendingPayload.value;
+        if (payload != null && payload.startsWith('copy_yesterday:')) {
+          final mealType = payload.substring('copy_yesterday:'.length);
+          NotificationHelper.pendingPayload.value = null;
+          _handleCopyYesterday(mealType);
+        }
+      };
+      NotificationHelper.pendingPayload.addListener(_payloadListener!);
+      // Handle payload that arrived before listener was set (app launched from notification)
+      final initialPayload = NotificationHelper.pendingPayload.value;
+      if (initialPayload != null && initialPayload.startsWith('copy_yesterday:')) {
+        final mealType = initialPayload.substring('copy_yesterday:'.length);
+        NotificationHelper.pendingPayload.value = null;
+        WidgetsBinding.instance.addPostFrameCallback((_) => _handleCopyYesterday(mealType));
+      }
       ref.listenManual(navIndexProvider, (prev, next) {
         if (next == 0 && prev != 0) {
           _syncViewDateFromProvider();
@@ -67,6 +88,48 @@ class _AppHomeScreenState extends ConsumerState<AppHomeScreen> {
         }
       });
     });
+  }
+
+  @override
+  void dispose() {
+    if (_payloadListener != null) {
+      NotificationHelper.pendingPayload.removeListener(_payloadListener!);
+    }
+    super.dispose();
+  }
+
+  // Feature 2: copy yesterday's meal via API then refresh home
+  Future<void> _handleCopyYesterday(String mealType) async {
+    if (!mounted) return;
+    final userId = ref.read(userDataProvider).userId;
+    if (userId == 0) return;
+    try {
+      final res = await ApiClient().post(
+        '/meals/$userId/copy-yesterday',
+        body: {'meal_type': mealType},
+      );
+      if (!mounted) return;
+      if (res.statusCode == 200) {
+        final data = json.decode(res.body);
+        final copied = data['copied'] as int? ?? 0;
+        if (copied > 0) {
+          ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+            content: Text('✅ คัดลอก $copied รายการจากเมื่อวานแล้ว'),
+            backgroundColor: const Color(0xFF628141),
+            duration: const Duration(seconds: 3),
+          ));
+          ref.read(dailyFoodRevisionProvider.notifier).state++;
+          await _fetchDailyData(_viewDate);
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+            content: Text('ไม่มีข้อมูลมื้ออาหารเมื่อวาน'),
+            duration: Duration(seconds: 2),
+          ));
+        }
+      }
+    } catch (e) {
+      debugPrint('[copy_yesterday] error: $e');
+    }
   }
 
   void _syncViewDateFromProvider() {
@@ -102,6 +165,8 @@ class _AppHomeScreenState extends ConsumerState<AppHomeScreen> {
       // P3: schedule streak warning ถ้ายังไม่ได้บันทึกวันนี้ + โหลด streak
       StreakService.scheduleWarningIfNeeded();
       final streak = await StreakService.getStreak();
+      // Celebration: notify on streak milestones (3, 7, 14, 30 days)
+      unawaited(NotificationHelper.showStreakCelebration(streak));
       // Tier 2.5: check permission denied flag
       final permDenied = await NotificationHelper.isPermissionDenied();
       if (mounted) {
@@ -164,7 +229,20 @@ class _AppHomeScreenState extends ConsumerState<AppHomeScreen> {
         );
         ref.read(userDataProvider.notifier).setDailySummaryFromApi(summaryData);
 
-        // Tier 2.4: Smart suppression — cancel meal reminders for meals already logged today
+        // Feature 1: cache today's macro data for personalised notification copy
+        if (_isToday(forDate)) {
+          final userData = ref.read(userDataProvider);
+          unawaited(NotificationHelper.cacheHomeMacros(
+            proteinEaten: userData.consumedProtein,
+            proteinTarget: userData.targetProtein,
+            caloriesEaten: userData.consumedCalories,
+            caloriesTarget: userData.targetCalories.toInt(),
+          ));
+          // Re-schedule meals once per day with personalised copy
+          unawaited(NotificationHelper.reschedulePersonalizedMeals());
+        }
+
+        // Tier 2.4 + Gap Filling: manage meal reminders based on today's log state
         if (_isToday(forDate)) {
           final mealItems =
               summaryData['meal_items'] as Map<String, dynamic>? ?? {};
@@ -172,8 +250,20 @@ class _AppHomeScreenState extends ConsumerState<AppHomeScreen> {
             final items = mealItems[mealType];
             final hasItems = items is List && items.isNotEmpty;
             if (hasItems) {
+              // Already logged → cancel recurring + gap-fill reminders
               NotificationHelper.suppressTodayMealReminder(mealType);
+            } else {
+              // Not logged yet → schedule gap-fill urgent notification at deadline
+              unawaited(NotificationHelper.scheduleGapFillIfNeeded(mealType));
             }
+          }
+
+          // Celebration: check if daily calorie goal achieved (within ±10%)
+          final userData = ref.read(userDataProvider);
+          final target = userData.targetCalories.toInt();
+          final eaten = userData.consumedCalories;
+          if (target > 0 && eaten >= (target * 0.9).toInt() && eaten <= (target * 1.1).toInt()) {
+            unawaited(NotificationHelper.showGoalAchievedNotification(eaten));
           }
         }
       }

@@ -112,6 +112,16 @@ class FcmService {
   }
 
   static void _onMessageOpenedApp(RemoteMessage message) {
+    // type=chat payload from community router → encode conversation_id so
+    // MainScreen can route into the conversation detail screen.
+    final type = message.data['type'] as String?;
+    if (type == 'chat') {
+      final convId = message.data['conversation_id']?.toString();
+      if (convId != null && convId.isNotEmpty) {
+        NotificationHelper.pendingPayload.value = 'chat:$convId';
+        return;
+      }
+    }
     final payload = message.data['payload'] as String?;
     if (payload != null && payload.isNotEmpty) {
       // ส่งให้ MainScreen handle ผ่าน pendingPayload (P2 deep linking)

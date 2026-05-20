@@ -5,6 +5,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../providers/user_data_provider.dart';
 import 'verify_email_screen.dart';
 import '../../services/auth_service.dart';
+import '../../services/community_api.dart';
+import '../../services/pending_invite.dart';
+import '../../models/community_models.dart';
 
 class RegisterScreen extends ConsumerStatefulWidget {
   const RegisterScreen({super.key});
@@ -37,11 +40,29 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
   bool _pwUpperOk = false;
   bool _pwSpecialOk = false;
 
+  // --- Pending invite (captured by PendingInvite via deep link) ---
+  String? _pendingReferralCode;
+  ReferralPreview? _referralPreview;
+
   @override
   void initState() {
     super.initState();
     _emailController.addListener(_onEmailChanged);
     _passwordController.addListener(_onPasswordChanged);
+    _checkPendingInvite();
+  }
+
+  Future<void> _checkPendingInvite() async {
+    final code = await PendingInvite.peek();
+    if (code == null || !mounted) return;
+    setState(() => _pendingReferralCode = code);
+    try {
+      final preview = await CommunityApi.instance.previewReferral(code);
+      if (mounted) setState(() => _referralPreview = preview);
+    } catch (_) {
+      // expired/invalid — just drop the chip, don't error the form
+      if (mounted) setState(() => _pendingReferralCode = null);
+    }
   }
 
   @override
@@ -71,6 +92,44 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
         _pwSpecialOk = specialOk;
       });
     }
+  }
+
+  Widget _buildReferralChip() {
+    final preview = _referralPreview!;
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+      decoration: BoxDecoration(
+        color: const Color(0xFFE8EFCF),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: const Color(0xFF628141).withValues(alpha: 0.4)),
+      ),
+      child: Row(
+        children: [
+          CircleAvatar(
+            radius: 18,
+            backgroundColor: Colors.white,
+            backgroundImage: (preview.inviterAvatar?.isNotEmpty ?? false)
+                ? NetworkImage(preview.inviterAvatar!)
+                : null,
+            child: (preview.inviterAvatar?.isEmpty ?? true)
+                ? const Icon(Icons.card_giftcard, color: Color(0xFF628141))
+                : null,
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text('${preview.inviterUsername} เชิญคุณ',
+                    style: const TextStyle(fontWeight: FontWeight.bold, color: Color(0xFF3D5A27))),
+                const Text('สมัครเลยรับ 20 gems ฟรี!',
+                    style: TextStyle(fontSize: 12, color: Color(0xFF3D5A27))),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
   }
 
   Widget _pwRuleRow(String text, bool ok) {
@@ -255,7 +314,17 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
     // Call API
     setState(() => _isLoading = true);
 
-    final result = await _authService.register(fullName, email, password);
+    // Pull-and-clear the pending invite so it's only used once
+    final referralCode = _pendingReferralCode != null
+        ? await PendingInvite.consume()
+        : null;
+
+    final result = await _authService.register(
+      fullName,
+      email,
+      password,
+      referralCode: referralCode,
+    );
 
     setState(() => _isLoading = false);
 
@@ -330,6 +399,10 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                                     fontWeight: FontWeight.w500,
                                     color: Colors.black),
                               ),
+                              if (_referralPreview != null) ...[
+                                const SizedBox(height: 16),
+                                _buildReferralChip(),
+                              ],
                               SizedBox(height: isWide ? 48 : 36),
                               _buildLabel('ชื่อ *'),
                               _buildTextField(_firstNameController),

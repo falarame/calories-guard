@@ -54,8 +54,9 @@ class AuthService {
   Future<Map<String, dynamic>> register(
     String username,
     String email,
-    String password,
-  ) async {
+    String password, {
+    String? referralCode,
+  }) async {
     try {
       final availability = await checkEmailAvailable(email);
       if (availability['networkError'] != true &&
@@ -76,6 +77,8 @@ class AuthService {
         'username': username,
         'email': email,
         'password': password,
+        if (referralCode != null && referralCode.isNotEmpty)
+          'referral_code': referralCode,
       });
 
       if (response.statusCode == 200) {
@@ -540,6 +543,33 @@ class AuthService {
 
   Future<void> signOut() async {
     await _supabase.auth.signOut();
+  }
+
+  // --- Session Restore ---
+
+  /// Called on cold-start: if a valid Supabase session exists, exchange it for
+  /// a fresh backend token without requiring the user to log in again.
+  Future<Map<String, dynamic>?> restoreSession() async {
+    final session = _supabase.auth.currentSession;
+    if (session == null) return null;
+
+    // Use the persisted Supabase token — the backend accepts it via the same
+    // SUPABASE_JWT_SECRET used to issue backend tokens.
+    final supabaseToken = session.accessToken;
+    try {
+      final response = await _api.get(
+        '/me',
+        extraHeaders: {'Authorization': 'Bearer $supabaseToken'},
+      );
+      if (response.statusCode == 200) {
+        final data = _parseJson(response.body);
+        if (data == null) return null;
+        final backendToken = data['access_token'] as String?;
+        if (backendToken != null) ApiClient.setManualToken(backendToken);
+        return data;
+      }
+    } catch (_) {}
+    return null;
   }
 
   // --- Current User ---

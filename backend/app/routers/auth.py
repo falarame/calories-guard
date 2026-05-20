@@ -4,8 +4,9 @@ import secrets
 from datetime import date, datetime, timedelta, timezone
 from random import randint
 
-from fastapi import APIRouter, HTTPException, Request
+from fastapi import APIRouter, Depends, HTTPException, Request
 from psycopg2.extras import RealDictCursor
+from auth.dependencies import get_current_user
 from slowapi import Limiter
 from slowapi.util import get_remote_address
 from jose import jwt
@@ -17,6 +18,7 @@ from app.core.observability import track
 from app.services.email_service import (
     send_welcome_email, send_verification_email, send_password_reset_email,
 )
+from app.services.referral_service import grant_referral_rewards_for_user
 from app.models.schemas import (
     UserRegister, UserLogin, UserVerifyEmail,
     PasswordResetRequest, PasswordResetVerify, PasswordResetConfirm,
@@ -239,6 +241,52 @@ def _is_expired(expires_at: datetime) -> bool:
     return expires_at < datetime.utcnow()
 
 
+@router.get("/me")
+async def get_me(current_user: dict = Depends(get_current_user)):
+    """Return the calling user's profile and a fresh access token.
+
+    Used by the Flutter app on cold-start to restore a persisted Supabase
+    session without requiring the user to type their password again.
+    """
+    user_id = current_user.get("user_id")
+    if not user_id:
+        raise HTTPException(status_code=401, detail="Cannot resolve user identity")
+
+    conn = get_db_connection()
+    try:
+        cur = conn.cursor(cursor_factory=RealDictCursor)
+        cur.execute(
+            "SELECT * FROM cleangoal.users WHERE user_id = %s AND deleted_at IS NULL",
+            (user_id,),
+        )
+        db_user = cur.fetchone()
+        if not db_user:
+            raise HTTPException(status_code=404, detail="User not found")
+
+        access_token = _issue_access_token(
+            db_user["user_id"], db_user["email"], db_user["role_id"]
+        )
+        return {
+            "user_id": db_user["user_id"],
+            "username": db_user["username"],
+            "email": db_user["email"],
+            "role_id": db_user["role_id"],
+            "current_streak": int(db_user.get("current_streak") or 0),
+            "access_token": access_token,
+            "token_type": "Bearer",
+            "onboarding_required": _onboarding_required(db_user),
+        }
+    except HTTPException:
+        raise
+    except Exception:
+        import traceback
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail="Failed to load profile")
+    finally:
+        if conn:
+            conn.close()
+
+
 @router.get("/check-email")
 @limiter.limit("20/minute")
 def check_email(request: Request, email: str):
@@ -289,17 +337,18 @@ def register(request: Request, user: UserRegister):
                 UPDATE users
                 SET username = %s,
                     password_hash = %s,
+                    pending_referral_code = COALESCE(%s, pending_referral_code),
                     updated_at = NOW()
                 WHERE user_id = %s
                 RETURNING user_id, email, username
-            """, (username, hashed_pw, existing_user["user_id"]))
+            """, (username, hashed_pw, (user.referral_code or None), existing_user["user_id"]))
         else:
             try:
                 cur.execute("""
-                    INSERT INTO users (email, password_hash, username, role_id, is_email_verified)
-                    VALUES (%s, %s, %s, 2, FALSE)
+                    INSERT INTO users (email, password_hash, username, role_id, is_email_verified, pending_referral_code)
+                    VALUES (%s, %s, %s, 2, FALSE, %s)
                     RETURNING user_id, email, username
-                """, (email, hashed_pw, username))
+                """, (email, hashed_pw, username, (user.referral_code or None)))
             except Exception as e:
                 conn.rollback()
                 # psycopg2 UniqueViolation → race condition between check and insert
@@ -363,6 +412,30 @@ def verify_email(req: UserVerifyEmail):
             "UPDATE users SET is_email_verified = TRUE WHERE user_id = %s",
             (user['user_id'],),
         )
+
+        # Ensure this user has a referral code generated (so they can invite others).
+        # Safe to call repeatedly — ON CONFLICT DO NOTHING.
+        try:
+            cur.execute(
+                """
+                INSERT INTO cleangoal.referral_codes (user_id, code)
+                VALUES (%s, cleangoal.gen_referral_code())
+                ON CONFLICT (user_id) DO NOTHING
+                """,
+                (user['user_id'],),
+            )
+        except Exception as e:
+            # gen_referral_code() lives in v31 migration; if it's missing locally
+            # we don't want signup to fail — just skip silently.
+            print(f"[verify-email] ensure referral_code failed: {e}")
+
+        # Two-sided referral reward grant — idempotent via UNIQUE constraints.
+        reward_summary = None
+        try:
+            reward_summary = grant_referral_rewards_for_user(conn, int(user['user_id']))
+        except Exception as e:
+            print(f"[verify-email] referral reward grant failed: {e}")
+
         conn.commit()
 
         # Welcome email is a nice-to-have; never block verification on SMTP.
@@ -376,6 +449,7 @@ def verify_email(req: UserVerifyEmail):
             "user_id": user['user_id'],
             "access_token": _issue_access_token(user['user_id'], user['email'], int(user.get('role_id') or 2)),
             "token_type": "bearer",
+            "referral_reward": reward_summary,
         }
     except HTTPException:
         conn.rollback()

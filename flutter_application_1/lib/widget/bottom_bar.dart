@@ -16,6 +16,8 @@ import '../screens/profile/profile_screen.dart';
 import '../screens/profile/subprofile_screen/progress_screen.dart';
 import '../screens/weight/weight_chart_screen.dart';
 import '../screens/chat/chat_screen.dart';
+import '../screens/community/conversations_list_screen.dart';
+import '../providers/community_providers.dart';
 import '../services/notification_helper.dart';
 import 'notification_sheet.dart';
 
@@ -61,6 +63,20 @@ class _MainScreenState extends ConsumerState<MainScreen> {
     final payload = NotificationHelper.pendingPayload.value;
     if (payload == null || !mounted) return;
     NotificationHelper.pendingPayload.value = null;
+
+    // FCM chat push: 'chat:<conversation_id>' → open conversation detail
+    if (payload.startsWith('chat:')) {
+      final convIdStr = payload.substring(5);
+      final convId = int.tryParse(convIdStr);
+      if (convId != null) {
+        ref.read(navIndexProvider.notifier).state = 0;
+        Navigator.push(
+          context,
+          MaterialPageRoute(builder: (_) => const ConversationsListScreen()),
+        );
+      }
+      return;
+    }
 
     switch (payload) {
       case 'record_food':
@@ -260,6 +276,14 @@ class _MainScreenState extends ConsumerState<MainScreen> {
           ),
           const Spacer(),
           const NotificationBell(),
+          _ChatIconButton(
+            onTap: () {
+              Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                      builder: (_) => const ConversationsListScreen()));
+            },
+          ),
           GestureDetector(
             onTap: () {
               Navigator.push(
@@ -286,6 +310,47 @@ class _MainScreenState extends ConsumerState<MainScreen> {
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+class _ChatIconButton extends ConsumerWidget {
+  final VoidCallback onTap;
+  const _ChatIconButton({required this.onTap});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final unread = ref.watch(chatUnreadCountProvider);
+    return GestureDetector(
+      onTap: onTap,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 8),
+        child: Stack(
+          clipBehavior: Clip.none,
+          children: [
+            const Icon(Icons.chat_bubble_outline, color: Colors.white, size: 24),
+            if (unread > 0)
+              Positioned(
+                right: -6,
+                top: -4,
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
+                  constraints: const BoxConstraints(minWidth: 16, minHeight: 16),
+                  decoration: BoxDecoration(
+                    color: Colors.redAccent,
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: const Color(0xFF628141), width: 1.5),
+                  ),
+                  child: Text(
+                    unread > 99 ? '99+' : '$unread',
+                    style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold),
+                    textAlign: TextAlign.center,
+                  ),
+                ),
+              ),
+          ],
+        ),
       ),
     );
   }

@@ -1,0 +1,12 @@
+[
+  {
+    "relation": ["delegate_permission/common.handle_all_urls"],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "com.caloriesguard.app",
+      "sha256_cert_fingerprints": [
+        "93:2D:27:9F:9E:7A:A5:A6:78:76:14:E1:1B:49:BC:9F:90:E9:BB:EB:1F:48:F7:07:6E:F4:48:67:92:3D:D3:57"
+      ]
+    }
+  }
+]

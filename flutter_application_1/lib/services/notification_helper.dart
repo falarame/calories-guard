@@ -49,6 +49,21 @@ class NotificationHelper {
   // Custom water times (comma-separated hours, e.g. "10,14,16,20")
   static const _prefKeyWaterTimesHH = 'water_times_hh';
 
+  // Feature 1: cached macro data written by app_home_screen after daily fetch
+  static const _prefKeyCachedMacroDate = 'cached_macro_date';
+  static const _prefKeyCachedProteinEaten = 'cached_protein_eaten';
+  static const _prefKeyCachedProteinTarget = 'cached_protein_target';
+  static const _prefKeyCachedCaloriesEaten = 'cached_calories_eaten';
+  static const _prefKeyCachedCaloriesTarget = 'cached_calories_target';
+
+  // Feature 3: smart / adaptive timing keys
+  static const _prefKeySmartTimingEnabled = 'smart_timing_enabled';
+  static const _prefKeySmartBreakfastHm = 'smart_breakfast_hm';
+  static const _prefKeySmartLunchHm = 'smart_lunch_hm';
+  static const _prefKeySmartDinnerHm = 'smart_dinner_hm';
+  // Throttle daily re-personalisation to once per calendar day
+  static const _prefKeyLastPersonalizedDate = 'last_personalized_date';
+
   // Per-category toggles
   static String _catKey(NotificationCategory cat) => 'notif_cat_${cat.name}';
 
@@ -130,17 +145,55 @@ class NotificationHelper {
 
   static Future<int> getBreakfastHm() async {
     final prefs = await SharedPreferences.getInstance();
+    if (prefs.getBool(_prefKeySmartTimingEnabled) ?? false) {
+      final smart = prefs.getInt(_prefKeySmartBreakfastHm);
+      if (smart != null && smart > 0) return smart;
+    }
     return prefs.getInt(_prefKeyBreakfastHm) ?? 800;
   }
 
   static Future<int> getLunchHm() async {
     final prefs = await SharedPreferences.getInstance();
+    if (prefs.getBool(_prefKeySmartTimingEnabled) ?? false) {
+      final smart = prefs.getInt(_prefKeySmartLunchHm);
+      if (smart != null && smart > 0) return smart;
+    }
     return prefs.getInt(_prefKeyLunchHm) ?? 1200;
   }
 
   static Future<int> getDinnerHm() async {
     final prefs = await SharedPreferences.getInstance();
+    if (prefs.getBool(_prefKeySmartTimingEnabled) ?? false) {
+      final smart = prefs.getInt(_prefKeySmartDinnerHm);
+      if (smart != null && smart > 0) return smart;
+    }
     return prefs.getInt(_prefKeyDinnerHm) ?? 1800;
+  }
+
+  // Feature 3: smart timing toggle
+  static Future<bool> isSmartTimingEnabled() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getBool(_prefKeySmartTimingEnabled) ?? false;
+  }
+
+  static Future<void> setSmartTimingEnabled(bool val) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool(_prefKeySmartTimingEnabled, val);
+    // Reschedule so new timing takes effect immediately
+    if (await isEnabled()) await scheduleMealReminders();
+  }
+
+  // Feature 3: read smart suggestion times (for display in settings)
+  static Future<Map<String, int>> getSmartSuggestedTimes() async {
+    final prefs = await SharedPreferences.getInstance();
+    final result = <String, int>{};
+    final bf = prefs.getInt(_prefKeySmartBreakfastHm);
+    final ln = prefs.getInt(_prefKeySmartLunchHm);
+    final dn = prefs.getInt(_prefKeySmartDinnerHm);
+    if (bf != null && bf > 0) result['breakfast'] = bf;
+    if (ln != null && ln > 0) result['lunch'] = ln;
+    if (dn != null && dn > 0) result['dinner'] = dn;
+    return result;
   }
 
   static Future<void> setBreakfastHm(int hm) async {
@@ -217,6 +270,112 @@ class NotificationHelper {
     return true;
   }
 
+  // ── Feature 2: meal type from notification ID ──────────────────────────────
+
+  static String _mealTypeFromNotifId(int id) {
+    switch (id) {
+      case 101:
+        return 'breakfast';
+      case 102:
+        return 'lunch';
+      case 103:
+        return 'dinner';
+      default:
+        return 'breakfast';
+    }
+  }
+
+  // ── Feature 1: cache macro data (called from app_home_screen) ─────────────
+
+  /// Saves today's eaten/target macros to SharedPreferences so that
+  /// [scheduleMealReminders] can generate personalised notification copy.
+  static Future<void> cacheHomeMacros({
+    required int proteinEaten,
+    required int proteinTarget,
+    required int caloriesEaten,
+    required int caloriesTarget,
+  }) async {
+    if (kIsWeb) return;
+    final prefs = await SharedPreferences.getInstance();
+    final today = DateTime.now();
+    final todayStr =
+        '${today.year}-${today.month.toString().padLeft(2, '0')}-${today.day.toString().padLeft(2, '0')}';
+    await prefs.setString(_prefKeyCachedMacroDate, todayStr);
+    await prefs.setInt(_prefKeyCachedProteinEaten, proteinEaten);
+    await prefs.setInt(_prefKeyCachedProteinTarget, proteinTarget);
+    await prefs.setInt(_prefKeyCachedCaloriesEaten, caloriesEaten);
+    await prefs.setInt(_prefKeyCachedCaloriesTarget, caloriesTarget);
+  }
+
+  /// Re-schedule meal reminders with personalised copy once per calendar day.
+  static Future<void> reschedulePersonalizedMeals() async {
+    if (kIsWeb) return;
+    final prefs = await SharedPreferences.getInstance();
+    final today = DateTime.now();
+    final todayStr =
+        '${today.year}-${today.month.toString().padLeft(2, '0')}-${today.day.toString().padLeft(2, '0')}';
+    if ((prefs.getString(_prefKeyLastPersonalizedDate) ?? '') == todayStr) {
+      return; // already personalised today
+    }
+    if (!await isEnabled()) return;
+    if (!await isCategoryEnabled(NotificationCategory.meal)) return;
+    await scheduleMealReminders();
+    await prefs.setString(_prefKeyLastPersonalizedDate, todayStr);
+  }
+
+  /// Returns a personalised (title, body) for dinner/lunch based on today's
+  /// cached macro data.  Returns null when data is stale or insufficient.
+  static Future<(String, String)?> _personalizedMealCopy(
+      String mealType) async {
+    if (kIsWeb) return null;
+    final prefs = await SharedPreferences.getInstance();
+    final today = DateTime.now();
+    final todayStr =
+        '${today.year}-${today.month.toString().padLeft(2, '0')}-${today.day.toString().padLeft(2, '0')}';
+    if ((prefs.getString(_prefKeyCachedMacroDate) ?? '') != todayStr) {
+      return null; // stale or missing cache
+    }
+
+    final proteinEaten = prefs.getInt(_prefKeyCachedProteinEaten) ?? 0;
+    final proteinTarget = prefs.getInt(_prefKeyCachedProteinTarget) ?? 0;
+    final calEaten = prefs.getInt(_prefKeyCachedCaloriesEaten) ?? 0;
+    final calTarget = prefs.getInt(_prefKeyCachedCaloriesTarget) ?? 0;
+
+    if (calTarget <= 0) return null;
+
+    final proteinDeficit = proteinTarget - proteinEaten;
+    final calRemaining = calTarget - calEaten;
+
+    if (mealType == 'dinner') {
+      if (proteinDeficit >= 15 && proteinTarget > 0) {
+        return (
+          '🥩 ขาดโปรตีนอยู่นะ!',
+          'วันนี้ยังขาดโปรตีนอีก ${proteinDeficit}g ลองเพิ่มไข่ต้มหรือเนื้อมื้อเย็นด้วยนะ',
+        );
+      }
+      if (calRemaining <= 100 && calEaten > 0) {
+        return (
+          '✋ เกือบเต็มโควตาแล้ว!',
+          'เหลือพื้นที่อีกแค่ ~$calRemaining kcal มื้อเย็นเลือกเบาๆ นะครับ',
+        );
+      }
+      if (calRemaining >= 500 && calEaten > 0) {
+        return (
+          '🍽️ ยังเหลืออีก $calRemaining kcal',
+          'มื้อเย็นนี้ทานให้ครบตามเป้าหมายได้เลย 💪',
+        );
+      }
+    } else if (mealType == 'lunch') {
+      if (proteinDeficit >= 25 && proteinTarget > 0) {
+        return (
+          '🥗 มื้อเที่ยงเพิ่มโปรตีนหน่อยนะ',
+          'ขาดโปรตีนอีก ${proteinDeficit}g ลองเพิ่มไข่หรือเนื้อสักอย่าง',
+        );
+      }
+    }
+    return null; // no specific insight → fall through to generic copy
+  }
+
   // ── Init ──────────────────────────────────────────────────────────────────
 
   static Future<void> init() async {
@@ -232,12 +391,16 @@ class NotificationHelper {
         DarwinNotificationCategory(
           'MEAL_REMINDER',
           actions: [
-            DarwinNotificationAction.plain('snooze_30m', 'เลื่อน 30 นาที'),
+            DarwinNotificationAction.plain(
+              'copy_yesterday',
+              'ทานเหมือนเดิม ✓',
+            ),
             DarwinNotificationAction.plain(
               'log_now',
-              'บันทึกเลย',
+              'บันทึกเอง',
               options: {DarwinNotificationActionOption.foreground},
             ),
+            DarwinNotificationAction.plain('snooze_30m', 'เลื่อน 30 นาที'),
           ],
         ),
         DarwinNotificationCategory(
@@ -293,7 +456,13 @@ class NotificationHelper {
     final payload = response.payload;
     final notifId = response.id ?? 0;
 
-    if (actionId == 'log_now') {
+    if (actionId == 'copy_yesterday') {
+      // Feature 2: Micro-Interactions — "same as yesterday?"
+      final mealType = _mealTypeFromNotifId(notifId);
+      pendingPayload.value = 'copy_yesterday:$mealType';
+      ErrorReporter.event('notification.action.copy_yesterday',
+          data: {'id': notifId, 'mealType': mealType});
+    } else if (actionId == 'log_now') {
       pendingPayload.value = 'record_food';
       ErrorReporter.event('notification.action.log_now',
           data: {'id': notifId});
@@ -415,7 +584,7 @@ class NotificationHelper {
   static Future<void> _cancelCategory(NotificationCategory cat) async {
     switch (cat) {
       case NotificationCategory.meal:
-        for (final id in [101, 102, 103]) {
+        for (final id in [101, 102, 103, 111, 112, 113]) {
           await _notification.cancel(id);
         }
       case NotificationCategory.water:
@@ -436,11 +605,104 @@ class NotificationHelper {
     }
   }
 
+  // ── Gap Filling (Notification Hierarchy: Urgent type) ─────────────────────
+  // IDs 111/112/113 = gap-fill one-shots (separate from recurring 101/102/103)
+
+  static const _gapIds = {'breakfast': 111, 'lunch': 112, 'dinner': 113};
+
+  // Deadlines (hhmm format) after which gap-fill fires if meal not logged
+  static const _gapDeadlines = {
+    'breakfast': 930,  // 09:30
+    'lunch': 1400,     // 14:00
+    'dinner': 2030,    // 20:30
+  };
+
+  /// Schedule a one-shot "Urgent" gap-fill notification for [mealType] at the
+  /// deadline time — only if the deadline is in the future and no notification
+  /// is already pending for that ID.  Cancelled automatically by
+  /// [suppressTodayMealReminder] when the user logs the meal.
+  static Future<void> scheduleGapFillIfNeeded(String mealType) async {
+    if (kIsWeb) return;
+    if (!await isEnabled()) return;
+    if (!await isCategoryEnabled(NotificationCategory.meal)) return;
+
+    final id = _gapIds[mealType];
+    final deadlineHm = _gapDeadlines[mealType];
+    if (id == null || deadlineHm == null) return;
+
+    final now = tz.TZDateTime.now(tz.local);
+    final deadlineH = deadlineHm ~/ 100;
+    final deadlineM = deadlineHm % 100;
+    var deadline = tz.TZDateTime(
+        tz.local, now.year, now.month, now.day, deadlineH, deadlineM);
+
+    if (!deadline.isAfter(now)) return; // deadline already passed today
+
+    // Shift out of quiet hours
+    if (await isQuietHoursEnabled()) {
+      final startMin = await getQuietHoursStartMin();
+      final endMin = await getQuietHoursEndMin();
+      if (_isInQuietHours(deadline.toLocal(), startMin, endMin)) return;
+    }
+
+    final (String title, String body) = switch (mealType) {
+      'breakfast' => ('🍳 ยังไม่ได้บันทึกมื้อเช้าเลยนะ',
+          'กินเช้าแล้วหรือยัง? บันทึกไว้เพื่อเริ่มนับแคลอรี่วันนี้'),
+      'lunch' => ('🍱 ยังไม่เห็นมื้อเที่ยงเลยนะ',
+          'กินข้าวกลางวันแล้วหรือยัง? บันทึกเร็วๆ นี้เลย'),
+      _ => ('🌙 มื้อเย็นยังไม่มีข้อมูลเลยนะ',
+          'วันนี้ยังขาดมื้อเย็น บันทึกก่อนนอนเพื่อดูสรุปแคลอรี่ทั้งวัน'),
+    };
+
+    await _notification.zonedSchedule(
+      id,
+      title,
+      body,
+      deadline,
+      const NotificationDetails(
+        android: AndroidNotificationDetails(
+          'channel_id_urgent',
+          'Urgent Reminders',
+          importance: Importance.max,
+          priority: Priority.high,
+          actions: [
+            AndroidNotificationAction('log_now', 'บันทึกเลย',
+                showsUserInterface: true),
+            AndroidNotificationAction('copy_yesterday', 'ทานเหมือนเดิม ✓'),
+          ],
+        ),
+        iOS: DarwinNotificationDetails(categoryIdentifier: 'MEAL_REMINDER'),
+      ),
+      androidScheduleMode: AndroidScheduleMode.inexactAllowWhileIdle,
+      uiLocalNotificationDateInterpretation:
+          UILocalNotificationDateInterpretation.absoluteTime,
+      payload: 'record_food',
+    );
+    ErrorReporter.event('notification.gap_fill.scheduled', data: {
+      'mealType': mealType,
+      'deadline': deadline.toIso8601String(),
+    });
+  }
+
+  /// Cancel the gap-fill notification for [mealType] (called when meal is logged).
+  static Future<void> cancelGapFill(String mealType) async {
+    final id = _gapIds[mealType];
+    if (id != null) await _notification.cancel(id);
+  }
+
+  /// Cancel ALL cancel gap-fill notifications.
+  static Future<void> cancelAllGapFills() async {
+    for (final id in _gapIds.values) {
+      await _notification.cancel(id);
+    }
+  }
+
   /// Cancel every scheduled notification (used when master toggle is OFF).
   static Future<void> cancelAllScheduled() async {
     if (kIsWeb) return;
     const scheduledIds = [
-      101, 102, 103, // meal
+      101, 102, 103, // meal (recurring)
+      111, 112, 113, // meal gap-fill (one-shot urgent)
       301, // recap
       401, // motivation
       500, 501, 502, 503, 504, 505, 506, 507, // water (up to 8 slots)
@@ -456,7 +718,7 @@ class NotificationHelper {
   /// Full cleanup on logout / account delete.
   static Future<void> signOutCleanup(int userId) async {
     if (kIsWeb) return;
-    await cancelAllScheduled();
+    await cancelAllScheduled(); // includes gap-fill IDs via cancelAllScheduled
     await FcmService.clearToken(userId);
     await StreakService.clear();
     final prefs = await SharedPreferences.getInstance();
@@ -471,6 +733,20 @@ class NotificationHelper {
       _prefKeyLunchHm,
       _prefKeyDinnerHm,
       _prefKeyWaterTimesHH,
+      // Feature 1: cached macros
+      _prefKeyCachedMacroDate,
+      _prefKeyCachedProteinEaten,
+      _prefKeyCachedProteinTarget,
+      _prefKeyCachedCaloriesEaten,
+      _prefKeyCachedCaloriesTarget,
+      // Feature 3: smart timing
+      _prefKeySmartTimingEnabled,
+      _prefKeySmartBreakfastHm,
+      _prefKeySmartLunchHm,
+      _prefKeySmartDinnerHm,
+      _prefKeyLastPersonalizedDate,
+      // Celebration dedup
+      'goal_celebrated_date',
     ]) {
       await prefs.remove(key);
     }
@@ -501,6 +777,7 @@ class NotificationHelper {
     }
 
     await _notification.cancel(id);
+    await cancelGapFill(mealType); // Gap Filling: cancel urgent one-shot too
 
     final prefs = await SharedPreferences.getInstance();
     final prefKey = mealType == 'breakfast'
@@ -546,9 +823,10 @@ class NotificationHelper {
           importance: Importance.max,
           priority: Priority.high,
           actions: [
-            AndroidNotificationAction('snooze_30m', 'เลื่อน 30 นาที'),
-            AndroidNotificationAction('log_now', 'บันทึกเลย',
+            AndroidNotificationAction('copy_yesterday', 'ทานเหมือนเดิม ✓'),
+            AndroidNotificationAction('log_now', 'บันทึกเอง',
                 showsUserInterface: true),
+            AndroidNotificationAction('snooze_30m', 'เลื่อน 30 นาที'),
           ],
         ),
         iOS: DarwinNotificationDetails(categoryIdentifier: 'MEAL_REMINDER'),
@@ -561,23 +839,24 @@ class NotificationHelper {
     );
   }
 
-  // ── Copy variation (Tier 4.4) ──────────────────────────────────────────────
+  // ── Copy variation — Empathic Tone (Feature 3) ────────────────────────────
 
   static (String, String) _mealCopy(String type) {
+    // Empathic, conversational tone; avoids commands like "อย่าลืม"
     const breakfast = [
-      ('🍳 มื้อเช้าสำคัญนะ!', 'อย่าลืมบันทึกอาหารเช้าลง CaloriesGuard นะครับ'),
-      ('☀️ เริ่มวันดีๆ ด้วยมื้อเช้า', 'บันทึกอาหารเช้าเพื่อเริ่มนับแคลอรี่วันนี้ได้เลย'),
-      ('🥐 เช้าแล้ว อย่าลืมกิน!', 'มื้อเช้าช่วยเพิ่มพลังงานสำหรับวันใหม่ บันทึกเลย'),
+      ('☀️ เริ่มวันดีๆ กันเลยนะ', 'กินข้าวเช้าแล้วหรือยัง? จดบันทึกเอาไว้สักหน่อยนะ'),
+      ('🍳 มื้อเช้าเป็นยังไงบ้าง?', 'พลังงานดีๆ เริ่มจากมื้อเช้า บันทึกเดี๋ยวนี้เลย'),
+      ('🥐 ตื่นมาแล้วต้องกิน!', 'มื้อเช้าช่วยให้สมองตื่นตัวตลอดเช้า บันทึกไว้นะครับ'),
     ];
     const lunch = [
-      ('🍱 เที่ยงแล้ว กินไรยัง?', 'ทานมื้อเที่ยงแล้วมาจดบันทึกกันเถอะ'),
-      ('🌞 มื้อกลางวันถึงแล้ว', 'อย่าลืมบันทึกอาหารเที่ยงเพื่อติดตามแคลอรี่'),
-      ('🍜 ถึงเวลากินข้าวกลางวัน', 'จดบันทึกมื้อเที่ยงเพื่อรักษาเป้าหมาย'),
+      ('🍱 มื้อเที่ยงวันนี้เป็นไง?', 'พลังงานเพียงพอสำหรับช่วงบ่ายไหม? จดบันทึกเลยนะ'),
+      ('🌞 กินข้าวกลางวันแล้วหรือยัง?', 'บันทึกมื้อเที่ยงเพื่อเช็กว่าบ่ายนี้ยังเหลือโควตาอีกแค่ไหน'),
+      ('🍜 หิวแล้วใช่ไหม?', 'ทานให้อร่อยนะ แล้วอย่าลืมบันทึกหลังกินเสร็จด้วยล่ะ'),
     ];
     const dinner = [
-      ('🥗 มื้อเย็นเบาๆ กันเถอะ', 'จบวันแล้ว สรุปยอดแคลอรี่กันหน่อย'),
-      ('🌙 ค่ำแล้ว บันทึกมื้อเย็น', 'อย่าลืมจดบันทึกอาหารเย็นก่อนนอน'),
-      ('🍽️ มื้อสุดท้ายของวัน', 'บันทึกมื้อเย็นเพื่อดูสรุปแคลอรี่วันนี้'),
+      ('🌙 วันนี้เป็นยังไงบ้าง?', 'มื้อเย็นเบาๆ ก็โอเคนะ จดบันทึกก่อนพักผ่อนสักหน่อย'),
+      ('🥗 จวนจะจบวันแล้ว', 'บันทึกมื้อเย็นเพื่อดูสรุปแคลอรี่ทั้งวันนะ'),
+      ('🍽️ มื้อสุดท้ายวันนี้', 'กินเสร็จแล้วแวะมาบันทึกที่นี่ก่อนนอนเลยนะ'),
     ];
     final pool = type == 'breakfast'
         ? breakfast
@@ -588,24 +867,21 @@ class NotificationHelper {
   }
 
   static (String, String) _waterCopy() {
+    // Insight-driven: mix of hydration facts and direct encouragement
     const variants = [
-      ('💧 จิบน้ำหน่อยมั้ย?',
-          'ดื่มน้ำเพื่อสุขภาพผิวและการเผาผลาญที่ดีนะครับ'),
-      ('🥤 ได้เวลาดื่มน้ำ!',
-          'ดื่มน้ำอย่างน้อย 8 แก้วต่อวันช่วยให้ร่างกายสดชื่น'),
-      ('💦 อย่าลืมดื่มน้ำ', 'น้ำช่วยเพิ่มประสิทธิภาพการเผาผลาญ ดื่มเลย!'),
+      ('💧 จิบน้ำหน่อยนะ', 'การดื่มน้ำพอช่วยลดความอยากของว่างได้ด้วยนะครับ'),
+      ('🥤 น้ำช่วยได้มากกว่าที่คิด', 'ดื่มน้ำเยอะๆ ช่วยให้เผาผลาญดีและผิวสวยขึ้นด้วย'),
+      ('💦 ร่างกายต้องการน้ำตอนนี้', 'บ่ายนี้ดื่มน้ำให้ครบนะ ช่วยให้ไม่ง่วงและลดความหิวด้วย'),
+      ('🌊 ไม่ต้องรอกระหายก่อนก็ได้', 'ดื่มน้ำสม่ำเสมอดีกว่ารอให้ปากแห้ง ร่างกายขอบคุณนะ'),
     ];
     return variants[_rng.nextInt(variants.length)];
   }
 
   static (String, String) _motivationCopy() {
     const variants = [
-      ('🔥 เช้าวันใหม่ สดใสกว่าเดิม',
-          'วินัยเริ่มต้นที่ตัวเรา วันนี้สู้ๆ นะครับ!'),
-      ('💪 วันใหม่ พลังใหม่',
-          'เป้าหมายรอคุณอยู่ เริ่มวันนี้ให้ดีที่สุด'),
-      ('⚡ ตื่นเช้า ร่างกายพร้อม',
-          'วันนี้เป็นวันที่ดี เริ่มบันทึกอาหารตั้งแต่มื้อแรก'),
+      ('🔥 วันใหม่ โอกาสใหม่', 'วินัยสร้างได้ทุกวัน เริ่มบันทึกมื้อแรกกันเลยนะ'),
+      ('💪 ทำได้อีกวัน!', 'คุณทำมาต่อเนื่องแล้ว วันนี้รักษาโมเมนตัมนี้ไว้นะครับ'),
+      ('⚡ ตื่นเช้า พร้อมเริ่ม', 'เป้าหมายรอคุณอยู่ เริ่มบันทึกอาหารมื้อแรกกันเลย'),
     ];
     return variants[_rng.nextInt(variants.length)];
   }
@@ -747,12 +1023,15 @@ class NotificationHelper {
 
   static Future<void> scheduleMealReminders() async {
     if (kIsWeb) return;
+    // Feature 2: add "ทานเหมือนเดิม" quick-copy action on all meal notifications
     const actions = [
-      AndroidNotificationAction('snooze_30m', 'เลื่อน 30 นาที'),
-      AndroidNotificationAction('log_now', 'บันทึกเลย',
+      AndroidNotificationAction('copy_yesterday', 'ทานเหมือนเดิม ✓'),
+      AndroidNotificationAction('log_now', 'บันทึกเอง',
           showsUserInterface: true),
+      AndroidNotificationAction('snooze_30m', 'เลื่อน 30 นาที'),
     ];
 
+    // Breakfast (ID 101) — always generic: no prior-day data at 8am
     final breakfastHm = await getBreakfastHm();
     final breakfastCopy = _mealCopy('breakfast');
     await scheduleDailyNotification(
@@ -766,8 +1045,10 @@ class NotificationHelper {
       iosCategoryId: 'MEAL_REMINDER',
     );
 
+    // Lunch (ID 102) — Feature 1: personalised if morning data available
     final lunchHm = await getLunchHm();
-    final lunchCopy = _mealCopy('lunch');
+    final lunchPersonal = await _personalizedMealCopy('lunch');
+    final lunchCopy = lunchPersonal ?? _mealCopy('lunch');
     await scheduleDailyNotification(
       id: 102,
       title: lunchCopy.$1,
@@ -779,8 +1060,10 @@ class NotificationHelper {
       iosCategoryId: 'MEAL_REMINDER',
     );
 
+    // Dinner (ID 103) — Feature 1: personalised with current-day macro deficit
     final dinnerHm = await getDinnerHm();
-    final dinnerCopy = _mealCopy('dinner');
+    final dinnerPersonal = await _personalizedMealCopy('dinner');
+    final dinnerCopy = dinnerPersonal ?? _mealCopy('dinner');
     await scheduleDailyNotification(
       id: 103,
       title: dinnerCopy.$1,
@@ -1084,6 +1367,56 @@ class NotificationHelper {
     }
   }
 
+  // ── Celebration notifications (Notification Hierarchy) ────────────────────
+
+  /// Fired when user hits their daily calorie goal (within ±10%).
+  /// Uses ID 901 = same as re-engagement day-2 slot (mutually exclusive).
+  static Future<void> showGoalAchievedNotification(int calories) async {
+    if (kIsWeb) return;
+    final prefs = await SharedPreferences.getInstance();
+    final today = DateTime.now();
+    final todayStr =
+        '${today.year}-${today.month.toString().padLeft(2, '0')}-${today.day.toString().padLeft(2, '0')}';
+    // Celebrate once per day
+    if ((prefs.getString('goal_celebrated_date') ?? '') == todayStr) return;
+    await prefs.setString('goal_celebrated_date', todayStr);
+
+    const celebrations = [
+      ('🎉 เป้าหมายวันนี้ครบแล้ว!', 'สุดยอดมาก! วันนี้คุณทำตามแผนโภชนาการได้ดีมากเลยนะ 💪'),
+      ('✅ ทำได้แล้ววันนี้!', 'คุณกินพลังงานตรงตามเป้าหมายวันนี้ รักษาโมเมนตัมนี้ไว้นะ!'),
+      ('🌟 วันดีๆ อีกวัน', 'แคลอรี่วันนี้ครบแล้ว ขอบคุณที่รักษาสุขภาพของตัวเองนะ'),
+    ];
+    final copy = celebrations[DateTime.now().millisecondsSinceEpoch % celebrations.length];
+    await showNotification(
+      id: 9001,
+      title: copy.$1,
+      body: copy.$2,
+      payload: 'home',
+      bypassRateLimit: true,
+    );
+    ErrorReporter.event('notification.celebration.goal_achieved',
+        data: {'calories': calories});
+  }
+
+  /// Fired when user reaches a new streak milestone (3, 7, 14, 30 days).
+  static Future<void> showStreakCelebration(int streak) async {
+    if (kIsWeb) return;
+    if (streak < 3) return;
+    if (![3, 7, 14, 30].contains(streak) && streak % 30 != 0) return;
+
+    final emoji = streak >= 30 ? '🏆' : streak >= 14 ? '🥇' : streak >= 7 ? '🥈' : '🎯';
+    await showNotification(
+      id: 9002,
+      title: '$emoji Streak $streak วัน! ยอดเยี่ยมมาก!',
+      body: 'คุณบันทึกอาหารต่อเนื่อง $streak วันแล้ว! '
+          '${streak >= 30 ? "นั่นคือเกือบเดือนเต็มๆ เลย!" : streak >= 7 ? "ครบสัปดาห์แล้วนะ!" : "รักษาไว้นะ!"}',
+      payload: 'home',
+      bypassRateLimit: true,
+    );
+    ErrorReporter.event('notification.celebration.streak',
+        data: {'streak': streak});
+  }
+
   static Future<void> showMonthlySummary({
     required bool trigger,
     required int? goalDaysLeft,
@@ -1159,6 +1492,81 @@ class NotificationHelper {
         );
       case 'calorie':
         await showCalorieAlert(2000, 1800);
+
+      // ── New feature tests ────────────────────────────────────────────────
+      case 'meal_actions':
+        // Test meal notification WITH action buttons (copy_yesterday, log_now, snooze)
+        await _notification.show(
+          9905,
+          '🍱 [Test] มื้อเที่ยงวันนี้เป็นไง?',
+          'พลังงานพอไหม? กด "ทานเหมือนเดิม" หรือ "บันทึกเอง"',
+          const NotificationDetails(
+            android: AndroidNotificationDetails(
+              'channel_id_daily',
+              'Daily Reminders',
+              importance: Importance.max,
+              priority: Priority.high,
+              actions: [
+                AndroidNotificationAction('copy_yesterday', 'ทานเหมือนเดิม ✓'),
+                AndroidNotificationAction('log_now', 'บันทึกเอง',
+                    showsUserInterface: true),
+                AndroidNotificationAction('snooze_30m', 'เลื่อน 30 นาที'),
+              ],
+            ),
+            iOS: DarwinNotificationDetails(categoryIdentifier: 'MEAL_REMINDER'),
+          ),
+          payload: 'record_food',
+        );
+
+      case 'gap_fill':
+        // Schedule gap-fill 10 seconds from now (for quick testing)
+        final testTime = tz.TZDateTime.now(tz.local)
+            .add(const Duration(seconds: 10));
+        await _notification.zonedSchedule(
+          9906,
+          '🍽️ [Test] ยังไม่เห็นมื้อเย็นเลยนะ',
+          'วันนี้ยังขาดมื้อเย็น บันทึกก่อนนอนเพื่อดูสรุปแคลอรี่ทั้งวัน',
+          testTime,
+          const NotificationDetails(
+            android: AndroidNotificationDetails(
+              'channel_id_urgent',
+              'Urgent Reminders',
+              importance: Importance.max,
+              priority: Priority.high,
+              actions: [
+                AndroidNotificationAction('log_now', 'บันทึกเลย',
+                    showsUserInterface: true),
+                AndroidNotificationAction('copy_yesterday', 'ทานเหมือนเดิม ✓'),
+              ],
+            ),
+            iOS: DarwinNotificationDetails(categoryIdentifier: 'MEAL_REMINDER'),
+          ),
+          androidScheduleMode: AndroidScheduleMode.inexactAllowWhileIdle,
+          uiLocalNotificationDateInterpretation:
+              UILocalNotificationDateInterpretation.absoluteTime,
+          payload: 'record_food',
+        );
+
+      case 'celebration_goal':
+        // Test goal-achieved celebration
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.remove('goal_celebrated_date'); // reset dedup
+        await showGoalAchievedNotification(1500);
+
+      case 'celebration_streak':
+        // Test streak milestone celebration
+        await showStreakCelebration(7);
+
+      case 'personalized_dinner':
+        // Test personalized dinner copy (protein deficit scenario)
+        await showNotification(
+          id: 9907,
+          title: '🥩 ขาดโปรตีนอยู่นะ!',
+          body: 'วันนี้ยังขาดโปรตีนอีก 25g ลองเพิ่มไข่ต้มหรือเนื้อมื้อเย็นด้วยนะ',
+          payload: 'record_food',
+          bypassRateLimit: true,
+          bypassQuiet: true,
+        );
     }
   }
 }

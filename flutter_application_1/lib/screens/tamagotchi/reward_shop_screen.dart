@@ -121,8 +121,9 @@ class _RewardShopScreenState extends State<RewardShopScreen> {
   Future<void> _loadFreeze() async {
     final prefs = await SharedPreferences.getInstance();
     final ms = prefs.getInt(_freezeKey);
-    if (ms != null && mounted)
+    if (ms != null && mounted) {
       setState(() => _freezeUntil = DateTime.fromMillisecondsSinceEpoch(ms));
+    }
   }
 
   Future<void> _redeem(_Reward r) async {
@@ -131,7 +132,9 @@ class _RewardShopScreenState extends State<RewardShopScreen> {
     if ((!isFreeze && _claimed.contains(r.id)) ||
         _gems < r.cost ||
         r.comingSoon ||
-        alreadyFrozen) return;
+        alreadyFrozen) {
+      return;
+    }
     final confirm = await showDialog<bool>(
       context: context,
       builder: (_) => AlertDialog(
@@ -171,11 +174,12 @@ class _RewardShopScreenState extends State<RewardShopScreen> {
     if (isFreeze) {
       final until = DateTime.now().add(const Duration(days: 2));
       await prefs.setInt(_freezeKey, until.millisecondsSinceEpoch);
-      if (mounted)
+      if (mounted) {
         setState(() {
           _gems = newGems;
           _freezeUntil = until;
         });
+      }
       widget.onGemsUpdated(newGems);
       ApiClient().patch('/users/${widget.userId}/tama-points',
           body: {'gems': newGems, 'tier_level': widget.tierIdx}).ignore();
@@ -275,14 +279,14 @@ class _RewardShopScreenState extends State<RewardShopScreen> {
                             fontFamily: 'Inter')),
                   ]),
             ),
-            Column(crossAxisAlignment: CrossAxisAlignment.end, children: [
-              const Text('หมดอายุ 30 วัน',
+            const Column(crossAxisAlignment: CrossAxisAlignment.end, children: [
+              Text('หมดอายุ 30 วัน',
                   style: TextStyle(
                       color: Colors.white54,
                       fontSize: 10,
                       fontFamily: 'Inter')),
-              const SizedBox(height: 2),
-              const Text('ใช้แลกรางวัลด้านล่าง',
+              SizedBox(height: 2),
+              Text('ใช้แลกรางวัลด้านล่าง',
                   style: TextStyle(
                       color: Colors.white70,
                       fontSize: 10,

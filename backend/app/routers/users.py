@@ -515,7 +515,44 @@ def get_notification_prefs(
         if not row:
             raise HTTPException(status_code=404, detail="User not found")
         prefs = row["notification_prefs"] or {}
-        return {"user_id": user_id, "notification_prefs": prefs}
+
+        # Feature 3 – Adaptive Timing: compute 7-day rolling average log time
+        # per meal type, subtract 30 min to get the suggested reminder time.
+        suggested_meal_times: dict = {}
+        try:
+            cur.execute("""
+                SELECT meal_type::text,
+                       ROUND(AVG(
+                           EXTRACT(HOUR FROM (meal_time AT TIME ZONE 'Asia/Bangkok')) * 60
+                           + EXTRACT(MINUTE FROM (meal_time AT TIME ZONE 'Asia/Bangkok'))
+                       ))::int AS avg_min
+                FROM meals
+                WHERE user_id = %s
+                  AND (meal_time AT TIME ZONE 'Asia/Bangkok')::date
+                      >= CURRENT_DATE - INTERVAL '7 days'
+                  AND meal_type IN ('breakfast', 'lunch', 'dinner')
+                GROUP BY meal_type
+            """, (user_id,))
+            for r in cur.fetchall():
+                avg_min = int(r["avg_min"] or 0)
+                if avg_min <= 0:
+                    continue
+                # Buffer Zone: remind 15 min AFTER typical log time
+                # (user has finished eating and is ready to open the app)
+                suggest_min = min(avg_min + 15, 23 * 60 + 59)
+                hm = (suggest_min // 60) * 100 + (suggest_min % 60)
+                meal_key = {"breakfast": "breakfastHm", "lunch": "lunchHm",
+                            "dinner": "dinnerHm"}.get(r["meal_type"])
+                if meal_key:
+                    suggested_meal_times[meal_key] = hm
+        except Exception:
+            pass  # non-critical; omit field on error
+
+        return {
+            "user_id": user_id,
+            "notification_prefs": prefs,
+            "suggested_meal_times": suggested_meal_times,
+        }
     finally:
         if conn:
             conn.close()

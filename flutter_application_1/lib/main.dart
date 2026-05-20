@@ -18,6 +18,7 @@ import 'services/auth_service.dart';
 import 'services/notification_helper.dart';
 import 'services/fcm_service.dart';
 import 'services/api_client.dart';
+import 'services/pending_invite.dart';
 import 'theme/app_theme.dart';
 import 'constants/constants.dart';
 import 'widget/bottom_bar.dart';
@@ -55,6 +56,10 @@ void main() async {
     // Will be connected to navigation once we have a global navigator key
     Supabase.instance.client.auth.signOut();
   };
+
+  // Start listening for invite deep-links (universal + custom scheme).
+  // Safe to fail silently on platforms where app_links isn't available.
+  unawaited(PendingInvite.init());
 
   const sentryDsn = String.fromEnvironment('SENTRY_DSN', defaultValue: '');
 
@@ -211,6 +216,7 @@ class AuthBootstrap extends ConsumerStatefulWidget {
 class _AuthBootstrapState extends ConsumerState<AuthBootstrap> {
   StreamSubscription<AuthState>? _authSub;
   bool _socialSyncing = false;
+  bool _checking = true; // shows splash while restoring session
 
   @override
   void initState() {
@@ -220,14 +226,52 @@ class _AuthBootstrapState extends ConsumerState<AuthBootstrap> {
         _openResetPasswordScreen();
         return;
       }
-      if (event.event == AuthChangeEvent.initialSession ||
-          event.event == AuthChangeEvent.signedIn) {
+      if (event.event == AuthChangeEvent.signedIn) {
         _resumeOAuthSession(event.session);
       }
     });
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      _resumeOAuthSession();
-    });
+    // Try to restore any persisted session (email/password OR OAuth)
+    WidgetsBinding.instance.addPostFrameCallback((_) => _tryRestoreSession());
+  }
+
+  Future<void> _tryRestoreSession() async {
+    // 1. OAuth users: let _resumeOAuthSession handle via initialSession event.
+    //    Email/password users: call /me with the persisted Supabase token.
+    final supabase = Supabase.instance.client.auth;
+    final session = supabase.currentSession;
+
+    if (session != null) {
+      final provider = _oauthProviderFrom(session.user.appMetadata);
+      final isOAuth = provider.isNotEmpty && provider != 'email' && provider != 'phone';
+
+      if (isOAuth) {
+        // OAuth path: _resumeOAuthSession will be triggered by initialSession event
+        await _resumeOAuthSession(session);
+      } else {
+        // Email/password path: restore via /me endpoint
+        final data = await AuthService().restoreSession();
+        if (!mounted) return;
+        if (data != null) {
+          ref.read(userDataProvider.notifier).setUserId(data['user_id'] as int);
+          ref.read(userDataProvider.notifier).setLoginInfo(
+                data['email'] as String? ?? session.user.email ?? '',
+                '',
+              );
+          if (mounted) {
+            final needsOnboarding = data['onboarding_required'] == true;
+            routeAfterAuth(
+              context,
+              ref,
+              destination: (_) =>
+                  needsOnboarding ? const GenderSelectionScreen() : const MainScreen(),
+            );
+            return;
+          }
+        }
+      }
+    }
+
+    if (mounted) setState(() => _checking = false);
   }
 
   void _openResetPasswordScreen() {
@@ -312,5 +356,15 @@ class _AuthBootstrapState extends ConsumerState<AuthBootstrap> {
   }
 
   @override
-  Widget build(BuildContext context) => const WelcomeScreen();
+  Widget build(BuildContext context) {
+    if (_checking) {
+      return const Scaffold(
+        backgroundColor: Color(0xFFF5F7F0),
+        body: Center(
+          child: CircularProgressIndicator(color: Color(0xFF628141)),
+        ),
+      );
+    }
+    return const WelcomeScreen();
+  }
 }

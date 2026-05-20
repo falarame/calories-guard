@@ -685,6 +685,9 @@ class _NotifPrefsSheetState extends State<_NotifPrefsSheet> {
   int _lnHm = 1200;
   int _dnHm = 1800;
   List<int> _waterHH = [10, 14, 16, 20];
+  // Feature 3: adaptive timing
+  bool _smartTimingEnabled = false;
+  Map<String, int> _smartSuggested = {};
 
   @override
   void initState() {
@@ -704,6 +707,8 @@ class _NotifPrefsSheetState extends State<_NotifPrefsSheet> {
     final ln = await NotificationHelper.getLunchHm();
     final dn = await NotificationHelper.getDinnerHm();
     final wt = await NotificationHelper.getWaterTimesHH();
+    final smartEnabled = await NotificationHelper.isSmartTimingEnabled();
+    final smartSuggested = await NotificationHelper.getSmartSuggestedTimes();
     if (mounted) {
       setState(() {
         _cats.addAll(catMap);
@@ -714,6 +719,8 @@ class _NotifPrefsSheetState extends State<_NotifPrefsSheet> {
         _lnHm = ln;
         _dnHm = dn;
         _waterHH = List<int>.from(wt);
+        _smartTimingEnabled = smartEnabled;
+        _smartSuggested = smartSuggested;
         _loaded = true;
       });
     }
@@ -801,6 +808,18 @@ class _NotifPrefsSheetState extends State<_NotifPrefsSheet> {
     if (await NotificationHelper.isEnabled()) {
       await NotificationHelper.scheduleMealReminders();
     }
+    await _pushPrefs();
+  }
+
+  // Feature 3: adaptive timing toggle
+  Future<void> _toggleSmartTiming(bool val) async {
+    setState(() => _smartTimingEnabled = val);
+    await NotificationHelper.setSmartTimingEnabled(val);
+    // Reload times so UI reflects smart vs manual
+    final bf = await NotificationHelper.getBreakfastHm();
+    final ln = await NotificationHelper.getLunchHm();
+    final dn = await NotificationHelper.getDinnerHm();
+    if (mounted) setState(() { _bfHm = bf; _lnHm = ln; _dnHm = dn; });
     await _pushPrefs();
   }
 
@@ -1017,22 +1036,97 @@ class _NotifPrefsSheetState extends State<_NotifPrefsSheet> {
                                 'settings.notifications.meal_times'),
                             palette),
                         const SizedBox(height: 8),
+                        // Feature 3: Smart timing toggle
                         _sheetCard([
-                          _mealTimeTile('breakfast', l10n, palette),
-                          Divider(
-                              height: 1,
-                              indent: 16,
-                              endIndent: 16,
-                              color: Theme.of(context).dividerColor),
-                          _mealTimeTile('lunch', l10n, palette),
-                          Divider(
-                              height: 1,
-                              indent: 16,
-                              endIndent: 16,
-                              color: Theme.of(context).dividerColor),
-                          _mealTimeTile('dinner', l10n, palette),
+                          SwitchListTile(
+                            contentPadding: const EdgeInsets.symmetric(
+                                horizontal: 16, vertical: 2),
+                            title: Text(
+                              '⏱️ Smart Reminders',
+                              style: TextStyle(
+                                fontSize: 15,
+                                fontWeight: FontWeight.w600,
+                                color: palette.textPrimary,
+                              ),
+                            ),
+                            subtitle: Text(
+                              _smartTimingEnabled && _smartSuggested.isNotEmpty
+                                  ? 'ปรับตามพฤติกรรมจริงของคุณ'
+                                  : 'ปรับเวลาแจ้งเตือนตามพฤติกรรมอัตโนมัติ',
+                              style: TextStyle(
+                                  fontSize: 12,
+                                  color: palette.textSecondary),
+                            ),
+                            value: _smartTimingEnabled,
+                            activeThumbColor: palette.brand,
+                            onChanged: _smartSuggested.isNotEmpty
+                                ? _toggleSmartTiming
+                                : null,
+                          ),
+                          if (_smartTimingEnabled && _smartSuggested.isNotEmpty) ...[
+                            Divider(height: 1, indent: 16, endIndent: 16,
+                                color: Theme.of(context).dividerColor),
+                            Padding(
+                              padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    'เวลาแนะนำจากข้อมูลจริง (30 นาทีก่อนที่คุณมักบันทึก)',
+                                    style: TextStyle(
+                                        fontSize: 11,
+                                        color: palette.textSecondary),
+                                  ),
+                                  const SizedBox(height: 6),
+                                  Wrap(spacing: 8, runSpacing: 4, children: [
+                                    if (_smartSuggested['breakfast'] != null)
+                                      _smartChip('🍳 เช้า', _smartSuggested['breakfast']!, palette),
+                                    if (_smartSuggested['lunch'] != null)
+                                      _smartChip('🍱 เที่ยง', _smartSuggested['lunch']!, palette),
+                                    if (_smartSuggested['dinner'] != null)
+                                      _smartChip('🌙 เย็น', _smartSuggested['dinner']!, palette),
+                                  ]),
+                                ],
+                              ),
+                            ),
+                          ],
+                          if (_smartSuggested.isEmpty) ...[
+                            Divider(height: 1, indent: 16, endIndent: 16,
+                                color: Theme.of(context).dividerColor),
+                            Padding(
+                              padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
+                              child: Text(
+                                'บันทึกอาหารอย่างน้อย 3 วันเพื่อเปิดใช้ฟีเจอร์นี้',
+                                style: TextStyle(
+                                    fontSize: 12,
+                                    color: palette.textSecondary,
+                                    fontStyle: FontStyle.italic),
+                              ),
+                            ),
+                          ],
                         ], palette),
-                        const SizedBox(height: 20),
+                        const SizedBox(height: 12),
+                        // Manual time pickers (disabled when smart timing on)
+                        if (!_smartTimingEnabled) ...[
+                          _sheetCard([
+                            _mealTimeTile('breakfast', l10n, palette),
+                            Divider(
+                                height: 1,
+                                indent: 16,
+                                endIndent: 16,
+                                color: Theme.of(context).dividerColor),
+                            _mealTimeTile('lunch', l10n, palette),
+                            Divider(
+                                height: 1,
+                                indent: 16,
+                                endIndent: 16,
+                                color: Theme.of(context).dividerColor),
+                            _mealTimeTile('dinner', l10n, palette),
+                          ], palette),
+                          const SizedBox(height: 20),
+                        ] else ...[
+                          const SizedBox(height: 8),
+                        ],
                       ],
 
                       // ── Water times (only when water category enabled) ─
@@ -1113,6 +1207,27 @@ class _NotifPrefsSheetState extends State<_NotifPrefsSheet> {
     );
   }
 
+  Widget _smartChip(String label, int hm, AppPalette palette) {
+    final h = hm ~/ 100;
+    final m = hm % 100;
+    final time = '${h.toString().padLeft(2, '0')}:${m.toString().padLeft(2, '0')}';
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+      decoration: BoxDecoration(
+        color: palette.brand.withValues(alpha: 0.1),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: palette.brand.withValues(alpha: 0.3)),
+      ),
+      child: Text(
+        '$label $time',
+        style: TextStyle(
+            fontSize: 12,
+            color: palette.brand,
+            fontWeight: FontWeight.w600),
+      ),
+    );
+  }
+
   Widget _mealTimeTile(
       String meal, AppLocalizations l10n, AppPalette palette) {
     final key = meal == 'breakfast'
@@ -1168,20 +1283,69 @@ class _DebugNotifSheetState extends State<_DebugNotifSheet> {
   }
 
   Future<void> _reload() async {
-    final pending = await NotificationHelper.getPendingRequests();
-    if (mounted) {
-      setState(() {
-        _pending = pending;
-        _loaded = true;
-      });
+    try {
+      final pending = await NotificationHelper.getPendingRequests()
+          .timeout(const Duration(seconds: 4), onTimeout: () => []);
+      if (mounted) setState(() { _pending = pending; _loaded = true; });
+    } catch (_) {
+      if (mounted) setState(() { _pending = []; _loaded = true; });
     }
   }
 
   Future<void> _trigger(String type) async {
-    await NotificationHelper.triggerTestNotification(type);
+    try {
+      await NotificationHelper.triggerTestNotification(type);
+    } catch (_) {}
     if (mounted) setState(() => _lastTriggered = type);
     await Future.delayed(const Duration(seconds: 1));
     if (mounted) setState(() => _lastTriggered = null);
+  }
+
+  Widget _triggerBtn(String type, String label, AppPalette palette,
+      {Color? color}) {
+    final isActive = _lastTriggered == type;
+    return ElevatedButton.icon(
+      onPressed: () => _trigger(type),
+      icon: Icon(
+        isActive ? Icons.check_rounded : Icons.send_rounded,
+        size: 13,
+      ),
+      label: Text(label, style: const TextStyle(fontSize: 12)),
+      style: ElevatedButton.styleFrom(
+        backgroundColor: isActive
+            ? Colors.green
+            : (color ?? palette.brand),
+        foregroundColor: Colors.white,
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        shape:
+            RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        minimumSize: Size.zero,
+        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+      ),
+    );
+  }
+
+  Widget _debugInfoRow(
+      String label, String desc, AppPalette palette) {
+    return Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+      Container(
+        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+        decoration: BoxDecoration(
+          color: palette.brand.withValues(alpha: 0.1),
+          borderRadius: BorderRadius.circular(6),
+        ),
+        child: Text(label,
+            style: TextStyle(
+                fontSize: 11,
+                fontWeight: FontWeight.w600,
+                color: palette.brand)),
+      ),
+      const SizedBox(width: 8),
+      Expanded(
+        child: Text(desc,
+            style: TextStyle(fontSize: 11, color: palette.textSecondary)),
+      ),
+    ]);
   }
 
   @override
@@ -1242,7 +1406,7 @@ class _DebugNotifSheetState extends State<_DebugNotifSheet> {
                         controller: scrollController,
                         padding: const EdgeInsets.all(16),
                         children: [
-                          // Trigger buttons
+                          // ── Original triggers ──────────────────────────
                           Text(
                             l10n.tr(
                                 'settings.notifications.debug.trigger'),
@@ -1257,39 +1421,81 @@ class _DebugNotifSheetState extends State<_DebugNotifSheet> {
                             spacing: 8,
                             runSpacing: 8,
                             children: [
-                              for (final type in [
-                                'meal',
-                                'water',
-                                'streak',
-                                'reengagement',
-                                'calorie',
-                              ])
-                                ElevatedButton.icon(
-                                  onPressed: () => _trigger(type),
-                                  icon: _lastTriggered == type
-                                      ? const Icon(Icons.check, size: 14)
-                                      : const Icon(
-                                          Icons.notifications_active_outlined,
-                                          size: 14),
-                                  label: Text(type,
-                                      style:
-                                          const TextStyle(fontSize: 12)),
-                                  style: ElevatedButton.styleFrom(
-                                    backgroundColor: _lastTriggered == type
-                                        ? Colors.green
-                                        : palette.brand,
-                                    foregroundColor: Colors.white,
-                                    padding: const EdgeInsets.symmetric(
-                                        horizontal: 12, vertical: 8),
-                                    shape: RoundedRectangleBorder(
-                                        borderRadius:
-                                            BorderRadius.circular(12)),
-                                    minimumSize: Size.zero,
-                                    tapTargetSize:
-                                        MaterialTapTargetSize.shrinkWrap,
-                                  ),
-                                ),
+                              for (final entry in const {
+                                'meal': '🍳 Meal',
+                                'water': '💧 Water',
+                                'streak': '🔥 Streak',
+                                'reengagement': '😔 Re-engage',
+                                'calorie': '🚨 Calorie',
+                              }.entries)
+                                _triggerBtn(entry.key, entry.value, palette),
                             ],
+                          ),
+                          const SizedBox(height: 16),
+
+                          // ── New feature triggers ───────────────────────
+                          Text(
+                            'NEW FEATURES',
+                            style: TextStyle(
+                                fontSize: 12,
+                                fontWeight: FontWeight.w700,
+                                color: Colors.orange.shade700,
+                                letterSpacing: 0.8),
+                          ),
+                          const SizedBox(height: 6),
+                          // Labels explain what each test does
+                          _debugInfoRow(
+                            '🍱 + Actions',
+                            'Meal notification พร้อม "ทานเหมือนเดิม ✓" action button',
+                            palette,
+                          ),
+                          const SizedBox(height: 4),
+                          Wrap(
+                            spacing: 8,
+                            runSpacing: 8,
+                            children: [
+                              _triggerBtn('meal_actions', '🍱 + Actions', palette,
+                                  color: Colors.indigo),
+                              _triggerBtn('gap_fill', '⏰ Gap Fill (+10s)', palette,
+                                  color: Colors.deepOrange),
+                              _triggerBtn('celebration_goal', '🎉 Goal!', palette,
+                                  color: Colors.green.shade700),
+                              _triggerBtn('celebration_streak', '🥇 Streak 7d', palette,
+                                  color: Colors.amber.shade800),
+                              _triggerBtn('personalized_dinner', '🥩 Protein Tip', palette,
+                                  color: Colors.teal),
+                            ],
+                          ),
+                          const SizedBox(height: 6),
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 12, vertical: 8),
+                            decoration: BoxDecoration(
+                              color: Colors.orange.shade50,
+                              borderRadius: BorderRadius.circular(10),
+                              border: Border.all(
+                                  color: Colors.orange.shade200, width: 1),
+                            ),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text('💡 วิธีทดสอบ',
+                                    style: TextStyle(
+                                        fontSize: 12,
+                                        fontWeight: FontWeight.w700,
+                                        color: Colors.orange.shade800)),
+                                const SizedBox(height: 4),
+                                Text(
+                                  '• Gap Fill: fires ใน 10 วินาที → ออกจาก app รอดู\n'
+                                  '• Actions: กด notification → เห็น "ทานเหมือนเดิม" button\n'
+                                  '• Goal!/Streak: แสดงทันทีใน notification tray',
+                                  style: TextStyle(
+                                      fontSize: 11,
+                                      color: Colors.orange.shade900,
+                                      height: 1.5),
+                                ),
+                              ],
+                            ),
                           ),
                           const SizedBox(height: 20),
 

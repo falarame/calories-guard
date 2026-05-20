@@ -78,6 +78,25 @@ class NotificationPrefsService {
         await sp.setString('water_times_hh', hours.join(','));
       }
 
+      // Feature 3 – Adaptive Timing: read smart_timing_enabled from stored prefs
+      if (prefs['smart_timing_enabled'] is bool) {
+        await sp.setBool('smart_timing_enabled', prefs['smart_timing_enabled'] as bool);
+      }
+
+      // Feature 3 – Adaptive Timing: persist suggested meal times from backend
+      final suggested = data['suggested_meal_times'] as Map<String, dynamic>?;
+      if (suggested != null) {
+        if (suggested['breakfastHm'] is int) {
+          await sp.setInt('smart_breakfast_hm', suggested['breakfastHm'] as int);
+        }
+        if (suggested['lunchHm'] is int) {
+          await sp.setInt('smart_lunch_hm', suggested['lunchHm'] as int);
+        }
+        if (suggested['dinnerHm'] is int) {
+          await sp.setInt('smart_dinner_hm', suggested['dinnerHm'] as int);
+        }
+      }
+
       debugPrint('[NotificationPrefsService] pulled prefs for user $userId');
     } catch (e) {
       debugPrint('[NotificationPrefsService] pull error: $e');
@@ -133,6 +152,8 @@ class NotificationPrefsService {
         },
         'water_times_hh': waterTimes,
         'weigh_in_day': sp.getInt('weigh_in_weekday') ?? 1,
+        // Feature 3: persist smart-timing preference server-side
+        'smart_timing_enabled': sp.getBool('smart_timing_enabled') ?? false,
       };
 
       await ApiClient().put('/users/$userId/notification_prefs', body: body);

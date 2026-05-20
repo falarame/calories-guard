@@ -9,7 +9,7 @@ from database import get_db_connection
 from auth.dependencies import get_current_user
 from app.core.dependencies import check_ownership
 from app.core.observability import track, note_failure
-from app.models.schemas import DailyLogUpdate
+from app.models.schemas import DailyLogUpdate, CopyYesterdayRequest
 from app.services.nutrition_service import (
     _compute_target_calories, _meal_type_to_enum,
 )
@@ -482,6 +482,92 @@ def get_daily_log_by_date(user_id: int, date_query: date, current_user: dict = D
             "meals": meals_map,
             "exercises": exercises,
         }
+    finally:
+        if conn:
+            conn.close()
+
+
+@router.post("/meals/{user_id}/copy-yesterday")
+def copy_yesterday_meal(
+    user_id: int,
+    req: CopyYesterdayRequest,
+    current_user: dict = Depends(get_current_user),
+):
+    """Feature 2 – Micro-Interactions: copy yesterday's meal items to today.
+    Returns {"copied": N, "message": "..."}. If no yesterday data → copied=0.
+    """
+    check_ownership(current_user, user_id)
+    conn = get_db_connection()
+    if not conn:
+        raise HTTPException(status_code=503, detail="Database unavailable")
+    try:
+        cur = conn.cursor(cursor_factory=RealDictCursor)
+        target_date = req.target_date or date.today()
+        yesterday = target_date - timedelta(days=1)
+        meal_type_db = _meal_type_to_enum(req.meal_type)
+
+        # Fetch yesterday's items for this meal type
+        cur.execute("""
+            SELECT di.food_id, di.food_name, di.amount, di.unit_id,
+                   di.cal_per_unit, di.protein_per_unit, di.carbs_per_unit, di.fat_per_unit
+            FROM meals m
+            JOIN detail_items di ON di.meal_id = m.meal_id
+            WHERE m.user_id = %s
+              AND (m.meal_time AT TIME ZONE 'Asia/Bangkok')::date = %s
+              AND m.meal_type = %s
+        """, (user_id, yesterday, meal_type_db))
+        items = cur.fetchall()
+
+        if not items:
+            return {"copied": 0, "message": "ไม่มีข้อมูลมื้ออาหารเมื่อวาน"}
+
+        # Replace today's same meal type (delete + re-insert)
+        cur.execute("""
+            DELETE FROM meals
+            WHERE user_id = %s
+              AND (meal_time AT TIME ZONE 'Asia/Bangkok')::date = %s
+              AND meal_type = %s
+        """, (user_id, target_date, meal_type_db))
+
+        total_cal = sum(
+            float(i["cal_per_unit"] or 0) * float(i["amount"] or 1)
+            for i in items
+        )
+        meal_ts = datetime.combine(
+            target_date,
+            datetime.min.time().replace(hour=12, minute=0, second=0),
+        )
+        cur.execute("""
+            INSERT INTO meals (user_id, meal_type, meal_time, total_amount)
+            VALUES (%s, %s, %s, %s)
+            RETURNING meal_id
+        """, (user_id, meal_type_db, meal_ts, total_cal))
+        meal_id = cur.fetchone()["meal_id"]
+
+        for item in items:
+            cur.execute("""
+                INSERT INTO detail_items
+                    (meal_id, food_id, food_name, amount, unit_id,
+                     cal_per_unit, protein_per_unit, carbs_per_unit, fat_per_unit)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
+            """, (
+                meal_id, item["food_id"], item["food_name"],
+                item["amount"], item["unit_id"],
+                item["cal_per_unit"], item["protein_per_unit"],
+                item["carbs_per_unit"], item["fat_per_unit"],
+            ))
+
+        conn.commit()
+        return {
+            "copied": len(items),
+            "message": f"คัดลอก {len(items)} รายการสำเร็จ",
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        conn.rollback()
+        _log.exception("copy_yesterday_meal failed user_id=%s", user_id)
+        raise HTTPException(status_code=500, detail=str(e))
     finally:
         if conn:
             conn.close()

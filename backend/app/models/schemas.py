@@ -28,6 +28,7 @@ class UserRegister(BaseModel):
     email: str
     password: str
     username: str
+    referral_code: str | None = None  # 8-char permanent code OR 32+ token from email invite
 
 
 class UserVerifyEmail(BaseModel):
@@ -156,6 +157,12 @@ class DailyLogUpdate(BaseModel):
     date: date
     meal_type: str
     items: List[MealItem]
+
+
+class CopyYesterdayRequest(BaseModel):
+    """POST /meals/{user_id}/copy-yesterday request body."""
+    meal_type: str                   # breakfast | lunch | dinner | snack
+    target_date: Optional[date] = None  # defaults to today (Bangkok tz)
 
 
 class RecipeReview(BaseModel):

@@ -256,6 +256,7 @@ from app.routers import (
     health, auth, users, foods, admin,
     meals, weight, water, exercise,
     insights, social, chat, notifications, feedback, places,
+    community,
 )
 
 app.include_router(health.router)
@@ -273,3 +274,4 @@ app.include_router(chat.router)
 app.include_router(notifications.router)
 app.include_router(feedback.router)
 app.include_router(places.router)
+app.include_router(community.router)
