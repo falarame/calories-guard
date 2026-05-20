@@ -6,6 +6,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '/providers/user_data_provider.dart';
 import '/screens/tamagotchi/reward_shop_screen.dart';
 import '/services/api_client.dart';
+import '/services/health_service.dart';
 
 // ─────────────────────────────────────────────────────────
 //  Tier System — 5 levels (Octalysis: Development & Accomplishment)
@@ -33,45 +34,45 @@ class _Tier {
 
 const _tiers = [
   _Tier(
-      name: 'Stone',
-      emoji: '🪨',
+      name: 'เมล็ดพันธุ์',
+      emoji: '🌱',
       minXp: 0,
       xpBonus: 0.00,
       gemsBonus: 0.00,
       color: Color(0xFF78909C),
       perks: 'เริ่มต้น'),
   _Tier(
-      name: 'Crystal',
-      emoji: '🔷',
+      name: 'ต้นกล้า',
+      emoji: '🌿',
       minXp: 1000,
       xpBonus: 0.10,
       gemsBonus: 0.10,
-      color: Color(0xFF42A5F5),
-      perks: '+10% XP & 💎'),
+      color: Color(0xFF43A047),
+      perks: '+10% XP & 🌾'),
   _Tier(
-      name: 'Emerald',
-      emoji: '💎',
+      name: 'ออกรวง',
+      emoji: '🌾',
       minXp: 5000,
       xpBonus: 0.25,
       gemsBonus: 0.25,
       color: Color(0xFF26A69A),
-      perks: '+25% XP & 💎'),
+      perks: '+25% XP & 🌾'),
   _Tier(
-      name: 'Gold',
-      emoji: '👑',
+      name: 'ข้าวสุก',
+      emoji: '🍚',
       minXp: 15000,
       xpBonus: 0.50,
       gemsBonus: 0.50,
       color: Color(0xFFFFB300),
-      perks: '+50% XP & 💎'),
+      perks: '+50% XP & 🌾'),
   _Tier(
-      name: 'Legend',
-      emoji: '⚜️',
+      name: 'ข้าวทอง',
+      emoji: '✨',
       minXp: 50000,
       xpBonus: 1.00,
       gemsBonus: 1.00,
       color: Color(0xFFAB47BC),
-      perks: '+100% XP & 💎'),
+      perks: '+100% XP & 🌾'),
 ];
 
 // ─────────────────────────────────────────────────────────
@@ -126,12 +127,13 @@ class _TamagotchiScreenState extends ConsumerState<TamagotchiScreen> {
   Set<String> _claimedToday = {};
   Set<String> _claimedBadges = {};
   int _waterGlasses = 0;
+  int _steps = 0;
   bool _loggedWeightToday = false;
 
   List<_Mission> get _missions => [
         _Mission(
             id: 'check_in',
-            emoji: '☀️',
+            emoji: '🌱',
             title: 'เช็กอินวันนี้',
             desc: 'เปิดแอปเพื่อรับ XP ประจำวัน',
             baseXp: 10,
@@ -162,6 +164,22 @@ class _TamagotchiScreenState extends ConsumerState<TamagotchiScreen> {
             baseGems: 5,
             autoCheck: (u) => u.dailyCaloriesBurned > 0),
         _Mission(
+            id: 'walk_3k',
+            emoji: '👟',
+            title: 'เดิน 3,000 ก้าว',
+            desc: 'สะสมก้าวเดินจาก IMU/Health Connect ครบ 3,000 ก้าวต่อวัน',
+            baseXp: 50,
+            baseGems: 5,
+            autoCheck: (_) => _steps >= 3000),
+        _Mission(
+            id: 'walk_8k',
+            emoji: '🚶',
+            title: 'เดิน 8,000 ก้าว',
+            desc: 'สะสมก้าวเดินจาก IMU/Health Connect ครบ 8,000 ก้าวต่อวัน',
+            baseXp: 80,
+            baseGems: 8,
+            autoCheck: (_) => _steps >= 8000),
+        _Mission(
             id: 'hit_calories',
             emoji: '🎯',
             title: 'แคลอรี่ตามเป้า',
@@ -175,7 +193,7 @@ class _TamagotchiScreenState extends ConsumerState<TamagotchiScreen> {
             }),
         _Mission(
             id: 'hit_all_macros',
-            emoji: '💪',
+            emoji: '🌿',
             title: 'ครบตามโภชนาการ',
             desc: 'โปรตีน คาร์บ ไขมัน ครบตามเป้าทั้งหมด',
             baseXp: 100,
@@ -216,10 +234,14 @@ class _TamagotchiScreenState extends ConsumerState<TamagotchiScreen> {
     return (m.baseXp * bonus * _streakMult(streak)).round();
   }
 
-  // Gems earned = baseGems × (1 + tierGemsBonus)  [streak affects XP only]
-  int _calcGems(_Mission m) {
+  // Gems earned = baseGems × (1 + tierGemsBonus) × streakMultiplier × weekendBonus
+  // Weekend Harvest: Sat/Sun → ×1.5 gems
+  int _calcGems(_Mission m, int streak) {
     final bonus = 1.0 + _tiers[_activeTierIdx].gemsBonus;
-    return (m.baseGems * bonus).round();
+    final isWeekend =
+        [DateTime.saturday, DateTime.sunday].contains(DateTime.now().weekday);
+    final weekendMult = isWeekend ? 1.5 : 1.0;
+    return (m.baseGems * bonus * _streakMult(streak) * weekendMult).round();
   }
 
   String _xpKey(int uid) =>
@@ -269,6 +291,11 @@ class _TamagotchiScreenState extends ConsumerState<TamagotchiScreen> {
                 _loggedWeightToday = wList.any((e) => e['date'] == today));
           }
         }
+      } catch (_) {}
+      try {
+        final summary =
+            await HealthService.fetchActivitySummary(DateTime.now());
+        if (mounted) setState(() => _steps = summary.steps);
       } catch (_) {}
       try {
         final res = await ApiClient().get('/users/$uid/tama-points');
@@ -321,7 +348,7 @@ class _TamagotchiScreenState extends ConsumerState<TamagotchiScreen> {
 
     final earnedXp = _calcXp(m, streak);
     final isBonus = math.Random().nextDouble() < 0.20;
-    final baseEarnedGems = _calcGems(m);
+    final baseEarnedGems = _calcGems(m, streak);
     final earnedGems = isBonus ? baseEarnedGems * 2 : baseEarnedGems;
 
     final newXp = _xp + earnedXp;
@@ -332,9 +359,17 @@ class _TamagotchiScreenState extends ConsumerState<TamagotchiScreen> {
     final oldTierIdx = _tierIdx;
     final newMaxTier = newTier > _tierIdx ? newTier : _tierIdx;
 
-    // Perfect Day: all missions done → +50 XP +10 💎 bonus
+    // Perfect Day: all missions done → +15 💎 bonus
     final allDone = _missions.every((ms) => newClaimed.contains(ms.id));
-    if (allDone) newGems += 10;
+    if (allDone) newGems += 15;
+
+    // Exercise Combo: log_exercise + any walk mission done same day → +5 💎
+    final hasExercise = newClaimed.contains('log_exercise');
+    final hasWalk =
+        newClaimed.contains('walk_3k') || newClaimed.contains('walk_8k');
+    final comboJustCompleted = (m.id == 'log_exercise' && hasWalk) ||
+        ((m.id == 'walk_3k' || m.id == 'walk_8k') && hasExercise);
+    if (comboJustCompleted) newGems += 5;
 
     await prefs.setInt(_xpKey(uid), newXp);
     await prefs.setInt(_gemsKey(uid), newGems);
@@ -351,23 +386,32 @@ class _TamagotchiScreenState extends ConsumerState<TamagotchiScreen> {
     _syncToBackend(newXp, newGems, newMaxTier);
 
     if (mounted) {
-      final extra = isBonus
-          ? '  \ud83c\udf89 \u0e42\u0e0a\u0e04\u0e14\u0e35! \ud83d\udc8e\xd72'
-          : '';
+      final extra = isBonus ? '  🎉 โชคดี! 🌾×2' : '';
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-        content:
-            Text('${m.emoji} +$earnedXp XP  +$earnedGems \ud83d\udc8e$extra'),
+        content: Text('${m.emoji} +$earnedXp XP  +$earnedGems 🌾$extra'),
         backgroundColor: _tiers[newMaxTier].color,
         duration: const Duration(seconds: 2),
       ));
+
+      // Exercise Combo notification
+      if (comboJustCompleted) {
+        await Future.delayed(const Duration(milliseconds: 300));
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+            content:
+                Text('🌾 Exercise Combo! ออกกำลังกาย + เดิน → +5 🌾 โบนัส!'),
+            backgroundColor: Color(0xFF2E7D32),
+            duration: Duration(seconds: 2),
+          ));
+        }
+      }
 
       // Perfect Day notification
       if (allDone) {
         await Future.delayed(const Duration(milliseconds: 500));
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-            content: Text(
-                '\ud83c\udf1f Perfect Day! \u0e17\u0e33\u0e04\u0e23\u0e1a\u0e17\u0e38\u0e01\u0e20\u0e32\u0e23\u0e01\u0e34\u0e08 \u2192 +10 \ud83d\udc8e \u0e42\u0e1a\u0e19\u0e31\u0e2a!'),
+            content: Text('🌟 Perfect Day! ทำครบทุกภารกิจ → +15 🌱 โบนัส!'),
             backgroundColor: Color(0xFFE65100),
             duration: Duration(seconds: 3),
           ));
@@ -419,7 +463,7 @@ class _TamagotchiScreenState extends ConsumerState<TamagotchiScreen> {
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
               decoration: BoxDecoration(
-                  color: Colors.white.withValues(alpha: 0.2),
+                  color: Colors.white.withOpacity(0.2),
                   borderRadius: BorderRadius.circular(12)),
               child: Text(t.perks,
                   style: const TextStyle(
@@ -484,7 +528,7 @@ class _TamagotchiScreenState extends ConsumerState<TamagotchiScreen> {
               color: Colors.black87, size: 20),
           onPressed: () => Navigator.pop(context),
         ),
-        title: const Text('สะสม XP & เจม',
+        title: const Text('ไร่ข้าวของฉัน',
             style: TextStyle(
                 color: Colors.black87,
                 fontFamily: 'Inter',
@@ -544,7 +588,7 @@ class _TamagotchiScreenState extends ConsumerState<TamagotchiScreen> {
         borderRadius: BorderRadius.circular(24),
         boxShadow: [
           BoxShadow(
-              color: tier.color.withValues(alpha: 0.45),
+              color: tier.color.withOpacity(0.45),
               blurRadius: 20,
               offset: const Offset(0, 8))
         ],
@@ -564,7 +608,7 @@ class _TamagotchiScreenState extends ConsumerState<TamagotchiScreen> {
                       fontFamily: 'Inter')),
               Text('${tier.perks} • CaloriesGuard',
                   style: TextStyle(
-                      color: Colors.white.withValues(alpha: 0.75),
+                      color: Colors.white.withOpacity(0.75),
                       fontSize: 12,
                       fontFamily: 'Inter')),
             ]),
@@ -572,7 +616,7 @@ class _TamagotchiScreenState extends ConsumerState<TamagotchiScreen> {
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
             decoration: BoxDecoration(
-                color: Colors.white.withValues(alpha: 0.2),
+                color: Colors.white.withOpacity(0.2),
                 borderRadius: BorderRadius.circular(16)),
             child: Column(mainAxisSize: MainAxisSize.min, children: [
               Text('$_xp',
@@ -595,7 +639,7 @@ class _TamagotchiScreenState extends ConsumerState<TamagotchiScreen> {
             borderRadius: BorderRadius.circular(6),
             child: LinearProgressIndicator(
               value: progress,
-              backgroundColor: Colors.white.withValues(alpha: 0.25),
+              backgroundColor: Colors.white.withOpacity(0.25),
               valueColor: const AlwaysStoppedAnimation(Colors.white),
               minHeight: 8,
             ),
@@ -604,14 +648,14 @@ class _TamagotchiScreenState extends ConsumerState<TamagotchiScreen> {
           Row(children: [
             Text('${tier.emoji} ${tier.name}',
                 style: TextStyle(
-                    color: Colors.white.withValues(alpha: 0.8),
+                    color: Colors.white.withOpacity(0.8),
                     fontSize: 11,
                     fontFamily: 'Inter')),
             const Spacer(),
             Text(
                 'อีก ${nextTier.minXp - _xp} XP → ${nextTier.emoji} ${nextTier.name}',
                 style: TextStyle(
-                    color: Colors.white.withValues(alpha: 0.85),
+                    color: Colors.white.withOpacity(0.85),
                     fontSize: 11,
                     fontFamily: 'Inter')),
           ]),
@@ -640,10 +684,10 @@ class _TamagotchiScreenState extends ConsumerState<TamagotchiScreen> {
       const SizedBox(width: 10),
       Expanded(
           child: _currencyCard(
-              label: 'เจม 💎',
+              label: 'เมล็ดข้าว 🌾',
               value: '$_gems',
               sub: 'ใช้แลกรางวัล',
-              color: const Color(0xFF6A1B9A),
+              color: const Color(0xFF2E7D32),
               warn: _gems > 0 ? 'หมดอายุ 30 วัน' : null)),
       const SizedBox(width: 10),
       Expanded(
@@ -669,11 +713,11 @@ class _TamagotchiScreenState extends ConsumerState<TamagotchiScreen> {
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-              color: Colors.black.withValues(alpha: 0.05),
+              color: Colors.black.withOpacity(0.05),
               blurRadius: 8,
               offset: const Offset(0, 2))
         ],
-        border: Border.all(color: color.withValues(alpha: 0.18)),
+        border: Border.all(color: color.withOpacity(0.18)),
       ),
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
         Text(label,
@@ -709,13 +753,13 @@ class _TamagotchiScreenState extends ConsumerState<TamagotchiScreen> {
         borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
-              color: Colors.black.withValues(alpha: 0.05),
+              color: Colors.black.withOpacity(0.05),
               blurRadius: 10,
               offset: const Offset(0, 4))
         ],
       ),
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        const Text('ระดับ Tier',
+        const Text('ขั้นการเติบโตของไร่ข้าว',
             style: TextStyle(
                 fontSize: 14,
                 fontWeight: FontWeight.w700,
@@ -736,13 +780,12 @@ class _TamagotchiScreenState extends ConsumerState<TamagotchiScreen> {
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
                     color: isUnlocked
-                        ? t.color.withValues(alpha: isCurrent ? 1.0 : 0.45)
+                        ? t.color.withOpacity(isCurrent ? 1.0 : 0.45)
                         : Colors.grey.shade200,
                     boxShadow: isCurrent
                         ? [
                             BoxShadow(
-                                color: t.color.withValues(alpha: 0.5),
-                                blurRadius: 10)
+                                color: t.color.withOpacity(0.5), blurRadius: 10)
                           ]
                         : [],
                   ),
@@ -789,7 +832,7 @@ class _TamagotchiScreenState extends ConsumerState<TamagotchiScreen> {
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
             decoration: BoxDecoration(
-              color: const Color(0xFFE65100).withValues(alpha: 0.1),
+              color: const Color(0xFFE65100).withOpacity(0.1),
               borderRadius: BorderRadius.circular(8),
             ),
             child: Text(
@@ -806,7 +849,7 @@ class _TamagotchiScreenState extends ConsumerState<TamagotchiScreen> {
           ),
       ]),
       const SizedBox(height: 4),
-      Text('💡 20% โอกาสได้ Gem โบนัส ×2  (Octalysis Variable Reward)',
+      Text('💡 20% โอกาสได้เมล็ดข้าว โบนัส ×2  (Octalysis Variable Reward)',
           style: TextStyle(
               color: Colors.grey.shade400, fontSize: 10, fontFamily: 'Inter')),
       const SizedBox(height: 12),
@@ -818,7 +861,7 @@ class _TamagotchiScreenState extends ConsumerState<TamagotchiScreen> {
     final claimed = _claimedToday.contains(m.id);
     final canDo = m.autoCheck(userData);
     final xp = _calcXp(m, streak);
-    final gems = m.baseGems;
+    final gems = _calcGems(m, streak);
 
     return Container(
       margin: const EdgeInsets.only(bottom: 10),
@@ -828,15 +871,15 @@ class _TamagotchiScreenState extends ConsumerState<TamagotchiScreen> {
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
           color: claimed
-              ? _primary.withValues(alpha: 0.25)
+              ? _primary.withOpacity(0.25)
               : canDo
-                  ? _primary.withValues(alpha: 0.5)
+                  ? _primary.withOpacity(0.5)
                   : Colors.grey.shade200,
           width: canDo && !claimed ? 1.5 : 1,
         ),
         boxShadow: [
           BoxShadow(
-              color: Colors.black.withValues(alpha: 0.04),
+              color: Colors.black.withOpacity(0.04),
               blurRadius: 8,
               offset: const Offset(0, 2))
         ],
@@ -847,9 +890,9 @@ class _TamagotchiScreenState extends ConsumerState<TamagotchiScreen> {
           height: 44,
           decoration: BoxDecoration(
             color: claimed
-                ? _primary.withValues(alpha: 0.08)
+                ? _primary.withOpacity(0.08)
                 : canDo
-                    ? _primary.withValues(alpha: 0.1)
+                    ? _primary.withOpacity(0.1)
                     : Colors.grey.shade100,
             borderRadius: BorderRadius.circular(12),
           ),
@@ -876,7 +919,7 @@ class _TamagotchiScreenState extends ConsumerState<TamagotchiScreen> {
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
             decoration: BoxDecoration(
-                color: _primary.withValues(alpha: 0.08),
+                color: _primary.withOpacity(0.08),
                 borderRadius: BorderRadius.circular(10)),
             child: Column(mainAxisSize: MainAxisSize.min, children: [
               Text('✅ +$xp XP',
@@ -885,7 +928,7 @@ class _TamagotchiScreenState extends ConsumerState<TamagotchiScreen> {
                       fontSize: 11,
                       fontFamily: 'Inter',
                       fontWeight: FontWeight.w600)),
-              Text('+$gems 💎',
+              Text('+$gems 🌾',
                   style: TextStyle(
                       color: Colors.grey.shade500,
                       fontSize: 10,
@@ -901,8 +944,7 @@ class _TamagotchiScreenState extends ConsumerState<TamagotchiScreen> {
                 color: _primary,
                 borderRadius: BorderRadius.circular(10),
                 boxShadow: [
-                  BoxShadow(
-                      color: _primary.withValues(alpha: 0.35), blurRadius: 8)
+                  BoxShadow(color: _primary.withOpacity(0.35), blurRadius: 8)
                 ],
               ),
               child: Column(mainAxisSize: MainAxisSize.min, children: [
@@ -912,9 +954,9 @@ class _TamagotchiScreenState extends ConsumerState<TamagotchiScreen> {
                         fontWeight: FontWeight.w700,
                         fontFamily: 'Inter',
                         fontSize: 12)),
-                Text('+$gems 💎',
+                Text('+$gems 🌾',
                     style: TextStyle(
-                        color: Colors.white.withValues(alpha: 0.8),
+                        color: Colors.white.withOpacity(0.8),
                         fontSize: 10,
                         fontFamily: 'Inter')),
               ]),
@@ -932,7 +974,7 @@ class _TamagotchiScreenState extends ConsumerState<TamagotchiScreen> {
                       color: Colors.grey.shade400,
                       fontSize: 12,
                       fontFamily: 'Inter')),
-              Text('+$gems 💎',
+              Text('+$gems 🌾',
                   style: TextStyle(
                       color: Colors.grey.shade300,
                       fontSize: 10,
@@ -972,9 +1014,9 @@ class _TamagotchiScreenState extends ConsumerState<TamagotchiScreen> {
             decoration: BoxDecoration(
               color: Colors.white,
               borderRadius: BorderRadius.circular(14),
-              border: Border.all(color: _primary.withValues(alpha: 0.35)),
+              border: Border.all(color: _primary.withOpacity(0.35)),
               boxShadow: [
-                BoxShadow(color: _primary.withValues(alpha: 0.1), blurRadius: 8)
+                BoxShadow(color: _primary.withOpacity(0.1), blurRadius: 8)
               ],
             ),
             child: Row(mainAxisSize: MainAxisSize.min, children: [
@@ -1000,3 +1042,377 @@ class _TamagotchiScreenState extends ConsumerState<TamagotchiScreen> {
     ]);
   }
 }
+<<<<<<< HEAD
+=======
+
+// _RicePainter removed — UI redesigned to reward system
+class _RicePainter extends CustomPainter {
+  final Color color;
+  final int stage;
+  _RicePainter(this.color, this.stage);
+
+  static const _soilA = Color(0xFF4E342E);
+  static const _soilB = Color(0xFF6D4C41);
+  static const _soilC = Color(0xFFA1887F);
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final cx = size.width / 2;
+    final cy = size.height / 2;
+    final h = size.height;
+
+    // background glow
+    canvas.drawCircle(
+        Offset(cx, cy),
+        66,
+        Paint()
+          ..color = color.withOpacity(0.2)
+          ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 28));
+
+    switch (stage) {
+      case 0:
+        _stage0(canvas, cx, cy);
+        break;
+      case 1:
+        _stage1(canvas, cx, h);
+        break;
+      case 2:
+        _stage2(canvas, cx, h);
+        break;
+      case 3:
+        _stage3(canvas, cx, h);
+        break;
+      case 4:
+        _stage4(canvas, cx, h, false);
+        break;
+      default:
+        _stage5(canvas, cx, h);
+        break;
+    }
+  }
+
+  // ── Stage 0 : ติ๊ด — cute seed with face ─────────────────
+  void _stage0(Canvas c, double cx, double cy) {
+    // drop shadow
+    c.drawOval(
+        Rect.fromCenter(center: Offset(cx, cy + 46), width: 52, height: 14),
+        Paint()..color = Colors.black.withOpacity(0.12));
+    // seed body
+    c.drawOval(
+      Rect.fromCenter(center: Offset(cx, cy), width: 68, height: 86),
+      Paint()
+        ..shader = RadialGradient(
+          colors: [
+            Color.lerp(color, Colors.white, 0.5)!,
+            color,
+            Color.lerp(color, Colors.black, 0.18)!
+          ],
+          stops: const [0.0, 0.55, 1.0],
+          center: const Alignment(-0.35, -0.4),
+        ).createShader(
+            Rect.fromCenter(center: Offset(cx, cy), width: 68, height: 86)),
+    );
+    // center seam line
+    c.drawLine(
+        Offset(cx, cy - 38),
+        Offset(cx, cy + 38),
+        Paint()
+          ..color = Colors.black.withOpacity(0.14)
+          ..strokeWidth = 1.5);
+    // tiny horizontal cracks (about to sprout)
+    _line(c, cx - 6, cy - 12, cx + 6, cy - 12, Colors.black.withOpacity(0.12),
+        1.2);
+    _line(c, cx - 5, cy + 10, cx + 5, cy + 10, Colors.black.withOpacity(0.12),
+        1.2);
+    // shine patch
+    c.drawOval(
+        Rect.fromCenter(
+            center: Offset(cx - 17, cy - 20), width: 13, height: 22),
+        Paint()..color = Colors.white.withOpacity(0.22));
+    // cute eyes
+    _eye(c, cx - 13, cy - 5);
+    _eye(c, cx + 13, cy - 5);
+    // smile
+    c.drawPath(
+        Path()
+          ..moveTo(cx - 9, cy + 14)
+          ..quadraticBezierTo(cx, cy + 23, cx + 9, cy + 14),
+        Paint()
+          ..color = Colors.black.withOpacity(0.45)
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = 2
+          ..strokeCap = StrokeCap.round);
+    // tiny roots
+    _rootLine(c, cx, cy + 42, 10, 58);
+    _rootLine(c, cx, cy + 44, -9, 56);
+  }
+
+  // ── Stage 1 : ต้อย — tiny sprout ──────────────────────────
+  void _stage1(Canvas c, double cx, double h) {
+    final gy = h - 20.0;
+    _soil(c, cx, gy);
+    // stem
+    c.drawLine(
+        Offset(cx, gy - 3),
+        Offset(cx, gy - 42),
+        Paint()
+          ..color = color
+          ..strokeWidth = 5
+          ..strokeCap = StrokeCap.round);
+    // 2 baby leaves
+    _leaf(c, cx, gy - 20, -math.pi * 0.38, 24, 7);
+    _leaf(c, cx, gy - 28, math.pi * 0.38, 24, 7);
+    // bud
+    c.drawOval(
+        Rect.fromCenter(center: Offset(cx, gy - 46), width: 10, height: 14),
+        Paint()..color = Color.lerp(color, Colors.white, 0.5)!);
+    // tiny cute face on stem
+    _miniface(c, cx, gy - 10);
+  }
+
+  // ── Stage 2 : แต้ว — young plant ──────────────────────────
+  void _stage2(Canvas c, double cx, double h) {
+    final gy = h - 18.0;
+    _soil(c, cx, gy);
+    c.drawLine(
+        Offset(cx, gy - 3),
+        Offset(cx, gy - 68),
+        Paint()
+          ..color = color
+          ..strokeWidth = 5.5
+          ..strokeCap = StrokeCap.round);
+    _leaf(c, cx, gy - 22, -math.pi * 0.42, 30, 8);
+    _leaf(c, cx, gy - 34, math.pi * 0.42, 32, 8);
+    _leaf(c, cx, gy - 52, -math.pi * 0.36, 28, 7.5);
+    c.drawOval(
+        Rect.fromCenter(center: Offset(cx, gy - 72), width: 11, height: 15),
+        Paint()..color = Color.lerp(color, Colors.white, 0.45)!);
+    c.drawOval(
+        Rect.fromCenter(center: Offset(cx, gy - 72), width: 7, height: 10),
+        Paint()..color = Color.lerp(color, Colors.white, 0.7)!);
+  }
+
+  // ── Stage 3 : โต้ง — tall & strong ────────────────────────
+  void _stage3(Canvas c, double cx, double h) {
+    final gy = h - 16.0;
+    _soil(c, cx, gy);
+    c.drawLine(
+        Offset(cx, gy - 3),
+        Offset(cx, gy - 96),
+        Paint()
+          ..color = color
+          ..strokeWidth = 6
+          ..strokeCap = StrokeCap.round);
+    _leaf(c, cx, gy - 24, -math.pi * 0.44, 36, 9);
+    _leaf(c, cx, gy - 38, math.pi * 0.44, 38, 9);
+    _leaf(c, cx, gy - 56, -math.pi * 0.40, 34, 8.5);
+    _leaf(c, cx, gy - 72, math.pi * 0.38, 32, 8);
+    _leaf(c, cx, gy - 86, -math.pi * 0.33, 26, 7);
+    // elongated bud
+    c.drawOval(
+        Rect.fromCenter(center: Offset(cx, gy - 101), width: 10, height: 16),
+        Paint()..color = Color.lerp(color, Colors.white, 0.4)!);
+  }
+
+  // ── Stage 4 : พราว — rice ear ──────────────────────────────
+  void _stage4(Canvas c, double cx, double h, bool golden) {
+    final gy = h - 16.0;
+    _soil(c, cx, gy);
+    // curved stem
+    c.drawPath(
+        Path()
+          ..moveTo(cx, gy - 3)
+          ..quadraticBezierTo(cx + 4, gy - 52, cx, gy - 106),
+        Paint()
+          ..color = color
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = 6
+          ..strokeCap = StrokeCap.round);
+    _leaf(c, cx, gy - 26, -math.pi * 0.44, 36, 9);
+    _leaf(c, cx, gy - 42, math.pi * 0.44, 38, 9);
+    _leaf(c, cx, gy - 60, -math.pi * 0.40, 34, 8.5);
+    _leaf(c, cx, gy - 78, math.pi * 0.36, 30, 8);
+    _riceEar(c, cx, gy - 106, golden);
+  }
+
+  // ── Stage 5 : วิ้งค์ — golden ──────────────────────────────
+  void _stage5(Canvas c, double cx, double h) {
+    // extra golden glow layer
+    c.drawCircle(
+        Offset(cx, h / 2),
+        72,
+        Paint()
+          ..color = color.withOpacity(0.14)
+          ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 32));
+    _stage4(c, cx, h, true);
+    // sparkle stars around ear
+    final earY = h - 16 - 106.0;
+    for (int i = 0; i < 6; i++) {
+      final a = (i * math.pi * 2 / 6) - math.pi / 3;
+      _sparkle(c, cx + 48 * math.cos(a), earY + 20 + 48 * math.sin(a));
+    }
+  }
+
+  // ──────────────────── Shared helpers ─────────────────────
+
+  /// Layered soil mound
+  void _soil(Canvas c, double cx, double gy) {
+    c.drawOval(
+        Rect.fromCenter(center: Offset(cx, gy + 4), width: 90, height: 18),
+        Paint()..color = Colors.black.withOpacity(0.1));
+    c.drawOval(Rect.fromCenter(center: Offset(cx, gy), width: 86, height: 22),
+        Paint()..color = _soilA.withOpacity(0.72));
+    c.drawOval(
+        Rect.fromCenter(center: Offset(cx, gy - 4), width: 72, height: 14),
+        Paint()..color = _soilB.withOpacity(0.55));
+    c.drawOval(
+        Rect.fromCenter(center: Offset(cx, gy - 7), width: 50, height: 8),
+        Paint()..color = _soilC.withOpacity(0.38));
+  }
+
+  /// Filled rice-leaf shape rotated from (x, y)
+  void _leaf(
+      Canvas c, double x, double y, double angle, double len, double hw) {
+    c.save();
+    c.translate(x, y);
+    c.rotate(angle);
+    // filled blade
+    c.drawPath(
+      Path()
+        ..moveTo(0, 0)
+        ..cubicTo(hw * 1.3, -len * 0.12, hw * 1.0, -len * 0.68, 0, -len)
+        ..cubicTo(-hw * 1.0, -len * 0.68, -hw * 1.3, -len * 0.12, 0, 0),
+      Paint()
+        ..color = color
+        ..style = PaintingStyle.fill,
+    );
+    // center vein
+    c.drawLine(
+        const Offset(0, -2),
+        Offset(0, -len * 0.86),
+        Paint()
+          ..color = Colors.white.withOpacity(0.16)
+          ..strokeWidth = 1.2);
+    // leaf shine
+    c.drawPath(
+        Path()
+          ..moveTo(-hw * 0.28, -len * 0.14)
+          ..quadraticBezierTo(-hw * 0.55, -len * 0.5, -hw * 0.22, -len * 0.72),
+        Paint()
+          ..color = Colors.white.withOpacity(0.14)
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = 1.8);
+    c.restore();
+  }
+
+  /// Rice panicle with individual grain ovals
+  void _riceEar(Canvas c, double cx, double topY, bool golden) {
+    // rachis (the drooping stalk of the ear)
+    c.drawPath(
+        Path()
+          ..moveTo(cx, topY)
+          ..cubicTo(cx + 8, topY - 10, cx + 32, topY + 10, cx + 30, topY + 46),
+        Paint()
+          ..color = color
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = 3.2
+          ..strokeCap = StrokeCap.round);
+
+    final grainFill = golden
+        ? const Color(0xFFFFF176)
+        : Color.lerp(color, Colors.white, 0.4)!;
+    final grainBorder = golden ? const Color(0xFFFFCA28) : color;
+
+    for (int i = 0; i < 9; i++) {
+      final t = i / 8;
+      final rx = cx + 30 * t;
+      final ry = topY - 8 + 54 * t;
+      final side = (i % 2 == 0) ? -1.0 : 1.0;
+      final gx = rx + side * 9;
+      final gy = ry + 2;
+
+      c.save();
+      c.translate(gx, gy);
+      c.rotate(side * 0.28);
+      // grain oval
+      c.drawOval(Rect.fromCenter(center: Offset.zero, width: 7, height: 12),
+          Paint()..color = grainFill);
+      c.drawOval(
+          Rect.fromCenter(center: Offset.zero, width: 7, height: 12),
+          Paint()
+            ..color = grainBorder.withOpacity(0.45)
+            ..style = PaintingStyle.stroke
+            ..strokeWidth = 1);
+      // tiny shine
+      c.drawOval(
+          Rect.fromCenter(
+              center: const Offset(-1.5, -2.5), width: 2.5, height: 4.5),
+          Paint()..color = Colors.white.withOpacity(0.55));
+      c.restore();
+    }
+  }
+
+  void _eye(Canvas c, double x, double y) {
+    c.drawCircle(
+        Offset(x, y), 5.5, Paint()..color = Colors.black.withOpacity(0.55));
+    c.drawCircle(Offset(x + 1.8, y - 1.8), 1.8,
+        Paint()..color = Colors.white.withOpacity(0.95));
+  }
+
+  void _miniface(Canvas c, double cx, double cy) {
+    c.drawCircle(Offset(cx - 5, cy), 2.5,
+        Paint()..color = Colors.black.withOpacity(0.35));
+    c.drawCircle(Offset(cx + 5, cy), 2.5,
+        Paint()..color = Colors.black.withOpacity(0.35));
+    c.drawPath(
+        Path()
+          ..moveTo(cx - 4, cy + 5)
+          ..quadraticBezierTo(cx, cy + 8, cx + 4, cy + 5),
+        Paint()
+          ..color = Colors.black.withOpacity(0.3)
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = 1.5
+          ..strokeCap = StrokeCap.round);
+  }
+
+  void _sparkle(Canvas c, double x, double y) {
+    final p = Paint()
+      ..color = color
+      ..strokeWidth = 1.8
+      ..strokeCap = StrokeCap.round
+      ..style = PaintingStyle.stroke;
+    for (int i = 0; i < 4; i++) {
+      final a = i * math.pi / 2;
+      c.drawLine(
+          Offset(x, y), Offset(x + 6 * math.cos(a), y + 6 * math.sin(a)), p);
+    }
+    c.drawCircle(Offset(x, y), 2.2, Paint()..color = color);
+  }
+
+  void _line(Canvas c, double x1, double y1, double x2, double y2, Color col,
+      double w) {
+    c.drawLine(
+        Offset(x1, y1),
+        Offset(x2, y2),
+        Paint()
+          ..color = col
+          ..strokeWidth = w);
+  }
+
+  void _rootLine(Canvas c, double sx, double sy, double dx, double dy) {
+    c.drawPath(
+        Path()
+          ..moveTo(sx, sy)
+          ..quadraticBezierTo(sx + dx, sy + 8, sx + dx ~/ 2, sy + dy - sy),
+        Paint()
+          ..color = _soilB
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = 1.8
+          ..strokeCap = StrokeCap.round);
+  }
+
+  @override
+  bool shouldRepaint(_RicePainter old) =>
+      old.color != color || old.stage != stage;
+}
+>>>>>>> 84b4935f (WIP: local changes before sync)

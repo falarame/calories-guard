@@ -201,7 +201,7 @@ class _MacroDetailScreenState extends ConsumerState<MacroDetailScreen> {
                       Container(
                         width: double.infinity,
                         color: isOver
-                            ? const Color(0xFFD76A3C).withValues(alpha: 0.2)
+                            ? const Color(0xFFD76A3C).withOpacity( 0.2)
                             : const Color(0xFFE8EFCF),
                         padding: const EdgeInsets.symmetric(
                             vertical: 20, horizontal: 20),
@@ -365,7 +365,7 @@ class _MacroDetailScreenState extends ConsumerState<MacroDetailScreen> {
                               children: [
                                 Icon(Icons.info_outline,
                                     size: 48,
-                                    color: Colors.grey.withValues(alpha: 0.5)),
+                                    color: Colors.grey.withOpacity( 0.5)),
                                 const SizedBox(height: 12),
                                 const Text(
                                   'ไม่พบอาหารที่เหมาะสม',
@@ -382,7 +382,7 @@ class _MacroDetailScreenState extends ConsumerState<MacroDetailScreen> {
                                       fontFamily: 'Inter',
                                       fontSize: 14,
                                       color:
-                                          Colors.grey.withValues(alpha: 0.7)),
+                                          Colors.grey.withOpacity( 0.7)),
                                   textAlign: TextAlign.center,
                                 ),
                               ],

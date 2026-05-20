@@ -511,7 +511,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                                         Colors.grey.shade300,
                                     elevation: 2,
                                     shadowColor:
-                                        Colors.black.withValues(alpha: 0.24),
+                                        Colors.black.withOpacity( 0.24),
                                     shape: RoundedRectangleBorder(
                                       borderRadius: BorderRadius.circular(18),
                                     ),
@@ -558,7 +558,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                   fontFamily: 'Inter',
                   fontSize: 16,
                   fontWeight: FontWeight.w400,
-                  color: Colors.black.withValues(alpha: 0.5))),
+                  color: Colors.black.withOpacity( 0.5))),
           if (onInfoTap != null) ...[
             const SizedBox(width: 8),
             GestureDetector(

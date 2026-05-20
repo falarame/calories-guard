@@ -5,7 +5,7 @@ buildscript {
     }
     dependencies {
         classpath("com.android.tools.build:gradle:7.4.2")
-        classpath("org.jetbrains.kotlin:kotlin-gradle-plugin:1.9.0")
+        classpath("org.jetbrains.kotlin:kotlin-gradle-plugin:2.2.0")
         classpath("com.google.gms:google-services:4.4.0")
     }
 }
@@ -19,11 +19,21 @@ allprojects {
 }
 
 subprojects {
+    if (name != "app") {
+        beforeEvaluate {
+            extensions.extraProperties["flutter"] = mapOf(
+                "compileSdkVersion" to 36,
+                "minSdkVersion"     to 26,
+                "targetSdkVersion"  to 36,
+                "ndkVersion"        to "28.2.13676358"
+            )
+        }
+    }
     afterEvaluate {
         tasks.withType<org.jetbrains.kotlin.gradle.tasks.KotlinCompile>().configureEach {
-            kotlinOptions {
-                languageVersion = "1.9"
-                apiVersion = "1.9"
+            compilerOptions {
+                languageVersion.set(org.jetbrains.kotlin.gradle.dsl.KotlinVersion.KOTLIN_1_9)
+                apiVersion.set(org.jetbrains.kotlin.gradle.dsl.KotlinVersion.KOTLIN_1_9)
             }
         }
     }

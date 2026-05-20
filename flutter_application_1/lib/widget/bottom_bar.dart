@@ -209,11 +209,11 @@ class _MainScreenState extends ConsumerState<MainScreen> {
             padding: const EdgeInsets.all(8.0),
             decoration: isActive
                 ? BoxDecoration(
-                    color: Colors.white.withValues(alpha: 0.5),
+                    color: Colors.white.withOpacity( 0.5),
                     borderRadius: BorderRadius.circular(12),
                     boxShadow: [
                       BoxShadow(
-                        color: const Color(0xFF4C6414).withValues(alpha: 0.4),
+                        color: const Color(0xFF4C6414).withOpacity( 0.4),
                         blurRadius: 12,
                         spreadRadius: 1,
                         offset: const Offset(0, 3),
@@ -297,7 +297,7 @@ class _MainScreenState extends ConsumerState<MainScreen> {
                 final avatarUrl = ref.watch(userDataProvider).avatarUrl;
                 return CircleAvatar(
                   radius: 18,
-                  backgroundColor: Colors.white.withValues(alpha: 0.25),
+                  backgroundColor: Colors.white.withOpacity( 0.25),
                   backgroundImage: (avatarUrl != null && avatarUrl.isNotEmpty)
                       ? NetworkImage(avatarUrl)
                       : null,
@@ -375,11 +375,11 @@ class _WelcomeSpeechBubble extends StatelessWidget {
                 color: Colors.white,
                 borderRadius: BorderRadius.circular(14),
                 border: Border.all(
-                    color: const Color(0xFF628141).withValues(alpha: 0.3),
+                    color: const Color(0xFF628141).withOpacity( 0.3),
                     width: 1.2),
                 boxShadow: [
                   BoxShadow(
-                      color: Colors.black.withValues(alpha: 0.12),
+                      color: Colors.black.withOpacity( 0.12),
                       blurRadius: 10,
                       offset: const Offset(0, 4)),
                 ],
@@ -415,10 +415,10 @@ class _WelcomeSpeechBubble extends StatelessWidget {
                     color: Colors.white,
                     border: Border(
                       right: BorderSide(
-                          color: const Color(0xFF628141).withValues(alpha: 0.3),
+                          color: const Color(0xFF628141).withOpacity( 0.3),
                           width: 1.2),
                       bottom: BorderSide(
-                          color: const Color(0xFF628141).withValues(alpha: 0.3),
+                          color: const Color(0xFF628141).withOpacity( 0.3),
                           width: 1.2),
                     ),
                   ),

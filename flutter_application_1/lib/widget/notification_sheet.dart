@@ -271,7 +271,7 @@ class _NotificationSheetState extends ConsumerState<NotificationSheet> {
                         Text('ยังไม่ได้อ่าน $unread รายการ',
                             style: TextStyle(
                                 fontSize: 12,
-                                color: Colors.white.withValues(alpha: 0.75))),
+                                color: Colors.white.withOpacity( 0.75))),
                     ]),
               ),
               if (unread > 0)
@@ -359,11 +359,11 @@ class _NotificationSheetState extends ConsumerState<NotificationSheet> {
         border: n.isRead
             ? null
             : Border.all(
-                color: const Color(0xFF628141).withValues(alpha: 0.3),
+                color: const Color(0xFF628141).withOpacity( 0.3),
                 width: 1),
         boxShadow: [
           BoxShadow(
-              color: Colors.black.withValues(alpha: 0.04),
+              color: Colors.black.withOpacity( 0.04),
               blurRadius: 8,
               offset: const Offset(0, 3)),
         ],
@@ -374,7 +374,7 @@ class _NotificationSheetState extends ConsumerState<NotificationSheet> {
           width: 44,
           height: 44,
           decoration: BoxDecoration(
-            color: color.withValues(alpha: 0.12),
+            color: color.withOpacity( 0.12),
             shape: BoxShape.circle,
           ),
           child: Icon(icon, color: color, size: 22),

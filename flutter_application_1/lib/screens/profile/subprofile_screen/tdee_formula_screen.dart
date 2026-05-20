@@ -320,7 +320,7 @@ class TdeeFormulaScreen extends ConsumerWidget {
         borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
-              color: Colors.black.withValues(alpha: 0.05),
+              color: Colors.black.withOpacity( 0.05),
               blurRadius: 12,
               offset: const Offset(0, 4))
         ],
@@ -330,7 +330,7 @@ class TdeeFormulaScreen extends ConsumerWidget {
         Container(
           padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
           decoration: BoxDecoration(
-            color: color.withValues(alpha: 0.08),
+            color: color.withOpacity( 0.08),
             borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
           ),
           child: Row(children: [
@@ -338,7 +338,7 @@ class TdeeFormulaScreen extends ConsumerWidget {
               width: 32,
               height: 32,
               decoration: BoxDecoration(
-                  color: color.withValues(alpha: 0.15), shape: BoxShape.circle),
+                  color: color.withOpacity( 0.15), shape: BoxShape.circle),
               child: Center(
                 child: Text(step,
                     style: TextStyle(
@@ -360,7 +360,7 @@ class TdeeFormulaScreen extends ConsumerWidget {
               ]),
               Text(subtitle,
                   style: TextStyle(
-                      fontSize: 11, color: color.withValues(alpha: 0.7))),
+                      fontSize: 11, color: color.withOpacity( 0.7))),
             ]),
           ]),
         ),
@@ -429,7 +429,7 @@ class TdeeFormulaScreen extends ConsumerWidget {
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
           decoration: BoxDecoration(
-              color: color.withValues(alpha: 0.1),
+              color: color.withOpacity( 0.1),
               borderRadius: BorderRadius.circular(20)),
           child: Text(value,
               style: TextStyle(
@@ -444,7 +444,7 @@ class TdeeFormulaScreen extends ConsumerWidget {
       width: double.infinity,
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-          color: color.withValues(alpha: 0.08),
+          color: color.withOpacity( 0.08),
           borderRadius: BorderRadius.circular(12)),
       child: Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
         Text(label,
@@ -462,7 +462,7 @@ class TdeeFormulaScreen extends ConsumerWidget {
       child: Container(
         padding: const EdgeInsets.symmetric(vertical: 10),
         decoration: BoxDecoration(
-            color: color.withValues(alpha: 0.08),
+            color: color.withOpacity( 0.08),
             borderRadius: BorderRadius.circular(12)),
         child: Column(children: [
           Text(label,

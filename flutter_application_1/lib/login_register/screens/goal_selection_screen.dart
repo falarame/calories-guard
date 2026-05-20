@@ -138,7 +138,7 @@ class _GoalSelectionScreenState extends ConsumerState<GoalSelectionScreen> {
                 padding:
                     const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
                 decoration: BoxDecoration(
-                  color: isMe ? c.withValues(alpha: 0.10) : Colors.grey.shade50,
+                  color: isMe ? c.withOpacity( 0.10) : Colors.grey.shade50,
                   borderRadius: BorderRadius.circular(10),
                   border: isMe ? Border.all(color: c, width: 1.5) : null,
                 ),
@@ -148,7 +148,7 @@ class _GoalSelectionScreenState extends ConsumerState<GoalSelectionScreen> {
                     height: 32,
                     decoration: BoxDecoration(
                         color: isMe
-                            ? c.withValues(alpha: 0.15)
+                            ? c.withOpacity( 0.15)
                             : Colors.grey.shade200,
                         shape: BoxShape.circle),
                     child: Icon(it['icon'] as IconData,
@@ -188,7 +188,7 @@ class _GoalSelectionScreenState extends ConsumerState<GoalSelectionScreen> {
         borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
-              color: Colors.black.withValues(alpha: 0.05),
+              color: Colors.black.withOpacity( 0.05),
               blurRadius: 10,
               offset: const Offset(0, 4))
         ],
@@ -289,7 +289,7 @@ class _GoalSelectionScreenState extends ConsumerState<GoalSelectionScreen> {
                             padding: const EdgeInsets.symmetric(
                                 horizontal: 8, vertical: 2),
                             decoration: BoxDecoration(
-                                color: bmiColor.withValues(alpha: 0.2),
+                                color: bmiColor.withOpacity( 0.2),
                                 borderRadius: BorderRadius.circular(5)),
                             child: Text(bmiStatus,
                                 style: TextStyle(
@@ -461,7 +461,7 @@ class _GoalSelectionScreenState extends ConsumerState<GoalSelectionScreen> {
                       borderRadius: BorderRadius.circular(24),
                       boxShadow: [
                         BoxShadow(
-                            color: Colors.black.withValues(alpha: 0.25),
+                            color: Colors.black.withOpacity( 0.25),
                             blurRadius: 4,
                             offset: const Offset(0, 4))
                       ],
@@ -512,7 +512,7 @@ class _GoalSelectionScreenState extends ConsumerState<GoalSelectionScreen> {
               gradient: isSelected ? selectedGradient : defaultGradient,
               boxShadow: [
                 BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.1),
+                    color: Colors.black.withOpacity( 0.1),
                     blurRadius: 4,
                     offset: const Offset(0, 2))
               ],

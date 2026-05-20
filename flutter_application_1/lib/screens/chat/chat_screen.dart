@@ -234,7 +234,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
           child: Container(
             padding: const EdgeInsets.all(8),
             decoration: BoxDecoration(
-                color: Colors.white.withValues(alpha: 0.2),
+                color: Colors.white.withOpacity( 0.2),
                 shape: BoxShape.circle),
             child: const Icon(Icons.arrow_back_ios_new_rounded,
                 color: Colors.white, size: 18),
@@ -280,7 +280,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                 Text('ผู้ช่วยดูแลสุขภาพ · พร้อมช่วยเหลือ',
                     style: TextStyle(
                         fontSize: 12,
-                        color: Colors.white.withValues(alpha: 0.8))),
+                        color: Colors.white.withOpacity( 0.8))),
               ]),
             ],
           ),
@@ -289,7 +289,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
           decoration: BoxDecoration(
-            color: Colors.white.withValues(alpha: 0.2),
+            color: Colors.white.withOpacity( 0.2),
             borderRadius: BorderRadius.circular(20),
           ),
           child: const Text('AI',
@@ -322,7 +322,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                 shape: BoxShape.circle,
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.08),
+                    color: Colors.black.withOpacity( 0.08),
                     blurRadius: 6,
                     offset: const Offset(0, 2),
                   )
@@ -353,7 +353,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                 ),
                 boxShadow: [
                   BoxShadow(
-                      color: Colors.black.withValues(alpha: 0.06),
+                      color: Colors.black.withOpacity( 0.06),
                       blurRadius: 8,
                       offset: const Offset(0, 2))
                 ],
@@ -375,7 +375,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                     style: TextStyle(
                       fontSize: 10,
                       color: isUser
-                          ? Colors.white.withValues(alpha: 0.65)
+                          ? Colors.white.withOpacity( 0.65)
                           : Colors.grey.shade400,
                     ),
                   ),
@@ -403,7 +403,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
             shape: BoxShape.circle,
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withValues(alpha: 0.08),
+                color: Colors.black.withOpacity( 0.08),
                 blurRadius: 6,
                 offset: const Offset(0, 2),
               )
@@ -432,7 +432,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
             ),
             boxShadow: [
               BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.06),
+                  color: Colors.black.withOpacity( 0.06),
                   blurRadius: 8,
                   offset: const Offset(0, 2))
             ],
@@ -486,7 +486,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
               border: Border.all(color: _greenLight, width: 1.5),
               boxShadow: [
                 BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.04),
+                    color: Colors.black.withOpacity( 0.04),
                     blurRadius: 6,
                     offset: const Offset(0, 2))
               ],
@@ -512,7 +512,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
         color: Colors.white,
         boxShadow: [
           BoxShadow(
-              color: Colors.black.withValues(alpha: 0.06),
+              color: Colors.black.withOpacity( 0.06),
               blurRadius: 12,
               offset: const Offset(0, -3))
         ],
@@ -556,7 +556,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                   ? []
                   : [
                       BoxShadow(
-                          color: _green.withValues(alpha: 0.4),
+                          color: _green.withOpacity( 0.4),
                           blurRadius: 10,
                           offset: const Offset(0, 4))
                     ],

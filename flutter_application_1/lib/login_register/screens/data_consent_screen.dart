@@ -144,7 +144,7 @@ class _DataConsentScreenState extends ConsumerState<DataConsentScreen> {
                     backgroundColor: palette.brand,
                     foregroundColor: Colors.white,
                     disabledBackgroundColor:
-                        palette.brand.withValues(alpha: 0.4),
+                        palette.brand.withOpacity( 0.4),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(28),
                     ),
