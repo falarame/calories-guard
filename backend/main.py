@@ -156,8 +156,7 @@ _INVITE_HTML = """<!DOCTYPE html>
     .badge{background:#f0f4eb;border-radius:12px;padding:12px 20px;margin-bottom:28px;font-size:14px;color:#628141;font-weight:600}
     .btn{display:block;width:100%;padding:16px;border-radius:14px;font-size:16px;font-weight:600;text-decoration:none;cursor:pointer;border:none;margin-bottom:12px}
     .btn-primary{background:#628141;color:white}
-    .store-badge{margin-top:20px}
-    .store-badge img{height:52px}
+    .test-note{margin-top:20px;font-size:13px;color:#888}
     #fallback-msg{font-size:13px;color:#999;margin-bottom:12px;display:none}
     .qr-hint{font-size:13px;color:#bbb;margin-top:20px}
   </style>
@@ -169,29 +168,28 @@ _INVITE_HTML = """<!DOCTYPE html>
   <p>แอปติดตามแคลอรีและสุขภาพ ดูแลตัวเองง่ายๆ ด้วย AI</p>
   <div class="badge">🎁 สมัครวันนี้ รับ 20 gems ฟรีทันที!</div>
   <a id="open-app" class="btn btn-primary" href="#">เปิดในแอป Calories Guard</a>
-  <p id="fallback-msg">หากแอปไม่เปิด ให้ดาวน์โหลดก่อนแล้วเปิดลิงก์นี้อีกครั้ง</p>
-  <div class="store-badge">
-    <a href="https://play.google.com/store/apps/details?id=com.caloriesguard.app" id="play-store">
-      <img src="https://play.google.com/intl/en_us/badges/static/images/badges/th_badge_web_generic.png" alt="ดาวน์โหลดบน Google Play"/>
-    </a>
-  </div>
+  <p id="fallback-msg">หากแอปไม่เปิด ให้ตรวจว่าติดตั้งแอปเวอร์ชันทดสอบแล้ว จากนั้นเปิดแอปและสมัครสมาชิกผ่านลิงก์นี้อีกครั้ง</p>
+  <p class="test-note">ช่วงทดสอบ: โปรดติดตั้งแอปจากไฟล์ APK ที่ทีมพัฒนาให้ไว้ก่อน</p>
   <p class="qr-hint">บนคอมพิวเตอร์: สแกน QR Code ด้วยมือถือ Android</p>
 </div>
 <script>
   var pathParts = window.location.pathname.split('/');
   var code = pathParts[pathParts.length - 1] || '';
   var deepLink = 'com.caloriesguard.app://invite/' + code;
-  var playStoreBase = 'https://play.google.com/store/apps/details?id=com.caloriesguard.app';
-  var playStoreUrl = code ? playStoreBase + '&referrer=' + encodeURIComponent('invite_code=' + code) : playStoreBase;
   document.getElementById('open-app').href = deepLink;
-  document.getElementById('play-store').href = playStoreUrl;
   var isAndroid = /Android/.test(navigator.userAgent || '');
+  function openApp(event) {
+    if (event) event.preventDefault();
+    document.getElementById('fallback-msg').style.display = 'block';
+    setTimeout(function() {
+      window.location.href = deepLink;
+    }, 50);
+  }
+  document.getElementById('open-app').addEventListener('click', openApp);
   if (isAndroid) {
-    window.location.href = deepLink;
     setTimeout(function() {
       document.getElementById('fallback-msg').style.display = 'block';
-      window.location.href = playStoreUrl;
-    }, 1800);
+    }, 1200);
   }
 </script>
 </body>
