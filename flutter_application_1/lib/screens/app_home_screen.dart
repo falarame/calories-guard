@@ -21,6 +21,8 @@ import '/screens/bmi/bmi_detail_screen.dart';
 import '/screens/tamagotchi/tamagotchi_screen.dart';
 import '/screens/weight/weight_chart_screen.dart';
 import 'package:permission_handler/permission_handler.dart';
+import '../../providers/step_provider.dart';
+import '../../services/pedometer_service.dart';
 
 class AppHomeScreen extends ConsumerStatefulWidget {
   const AppHomeScreen({super.key});
@@ -52,6 +54,7 @@ class _AppHomeScreenState extends ConsumerState<AppHomeScreen> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _syncViewDateFromProvider();
       _fetchAllData();
+      unawaited(PedometerService.instance.start());
       // Feature 2: listen for copy_yesterday notification action
       _payloadListener = () {
         final payload = NotificationHelper.pendingPayload.value;
@@ -472,6 +475,8 @@ class _AppHomeScreenState extends ConsumerState<AppHomeScreen> {
                             targetCal, progress, isOver, userData),
                         const SizedBox(height: 12),
                         _buildMacroRow(userData),
+                        const SizedBox(height: 12),
+                        _buildStepCard(),
                         const SizedBox(height: 12),
                         _buildWeightBMIRow(userData, bmi, bmiStatus),
                         const SizedBox(height: 16),
@@ -1049,6 +1054,257 @@ class _AppHomeScreenState extends ConsumerState<AppHomeScreen> {
             ],
           ),
         ),
+      ),
+    );
+  }
+
+  // ─── Step Card ───────────────────────────────────────────────────────────
+
+  Widget _buildStepCard() {
+    final stepAsync = ref.watch(stepCountProvider);
+    final statusAsync = ref.watch(pedestrianStatusProvider);
+    final userData = ref.watch(userDataProvider);
+    const goal = 10000;
+
+    final statusBadge = statusAsync.whenOrNull(
+      data: (status) {
+        final isWalking = status == 'walking';
+        return Container(
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+          decoration: BoxDecoration(
+            color: isWalking
+                ? _green.withValues(alpha: 0.1)
+                : Colors.grey.shade100,
+            borderRadius: BorderRadius.circular(20),
+          ),
+          child: Row(mainAxisSize: MainAxisSize.min, children: [
+            Icon(
+              isWalking
+                  ? Icons.directions_walk_rounded
+                  : Icons.pause_circle_outline_rounded,
+              size: 13,
+              color: isWalking ? _green : Colors.grey,
+            ),
+            const SizedBox(width: 4),
+            Text(
+              isWalking ? 'กำลังเดิน' : 'หยุด',
+              style: TextStyle(
+                fontSize: 11,
+                fontWeight: FontWeight.w600,
+                color: isWalking ? _green : Colors.grey,
+              ),
+            ),
+          ]),
+        );
+      },
+    );
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(20),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.05),
+              blurRadius: 12,
+              offset: const Offset(0, 3),
+            ),
+          ],
+        ),
+        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Row(children: [
+            Container(
+              width: 36,
+              height: 36,
+              decoration: BoxDecoration(
+                color: _green.withValues(alpha: 0.1),
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(Icons.directions_walk_rounded,
+                  size: 20, color: _green),
+            ),
+            const SizedBox(width: 10),
+            const Text(
+              'ก้าวเดินวันนี้',
+              style: TextStyle(
+                  fontSize: 15,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.black87),
+            ),
+            const Spacer(),
+            if (statusBadge != null) statusBadge,
+          ]),
+          const SizedBox(height: 14),
+          stepAsync.when(
+            data: (steps) {
+              final pct = (steps / goal).clamp(0.0, 1.0);
+              final reachGoal = steps >= goal;
+
+              // Research-backed calorie calculation
+              // Ref: Ludlow & Weyand (2004), Med Sci Sports Exerc 36(12):2128-2134
+              //      https://pubmed.ncbi.nlm.nih.gov/15570150/
+              // Ref: McArdle, Katch & Katch — Exercise Physiology (8th ed.)
+              //      Coefficient: 0.8 kcal/kg/km
+              final calc = PedometerService.calculateCaloriesBurned(
+                steps: steps,
+                weightKg: userData.weight,
+                heightCm: userData.height,
+                gender: userData.gender,
+              );
+              final distanceLabel = calc.distanceKm >= 1.0
+                  ? '${calc.distanceKm.toStringAsFixed(2)} กม.'
+                  : '${(calc.distanceKm * 1000).toStringAsFixed(0)} ม.';
+
+              return Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Step count + goal
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.end,
+                    children: [
+                      Text(
+                        '$steps',
+                        style: TextStyle(
+                          fontSize: 32,
+                          fontWeight: FontWeight.bold,
+                          color: reachGoal ? _green : Colors.black87,
+                          height: 1,
+                        ),
+                      ),
+                      const SizedBox(width: 6),
+                      Padding(
+                        padding: const EdgeInsets.only(bottom: 4),
+                        child: Text(
+                          '/ $goal ก้าว',
+                          style: TextStyle(
+                              fontSize: 13, color: Colors.grey.shade500),
+                        ),
+                      ),
+                      if (reachGoal) ...[
+                        const SizedBox(width: 8),
+                        const Padding(
+                          padding: EdgeInsets.only(bottom: 4),
+                          child: Text('🎉', style: TextStyle(fontSize: 16)),
+                        ),
+                      ],
+                    ],
+                  ),
+
+                  const SizedBox(height: 10),
+
+                  // Progress bar
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(6),
+                    child: LinearProgressIndicator(
+                      value: pct,
+                      minHeight: 8,
+                      backgroundColor: _greenLight,
+                      valueColor: const AlwaysStoppedAnimation(_green),
+                    ),
+                  ),
+                  const SizedBox(height: 6),
+                  Text(
+                    '${(pct * 100).toInt()}% ของเป้าหมาย',
+                    style: TextStyle(
+                        fontSize: 11,
+                        color: Colors.grey.shade500,
+                        fontWeight: FontWeight.w500),
+                  ),
+
+                  // Distance + Calories row (แสดงเมื่อมีข้อมูล weight/height)
+                  if (calc.distanceKm > 0) ...[
+                    const SizedBox(height: 12),
+                    const Divider(height: 1, thickness: 1),
+                    const SizedBox(height: 10),
+                    Row(children: [
+                      // Distance
+                      Expanded(
+                        child: Row(children: [
+                          Container(
+                            width: 28,
+                            height: 28,
+                            decoration: BoxDecoration(
+                              color: Colors.blue.shade50,
+                              shape: BoxShape.circle,
+                            ),
+                            child: Icon(Icons.route_rounded,
+                                size: 15, color: Colors.blue.shade400),
+                          ),
+                          const SizedBox(width: 8),
+                          Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text('ระยะทาง',
+                                  style: TextStyle(
+                                      fontSize: 10,
+                                      color: Colors.grey.shade500)),
+                              Text(distanceLabel,
+                                  style: const TextStyle(
+                                      fontSize: 13,
+                                      fontWeight: FontWeight.bold,
+                                      color: Colors.black87)),
+                            ],
+                          ),
+                        ]),
+                      ),
+                      // Calories burned
+                      Expanded(
+                        child: Row(children: [
+                          Container(
+                            width: 28,
+                            height: 28,
+                            decoration: BoxDecoration(
+                              color: Colors.orange.shade50,
+                              shape: BoxShape.circle,
+                            ),
+                            child: Icon(Icons.local_fire_department_rounded,
+                                size: 15, color: Colors.orange.shade600),
+                          ),
+                          const SizedBox(width: 8),
+                          Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text('เผาผลาญ',
+                                  style: TextStyle(
+                                      fontSize: 10,
+                                      color: Colors.grey.shade500)),
+                              Text(
+                                '${calc.calories.toStringAsFixed(1)} kcal',
+                                style: const TextStyle(
+                                    fontSize: 13,
+                                    fontWeight: FontWeight.bold,
+                                    color: Colors.black87),
+                              ),
+                            ],
+                          ),
+                        ]),
+                      ),
+                    ]),
+                  ],
+                ],
+              );
+            },
+            loading: () => const Center(
+              child: Padding(
+                padding: EdgeInsets.symmetric(vertical: 8),
+                child: SizedBox(
+                  width: 20,
+                  height: 20,
+                  child: CircularProgressIndicator(
+                      strokeWidth: 2, color: _green),
+                ),
+              ),
+            ),
+            error: (_, __) => Text(
+              'ไม่สามารถอ่านข้อมูลก้าวเดินได้',
+              style: TextStyle(fontSize: 12, color: Colors.grey.shade400),
+            ),
+          ),
+        ]),
       ),
     );
   }
