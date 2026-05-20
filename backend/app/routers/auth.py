@@ -263,6 +263,41 @@ async def get_me(current_user: dict = Depends(get_current_user)):
         if not db_user:
             raise HTTPException(status_code=404, detail="User not found")
 
+        # Update streak when opening the app on a new day
+        today = date.today()
+        last_login = db_user.get("last_login_date")
+        if last_login and hasattr(last_login, "date"):
+            last_login = last_login.date()
+        if last_login != today:
+            total_days = int(db_user.get("total_login_days") or 0) + 1
+            streak = int(db_user.get("current_streak") or 0)
+            if last_login is None or (today - last_login).days > 1:
+                streak = 1
+            else:
+                streak += 1
+            cur.execute(
+                """UPDATE cleangoal.users SET last_login_date = %s, total_login_days = %s,
+                   current_streak = %s WHERE user_id = %s""",
+                (today, total_days, streak, user_id),
+            )
+            streak_milestones = {
+                1: "ยินดีต้อนรับ! เริ่มต้นดูแลสุขภาพกับ Calories Guard วันนี้เลย",
+                3: "ยอดเยี่ยม! คุณใช้แอปต่อเนื่อง 3 วันแล้ว ไปต่อได้เลย!",
+                7: "เจ๋งมาก! 7 วันติดต่อกัน! คุณมีวินัยสุดๆ!",
+                14: "สุดยอด! 2 สัปดาห์ติดต่อกันแล้ว นับถือมากครับ!",
+                30: "ระดับตำนาน! 30 วันไม่เคยพลาด คุณทำได้แล้ว!",
+            }
+            if streak in streak_milestones:
+                cur.execute(
+                    """INSERT INTO cleangoal.notifications (user_id, title, message, type)
+                       VALUES (%s, %s, %s, 'achievement')
+                       ON CONFLICT DO NOTHING""",
+                    (user_id, f"Streak {streak} วัน!", streak_milestones[streak]),
+                )
+            conn.commit()
+        else:
+            streak = int(db_user.get("current_streak") or 0)
+
         access_token = _issue_access_token(
             db_user["user_id"], db_user["email"], db_user["role_id"]
         )
@@ -271,7 +306,7 @@ async def get_me(current_user: dict = Depends(get_current_user)):
             "username": db_user["username"],
             "email": db_user["email"],
             "role_id": db_user["role_id"],
-            "current_streak": int(db_user.get("current_streak") or 0),
+            "current_streak": streak,
             "access_token": access_token,
             "token_type": "Bearer",
             "onboarding_required": _onboarding_required(db_user),
@@ -604,6 +639,19 @@ def social_login(body: SocialLoginRequest):
                    current_streak = %s WHERE user_id = %s""",
                 (today, total_days, streak, user['user_id'])
             )
+            streak_milestones = {
+                1: "ยินดีต้อนรับ! เริ่มต้นดูแลสุขภาพกับ Calories Guard วันนี้เลย",
+                3: "ยอดเยี่ยม! คุณใช้แอปต่อเนื่อง 3 วันแล้ว ไปต่อได้เลย!",
+                7: "เจ๋งมาก! 7 วันติดต่อกัน! คุณมีวินัยสุดๆ!",
+                14: "สุดยอด! 2 สัปดาห์ติดต่อกันแล้ว นับถือมากครับ!",
+                30: "ระดับตำนาน! 30 วันไม่เคยพลาด คุณทำได้แล้ว!",
+            }
+            if streak in streak_milestones and last_login != today:
+                cur.execute("""
+                    INSERT INTO notifications (user_id, title, message, type)
+                    VALUES (%s, %s, %s, 'achievement')
+                    ON CONFLICT DO NOTHING
+                """, (user['user_id'], f"Streak {streak} วัน!", streak_milestones[streak]))
             conn.commit()
             role_id = int(user.get('role_id') or 2)
             onboarding_required = _onboarding_required(user)

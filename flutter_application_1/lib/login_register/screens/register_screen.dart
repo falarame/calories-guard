@@ -59,9 +59,20 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
     try {
       final preview = await CommunityApi.instance.previewReferral(code);
       if (mounted) setState(() => _referralPreview = preview);
-    } catch (_) {
-      // expired/invalid — just drop the chip, don't error the form
-      if (mounted) setState(() => _pendingReferralCode = null);
+    } catch (e) {
+      final msg = e.toString();
+      // Only discard the code when the server explicitly rejects it (gone/not-found).
+      // For network errors or 5xx, keep the code so it still gets sent at registration
+      // time — the backend will validate it then.
+      final isDefinitelyInvalid = msg.contains('410') || msg.contains('404') ||
+          msg.contains('ลิงก์เชิญถูกใช้งานไปแล้ว') || msg.contains('ลิงก์เชิญหมดอายุแล้ว') ||
+          msg.contains('ไม่พบลิงก์เชิญนี้');
+      if (isDefinitelyInvalid && mounted) {
+        await PendingInvite.consume(); // clear from secure storage too
+        setState(() => _pendingReferralCode = null);
+      }
+      // On any other error: keep _pendingReferralCode, just hide the chip
+      if (mounted) setState(() => _referralPreview = null);
     }
   }
 

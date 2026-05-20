@@ -77,15 +77,18 @@
   var pathParts = window.location.pathname.split('/');
   var code = pathParts[pathParts.length - 1] || '';
   var deepLink = 'com.caloriesguard.app://invite/' + code;
+  var playStoreBase = 'https://play.google.com/store/apps/details?id=com.caloriesguard.app';
+  var playStoreUrl = code ? playStoreBase + '&referrer=' + encodeURIComponent('invite_code=' + code) : playStoreBase;
 
   document.getElementById('open-app').href = deepLink;
+  document.getElementById('play-store').href = playStoreUrl;
 
   var isAndroid = /Android/.test(navigator.userAgent || '');
   if (isAndroid) {
     window.location.href = deepLink;
     setTimeout(function() {
       document.getElementById('fallback-msg').style.display = 'block';
-      window.location.href = document.getElementById('play-store').href;
+      window.location.href = playStoreUrl;
     }, 1800);
   }
 </script>

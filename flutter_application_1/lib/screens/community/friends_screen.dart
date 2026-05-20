@@ -38,6 +38,9 @@ class _FriendsScreenState extends ConsumerState<FriendsScreen> with SingleTicker
         title: const Text('เพื่อน'),
         bottom: TabBar(
           controller: _tabs,
+          labelColor: Colors.white,
+          unselectedLabelColor: Colors.white70,
+          indicatorColor: Colors.white,
           tabs: const [
             Tab(text: 'เพื่อน'),
             Tab(text: 'คำขอ'),
