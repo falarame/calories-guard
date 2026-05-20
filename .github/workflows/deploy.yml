@@ -42,7 +42,7 @@ jobs:
           WEBHOOK: ${{ secrets.RAILWAY_STAGING_WEBHOOK }}
         run: |
           if [ -z "$WEBHOOK" ]; then
-            echo "::error::RAILWAY_STAGING_WEBHOOK not set"; exit 1
+            echo "::notice::RAILWAY_STAGING_WEBHOOK not set; skipping staging deploy"; exit 0
           fi
           # Railway deploy webhooks are POST with empty body; 2xx == queued
           curl --fail --silent --show-error -X POST "$WEBHOOK" -d '{}'

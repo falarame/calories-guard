@@ -23,6 +23,12 @@ os.environ.setdefault("SUPABASE_ANON_KEY", "test-key")
 
 
 @pytest.fixture
+def anyio_backend():
+    """Run async tests on asyncio only; CI does not install trio."""
+    return "asyncio"
+
+
+@pytest.fixture
 def mock_db(monkeypatch):
     """Replace get_db_connection with a MagicMock that returns a fake cursor."""
     mock_conn = MagicMock()
