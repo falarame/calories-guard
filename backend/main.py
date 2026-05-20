@@ -14,7 +14,7 @@ load_dotenv()
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import PlainTextResponse, Response
+from fastapi.responses import HTMLResponse, JSONResponse, PlainTextResponse, Response
 from fastapi.staticfiles import StaticFiles
 from slowapi import Limiter, _rate_limit_exceeded_handler
 from slowapi.util import get_remote_address
@@ -138,6 +138,87 @@ async def update_last_active(request, call_next):
         pass  # Never let middleware crash the request
 
     return response
+
+
+_INVITE_HTML = """<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>เข้าร่วม Calories Guard</title>
+  <style>
+    *{box-sizing:border-box;margin:0;padding:0}
+    body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#f0f4eb;display:flex;align-items:center;justify-content:center;min-height:100vh;padding:24px}
+    .card{background:white;border-radius:24px;padding:40px 32px;max-width:420px;width:100%;text-align:center;box-shadow:0 4px 24px rgba(0,0,0,.08)}
+    .logo{font-size:48px;margin-bottom:16px}
+    h1{color:#628141;font-size:22px;margin-bottom:8px}
+    p{color:#666;font-size:15px;line-height:1.6;margin-bottom:24px}
+    .badge{background:#f0f4eb;border-radius:12px;padding:12px 20px;margin-bottom:28px;font-size:14px;color:#628141;font-weight:600}
+    .btn{display:block;width:100%;padding:16px;border-radius:14px;font-size:16px;font-weight:600;text-decoration:none;cursor:pointer;border:none;margin-bottom:12px}
+    .btn-primary{background:#628141;color:white}
+    .store-badge{margin-top:20px}
+    .store-badge img{height:52px}
+    #fallback-msg{font-size:13px;color:#999;margin-bottom:12px;display:none}
+    .qr-hint{font-size:13px;color:#bbb;margin-top:20px}
+  </style>
+</head>
+<body>
+<div class="card">
+  <div class="logo">🥗</div>
+  <h1>คุณถูกชวนมาใช้ Calories Guard!</h1>
+  <p>แอปติดตามแคลอรีและสุขภาพ ดูแลตัวเองง่ายๆ ด้วย AI</p>
+  <div class="badge">🎁 สมัครวันนี้ รับ 20 gems ฟรีทันที!</div>
+  <a id="open-app" class="btn btn-primary" href="#">เปิดในแอป Calories Guard</a>
+  <p id="fallback-msg">หากแอปไม่เปิด ให้ดาวน์โหลดก่อนแล้วเปิดลิงก์นี้อีกครั้ง</p>
+  <div class="store-badge">
+    <a href="https://play.google.com/store/apps/details?id=com.caloriesguard.app" id="play-store">
+      <img src="https://play.google.com/intl/en_us/badges/static/images/badges/th_badge_web_generic.png" alt="ดาวน์โหลดบน Google Play"/>
+    </a>
+  </div>
+  <p class="qr-hint">บนคอมพิวเตอร์: สแกน QR Code ด้วยมือถือ Android</p>
+</div>
+<script>
+  var pathParts = window.location.pathname.split('/');
+  var code = pathParts[pathParts.length - 1] || '';
+  var deepLink = 'com.caloriesguard.app://invite/' + code;
+  var playStoreBase = 'https://play.google.com/store/apps/details?id=com.caloriesguard.app';
+  var playStoreUrl = code ? playStoreBase + '&referrer=' + encodeURIComponent('invite_code=' + code) : playStoreBase;
+  document.getElementById('open-app').href = deepLink;
+  document.getElementById('play-store').href = playStoreUrl;
+  var isAndroid = /Android/.test(navigator.userAgent || '');
+  if (isAndroid) {
+    window.location.href = deepLink;
+    setTimeout(function() {
+      document.getElementById('fallback-msg').style.display = 'block';
+      window.location.href = playStoreUrl;
+    }, 1800);
+  }
+</script>
+</body>
+</html>"""
+
+_ASSETLINKS = [
+    {
+        "relation": ["delegate_permission/common.handle_all_urls"],
+        "target": {
+            "namespace": "android_app",
+            "package_name": "com.caloriesguard.app",
+            "sha256_cert_fingerprints": [
+                "93:2D:27:9F:9E:7A:A5:A6:78:76:14:E1:1B:49:BC:9F:90:E9:BB:EB:1F:48:F7:07:6E:F4:48:67:92:3D:D3:57"
+            ],
+        },
+    }
+]
+
+
+@app.get("/invite/{code}", include_in_schema=False)
+def invite_page(code: str):
+    return HTMLResponse(_INVITE_HTML)
+
+
+@app.get("/.well-known/assetlinks.json", include_in_schema=False)
+def assetlinks_json():
+    return JSONResponse(_ASSETLINKS)
 
 
 @app.get("/robots.txt", include_in_schema=False)
