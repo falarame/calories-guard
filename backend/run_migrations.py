@@ -78,6 +78,15 @@ TARGET_MIGRATIONS = [
     "v26_food_versioning_and_log_snapshots.sql",
     "v27_seed_beverages_table.sql",
     "v28_thaifcd_import_foods.sql",
+    "v29_gamification_gems.sql",
+    "v29_users_fcm_token.sql",
+    "v30_user_notification_prefs.sql",
+    "v31_referral.sql",
+    "v32_friendships.sql",
+    "v33_conversations.sql",
+    "v34_presence.sql",
+    "v35_realtime_rls.sql",
+    "v36_users_pending_referral.sql",
 ]
 
 
