@@ -83,6 +83,19 @@ finally {
     Pop-Location
 }
 
+$extraStaticAssets = Join-Path $repoRoot "docs\web-deploy"
+if (Test-Path -LiteralPath $extraStaticAssets) {
+    Write-Host "==> Copying extra static assets from docs/web-deploy..." -ForegroundColor Cyan
+    Copy-Item -LiteralPath (Join-Path $extraStaticAssets ".well-known") `
+        -Destination (Join-Path $flutterRoot "build\web") `
+        -Recurse `
+        -Force
+    Copy-Item -LiteralPath (Join-Path $extraStaticAssets "invite") `
+        -Destination (Join-Path $flutterRoot "build\web") `
+        -Recurse `
+        -Force
+}
+
 Write-Host "==> npx wrangler deploy (Worker: app-caloriesguard)..." -ForegroundColor Cyan
 Push-Location $flutterRoot
 try {
