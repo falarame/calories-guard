@@ -55,13 +55,16 @@
                 <action android:name="android.intent.action.VIEW_PERMISSION_USAGE"/>
                 <category android:name="android.intent.category.HEALTH_PERMISSIONS"/>
             </intent-filter>
-            <!-- Universal App Link for friend invites: https://caloriesguard.app/invite/<code> -->
+            <!-- Universal App Link for friend invites. Keep hosts in sync with APP_PUBLIC_URL. -->
             <intent-filter android:autoVerify="true">
                 <action android:name="android.intent.action.VIEW"/>
                 <category android:name="android.intent.category.DEFAULT"/>
                 <category android:name="android.intent.category.BROWSABLE"/>
                 <data android:scheme="https"
                       android:host="caloriesguard.app"
+                      android:pathPrefix="/invite/"/>
+                <data android:scheme="https"
+                      android:host="app.caloriesguard.com"
                       android:pathPrefix="/invite/"/>
             </intent-filter>
             <!-- Custom-scheme fallback for invites: com.caloriesguard.app://invite/<code> -->
