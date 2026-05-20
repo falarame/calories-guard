@@ -78,13 +78,16 @@ def test_referral_me_requires_auth(unauth_client):
 
 def test_referral_me_returns_summary(app_client, community_db):
     _, cur = community_db
-    # Sequence: SELECT code (existing) → counts → counts → counts → totals
+    # Sequence: SELECT code (existing) → aggregate summary row
     cur.fetchone.side_effect = [
         {"code": "ABCD1234"},      # existing code
-        {"n": 0},                  # total_invites
-        {"n": 0},                  # accepted
-        {"n": 0},                  # rewarded
-        {"gems": 0, "xp": 0},      # totals
+        {
+            "total_invites": 0,
+            "accepted": 0,
+            "rewarded": 0,
+            "gems": 0,
+            "xp": 0,
+        },
     ]
     r = app_client.get("/referral/me")
     assert r.status_code == 200

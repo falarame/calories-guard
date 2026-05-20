@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 
 import '../../models/community_models.dart';
+import '../../theme/app_theme.dart';
 import '../../providers/community_providers.dart';
 import '../../services/community_api.dart';
 import 'conversation_detail_screen.dart';
@@ -102,7 +103,7 @@ class _FriendTile extends ConsumerWidget {
             backgroundColor: const Color(0xFFE8EFCF),
             backgroundImage: (friend.avatarUrl?.isNotEmpty ?? false) ? NetworkImage(friend.avatarUrl!) : null,
             child: (friend.avatarUrl?.isEmpty ?? true)
-                ? const Icon(Icons.person, color: Color(0xFF628141))
+                ? Icon(Icons.person, color: context.palette.brand)
                 : null,
           ),
           if (presence == PresenceStatus.online)
@@ -230,7 +231,7 @@ class _RequestList extends ConsumerWidget {
                   radius: 24,
                   backgroundColor: const Color(0xFFE8EFCF),
                   backgroundImage: (r.avatarUrl?.isNotEmpty ?? false) ? NetworkImage(r.avatarUrl!) : null,
-                  child: (r.avatarUrl?.isEmpty ?? true) ? const Icon(Icons.person, color: Color(0xFF628141)) : null,
+                  child: (r.avatarUrl?.isEmpty ?? true) ? Icon(Icons.person, color: context.palette.brand) : null,
                 ),
                 title: Text(r.username),
                 subtitle: Text('ส่งคำขอ ${r.createdAt != null ? _relativeTime(r.createdAt!) : ''}'),
@@ -306,7 +307,7 @@ class _InviteTab extends ConsumerWidget {
                   leading: CircleAvatar(
                     backgroundImage: (i.inviteeAvatar?.isNotEmpty ?? false) ? NetworkImage(i.inviteeAvatar!) : null,
                     backgroundColor: const Color(0xFFE8EFCF),
-                    child: (i.inviteeAvatar?.isEmpty ?? true) ? const Icon(Icons.person, color: Color(0xFF628141)) : null,
+                    child: (i.inviteeAvatar?.isEmpty ?? true) ? Icon(Icons.person, color: context.palette.brand) : null,
                   ),
                   title: Text(i.inviteeUsername),
                   subtitle: Text('${_sourceLabel(i.source)} • ${i.status == 'rewarded' ? 'รับรางวัลแล้ว' : i.status}'),

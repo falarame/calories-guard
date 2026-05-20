@@ -6,6 +6,7 @@ import 'package:intl/intl.dart';
 import '../../models/community_models.dart';
 import '../../providers/community_providers.dart';
 import '../../providers/user_data_provider.dart';
+import '../../theme/app_theme.dart';
 
 class ConversationDetailScreen extends ConsumerStatefulWidget {
   final int conversationId;
@@ -185,7 +186,7 @@ class _ConversationDetailScreenState extends ConsumerState<ConversationDetailScr
             IconButton(
               icon: _sending
                   ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2))
-                  : const Icon(Icons.send, color: Color(0xFF628141)),
+                  : Icon(Icons.send, color: context.palette.brand),
               onPressed: _sending ? null : _sendText,
             ),
           ],
@@ -219,7 +220,7 @@ class _MessageBubble extends StatelessWidget {
       );
     }
 
-    final bg = isMine ? const Color(0xFF628141) : Colors.grey.shade200;
+    final bg = isMine ? context.palette.brand : Colors.grey.shade200;
     final fg = isMine ? Colors.white : Colors.black87;
     final align = isMine ? CrossAxisAlignment.end : CrossAxisAlignment.start;
 

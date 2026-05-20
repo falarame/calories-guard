@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 
 import '../../models/community_models.dart';
+import '../../theme/app_theme.dart';
 import '../../providers/community_providers.dart';
 import 'conversation_detail_screen.dart';
 import 'friends_screen.dart';
@@ -94,7 +95,7 @@ class _ConversationTile extends ConsumerWidget {
 
     return ListTile(
       contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
-      leading: _avatar(presence),
+      leading: _avatar(context, presence),
       title: Row(
         children: [
           Expanded(
@@ -123,9 +124,9 @@ class _ConversationTile extends ConsumerWidget {
             const SizedBox(width: 8),
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-              decoration: const BoxDecoration(
-                color: Color(0xFF628141),
-                borderRadius: BorderRadius.all(Radius.circular(12)),
+              decoration: BoxDecoration(
+                color: context.palette.brand,
+                borderRadius: const BorderRadius.all(Radius.circular(12)),
               ),
               child: Text(
                 c.unreadCount > 99 ? '99+' : '${c.unreadCount}',
@@ -154,14 +155,14 @@ class _ConversationTile extends ConsumerWidget {
     );
   }
 
-  Widget _avatar(PresenceStatus? presence) {
+  Widget _avatar(BuildContext context, PresenceStatus? presence) {
     final url = c.displayAvatar;
     final avatar = CircleAvatar(
       radius: 26,
       backgroundImage: (url != null && url.isNotEmpty) ? NetworkImage(url) : null,
       backgroundColor: const Color(0xFFE8EFCF),
       child: (url == null || url.isEmpty)
-          ? Icon(c.type == 'group' ? Icons.group : Icons.person, color: const Color(0xFF628141))
+          ? Icon(c.type == 'group' ? Icons.group : Icons.person, color: context.palette.brand)
           : null,
     );
     if (presence == PresenceStatus.online) {

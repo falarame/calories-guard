@@ -19,7 +19,7 @@ from typing import Optional, List, Literal
 
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Form, Query
 from pydantic import BaseModel, EmailStr, Field
-from psycopg2.extras import RealDictCursor
+from psycopg2.extras import RealDictCursor, execute_values
 
 from database import get_db_connection
 from auth.dependencies import get_current_user
@@ -156,47 +156,28 @@ def get_my_referral(current_user: dict = Depends(get_current_user)):
         code = _ensure_referral_code(cur, user_id)
 
         cur.execute(
-            "SELECT COUNT(*) AS n FROM cleangoal.referral_invitations WHERE inviter_user_id = %s",
-            (user_id,),
-        )
-        total_invites = cur.fetchone()["n"]
-
-        cur.execute(
-            "SELECT COUNT(*) AS n FROM cleangoal.referrals WHERE inviter_user_id = %s",
-            (user_id,),
-        )
-        accepted = cur.fetchone()["n"]
-
-        cur.execute(
             """
-            SELECT COUNT(*) AS n FROM cleangoal.referrals
-            WHERE inviter_user_id = %s AND status = 'rewarded'
+            SELECT
+                (SELECT COUNT(*) FROM cleangoal.referral_invitations WHERE inviter_user_id = %(uid)s) AS total_invites,
+                (SELECT COUNT(*) FROM cleangoal.referrals WHERE inviter_user_id = %(uid)s) AS accepted,
+                (SELECT COUNT(*) FROM cleangoal.referrals WHERE inviter_user_id = %(uid)s AND status = 'rewarded') AS rewarded,
+                COALESCE((SELECT SUM(gems_delta) FROM cleangoal.referral_rewards WHERE user_id = %(uid)s), 0) AS gems,
+                COALESCE((SELECT SUM(xp_delta)   FROM cleangoal.referral_rewards WHERE user_id = %(uid)s), 0) AS xp
             """,
-            (user_id,),
+            {"uid": user_id},
         )
-        rewarded = cur.fetchone()["n"]
-
-        cur.execute(
-            """
-            SELECT COALESCE(SUM(gems_delta), 0) AS gems,
-                   COALESCE(SUM(xp_delta),   0) AS xp
-            FROM cleangoal.referral_rewards
-            WHERE user_id = %s
-            """,
-            (user_id,),
-        )
-        totals = cur.fetchone()
+        row = cur.fetchone()
 
         conn.commit()
         return {
             "code": code,
             "share_url": _invite_share_url(code),
             "deep_link": f"com.caloriesguard.app://invite/{code}",
-            "total_invites": int(total_invites),
-            "accepted_count": int(accepted),
-            "rewarded_count": int(rewarded),
-            "total_gems_earned": int(totals["gems"]),
-            "total_xp_earned":   int(totals["xp"]),
+            "total_invites": int(row["total_invites"]),
+            "accepted_count": int(row["accepted"]),
+            "rewarded_count": int(row["rewarded"]),
+            "total_gems_earned": int(row["gems"]),
+            "total_xp_earned":   int(row["xp"]),
         }
     finally:
         if conn:
@@ -853,15 +834,11 @@ def create_group(body: CreateGroupBody, current_user: dict = Depends(get_current
         )
         conv_id = int(cur.fetchone()["conversation_id"])
 
-        for uid in members:
-            role = 'admin' if uid == user_id else 'member'
-            cur.execute(
-                """
-                INSERT INTO cleangoal.conversation_members (conversation_id, user_id, role)
-                VALUES (%s, %s, %s)
-                """,
-                (conv_id, uid, role),
-            )
+        execute_values(
+            cur,
+            "INSERT INTO cleangoal.conversation_members (conversation_id, user_id, role) VALUES %s",
+            [(conv_id, uid, 'admin' if uid == user_id else 'member') for uid in members],
+        )
 
         # Optional system message
         cur.execute(
@@ -952,15 +929,15 @@ def add_members(
         if row["type"] != 'group':
             raise HTTPException(status_code=400, detail="เพิ่มสมาชิกได้เฉพาะกลุ่ม")
 
-        for uid in body.member_user_ids:
-            cur.execute(
-                """
-                INSERT INTO cleangoal.conversation_members (conversation_id, user_id, role)
-                VALUES (%s, %s, 'member')
-                ON CONFLICT (conversation_id, user_id) DO NOTHING
-                """,
-                (conversation_id, int(uid)),
-            )
+        execute_values(
+            cur,
+            """
+            INSERT INTO cleangoal.conversation_members (conversation_id, user_id, role)
+            VALUES %s
+            ON CONFLICT (conversation_id, user_id) DO NOTHING
+            """,
+            [(conversation_id, int(uid), 'member') for uid in body.member_user_ids],
+        )
         conn.commit()
         return {"added": len(body.member_user_ids)}
     except HTTPException:
