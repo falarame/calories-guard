@@ -1,4 +1,4 @@
-﻿import 'dart:convert';
+import 'dart:convert';
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -8,11 +8,11 @@ import '/screens/tamagotchi/reward_shop_screen.dart';
 import '/services/api_client.dart';
 import '/services/health_service.dart';
 
-// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-//  Tier System â€” 5 levels (Octalysis: Development & Accomplishment)
+// ─────────────────────────────────────────────────────────
+//  Tier System — 5 levels (Octalysis: Development & Accomplishment)
 //  Based on research: tier thresholds designed to be achievable
 //  but challenging (British Journal of Educational Technology, 2024)
-// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─────────────────────────────────────────────────────────
 class _Tier {
   final String name;
   final String emoji;
@@ -34,51 +34,51 @@ class _Tier {
 
 const _tiers = [
   _Tier(
-      name: 'à¹€à¸¡à¸¥à¹‡à¸”à¸žà¸±à¸™à¸˜à¸¸à¹Œ',
-      emoji: 'ðŸŒ±',
+      name: 'เมล็ดพันธุ์',
+      emoji: '🌱',
       minXp: 0,
       xpBonus: 0.00,
       gemsBonus: 0.00,
       color: Color(0xFF78909C),
-      perks: 'à¹€à¸£à¸´à¹ˆà¸¡à¸•à¹‰à¸™'),
+      perks: 'เริ่มต้น'),
   _Tier(
-      name: 'à¸•à¹‰à¸™à¸à¸¥à¹‰à¸²',
-      emoji: 'ðŸŒ¿',
+      name: 'ต้นกล้า',
+      emoji: '🌿',
       minXp: 1000,
       xpBonus: 0.10,
       gemsBonus: 0.10,
       color: Color(0xFF43A047),
-      perks: '+10% XP & ðŸŒ¾'),
+      perks: '+10% XP & 🌾'),
   _Tier(
-      name: 'à¸­à¸­à¸à¸£à¸§à¸‡',
-      emoji: 'ðŸŒ¾',
+      name: 'ออกรวง',
+      emoji: '🌾',
       minXp: 5000,
       xpBonus: 0.25,
       gemsBonus: 0.25,
       color: Color(0xFF26A69A),
-      perks: '+25% XP & ðŸŒ¾'),
+      perks: '+25% XP & 🌾'),
   _Tier(
-      name: 'à¸‚à¹‰à¸²à¸§à¸ªà¸¸à¸',
-      emoji: 'ðŸš',
+      name: 'ข้าวสุก',
+      emoji: '🍚',
       minXp: 15000,
       xpBonus: 0.50,
       gemsBonus: 0.50,
       color: Color(0xFFFFB300),
-      perks: '+50% XP & ðŸŒ¾'),
+      perks: '+50% XP & 🌾'),
   _Tier(
-      name: 'à¸‚à¹‰à¸²à¸§à¸—à¸­à¸‡',
-      emoji: 'âœ¨',
+      name: 'ข้าวทอง',
+      emoji: '✨',
       minXp: 50000,
       xpBonus: 1.00,
       gemsBonus: 1.00,
       color: Color(0xFFAB47BC),
-      perks: '+100% XP & ðŸŒ¾'),
+      perks: '+100% XP & 🌾'),
 ];
 
-// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-//  Streak Multiplier â€” Loss Aversion mechanic (Octalysis CD#8)
+// ─────────────────────────────────────────────────────────
+//  Streak Multiplier — Loss Aversion mechanic (Octalysis CD#8)
 //  Locke & Latham (2002): challenging-but-achievable goals
-// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─────────────────────────────────────────────────────────
 double _streakMult(int streak) {
   if (streak >= 30) return 3.0;
   if (streak >= 14) return 2.5;
@@ -87,11 +87,11 @@ double _streakMult(int streak) {
   return 1.0;
 }
 
-// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-//  Mission Model â€” dual reward (XP + Gems)
+// ─────────────────────────────────────────────────────────
+//  Mission Model — dual reward (XP + Gems)
 //  XP = permanent, determines tier
 //  Gems = spendable currency, expire 30 days
-// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─────────────────────────────────────────────────────────
 class _Mission {
   final String id;
   final String emoji;
@@ -111,9 +111,9 @@ class _Mission {
   });
 }
 
-// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─────────────────────────────────────────────────────────
 //  Screen
-// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─────────────────────────────────────────────────────────
 class TamagotchiScreen extends ConsumerStatefulWidget {
   const TamagotchiScreen({super.key});
   @override
@@ -133,57 +133,57 @@ class _TamagotchiScreenState extends ConsumerState<TamagotchiScreen> {
   List<_Mission> get _missions => [
         _Mission(
             id: 'check_in',
-            emoji: 'ðŸŒ±',
-            title: 'à¹€à¸Šà¹‡à¸à¸­à¸´à¸™à¸§à¸±à¸™à¸™à¸µà¹‰',
-            desc: 'à¹€à¸›à¸´à¸”à¹à¸­à¸›à¹€à¸žà¸·à¹ˆà¸­à¸£à¸±à¸š XP à¸›à¸£à¸°à¸ˆà¸³à¸§à¸±à¸™',
+            emoji: '🌱',
+            title: 'เช็กอินวันนี้',
+            desc: 'เปิดแอปเพื่อรับ XP ประจำวัน',
             baseXp: 10,
             baseGems: 1,
             autoCheck: (_) => true),
         _Mission(
             id: 'log_meal',
-            emoji: 'ðŸ±',
-            title: 'à¸šà¸±à¸™à¸—à¸¶à¸à¸¡à¸·à¹‰à¸­à¸­à¸²à¸«à¸²à¸£',
-            desc: 'à¸šà¸±à¸™à¸—à¸¶à¸à¸­à¸²à¸«à¸²à¸£à¸­à¸¢à¹ˆà¸²à¸‡à¸™à¹‰à¸­à¸¢ 1 à¸¡à¸·à¹‰à¸­à¸§à¸±à¸™à¸™à¸µà¹‰',
+            emoji: '🍱',
+            title: 'บันทึกมื้ออาหาร',
+            desc: 'บันทึกอาหารอย่างน้อย 1 มื้อวันนี้',
             baseXp: 25,
             baseGems: 3,
             autoCheck: (u) => u.consumedCalories > 0),
         _Mission(
             id: 'drink_water',
-            emoji: 'ðŸ’§',
-            title: 'à¸”à¸·à¹ˆà¸¡à¸™à¹‰à¸³à¸„à¸£à¸š 6 à¹à¸à¹‰à¸§',
-            desc: 'à¸”à¸·à¹ˆà¸¡à¸™à¹‰à¸³à¸­à¸¢à¹ˆà¸²à¸‡à¸™à¹‰à¸­à¸¢ 6 à¹à¸à¹‰à¸§ (1,500 ml) à¸•à¹ˆà¸­à¸§à¸±à¸™',
+            emoji: '💧',
+            title: 'ดื่มน้ำครบ 6 แก้ว',
+            desc: 'ดื่มน้ำอย่างน้อย 6 แก้ว (1,500 ml) ต่อวัน',
             baseXp: 30,
             baseGems: 3,
             autoCheck: (_) => _waterGlasses >= 6),
         _Mission(
             id: 'log_exercise',
-            emoji: 'ðŸƒ',
-            title: 'à¸šà¸±à¸™à¸—à¸¶à¸à¸­à¸­à¸à¸à¸³à¸¥à¸±à¸‡à¸à¸²à¸¢',
-            desc: 'à¸šà¸±à¸™à¸—à¸¶à¸ exercise à¸­à¸¢à¹ˆà¸²à¸‡à¸™à¹‰à¸­à¸¢ 1 à¸„à¸£à¸±à¹‰à¸‡à¸§à¸±à¸™à¸™à¸µà¹‰',
+            emoji: '🏃',
+            title: 'บันทึกออกกำลังกาย',
+            desc: 'บันทึก exercise อย่างน้อย 1 ครั้งวันนี้',
             baseXp: 50,
             baseGems: 5,
             autoCheck: (u) => u.dailyCaloriesBurned > 0),
         _Mission(
             id: 'walk_3k',
-            emoji: 'ðŸ‘Ÿ',
-            title: 'à¹€à¸”à¸´à¸™ 3,000 à¸à¹‰à¸²à¸§',
-            desc: 'à¸ªà¸°à¸ªà¸¡à¸à¹‰à¸²à¸§à¹€à¸”à¸´à¸™à¸ˆà¸²à¸ IMU/Health Connect à¸„à¸£à¸š 3,000 à¸à¹‰à¸²à¸§à¸•à¹ˆà¸­à¸§à¸±à¸™',
+            emoji: '👟',
+            title: 'เดิน 3,000 ก้าว',
+            desc: 'สะสมก้าวเดินจาก IMU/Health Connect ครบ 3,000 ก้าวต่อวัน',
             baseXp: 50,
             baseGems: 5,
             autoCheck: (_) => _steps >= 3000),
         _Mission(
             id: 'walk_8k',
-            emoji: 'ðŸš¶',
-            title: 'à¹€à¸”à¸´à¸™ 8,000 à¸à¹‰à¸²à¸§',
-            desc: 'à¸ªà¸°à¸ªà¸¡à¸à¹‰à¸²à¸§à¹€à¸”à¸´à¸™à¸ˆà¸²à¸ IMU/Health Connect à¸„à¸£à¸š 8,000 à¸à¹‰à¸²à¸§à¸•à¹ˆà¸­à¸§à¸±à¸™',
+            emoji: '🚶',
+            title: 'เดิน 8,000 ก้าว',
+            desc: 'สะสมก้าวเดินจาก IMU/Health Connect ครบ 8,000 ก้าวต่อวัน',
             baseXp: 80,
             baseGems: 8,
             autoCheck: (_) => _steps >= 8000),
         _Mission(
             id: 'hit_calories',
-            emoji: 'ðŸŽ¯',
-            title: 'à¹à¸„à¸¥à¸­à¸£à¸µà¹ˆà¸•à¸²à¸¡à¹€à¸›à¹‰à¸²',
-            desc: 'à¹à¸„à¸¥à¸­à¸£à¸µà¹ˆà¸­à¸¢à¸¹à¹ˆà¹ƒà¸™à¸Šà¹ˆà¸§à¸‡ 80â€“110% à¸‚à¸­à¸‡à¹€à¸›à¹‰à¸²',
+            emoji: '🎯',
+            title: 'แคลอรี่ตามเป้า',
+            desc: 'แคลอรี่อยู่ในช่วง 80–110% ของเป้า',
             baseXp: 75,
             baseGems: 8,
             autoCheck: (u) {
@@ -193,9 +193,9 @@ class _TamagotchiScreenState extends ConsumerState<TamagotchiScreen> {
             }),
         _Mission(
             id: 'hit_all_macros',
-            emoji: 'ðŸŒ¿',
-            title: 'à¸„à¸£à¸šà¸•à¸²à¸¡à¹‚à¸ à¸Šà¸™à¸²à¸à¸²à¸£',
-            desc: 'à¹‚à¸›à¸£à¸•à¸µà¸™ à¸„à¸²à¸£à¹Œà¸š à¹„à¸‚à¸¡à¸±à¸™ à¸„à¸£à¸šà¸•à¸²à¸¡à¹€à¸›à¹‰à¸²à¸—à¸±à¹‰à¸‡à¸«à¸¡à¸”',
+            emoji: '🌿',
+            title: 'ครบตามโภชนาการ',
+            desc: 'โปรตีน คาร์บ ไขมัน ครบตามเป้าทั้งหมด',
             baseXp: 100,
             baseGems: 10,
             autoCheck: (u) =>
@@ -207,17 +207,17 @@ class _TamagotchiScreenState extends ConsumerState<TamagotchiScreen> {
                 u.consumedFat >= u.targetFat),
         _Mission(
             id: 'log_weight',
-            emoji: 'âš–ï¸',
-            title: 'à¸Šà¸±à¹ˆà¸‡à¸™à¹‰à¸³à¸«à¸™à¸±à¸à¸§à¸±à¸™à¸™à¸µà¹‰',
-            desc: 'à¸šà¸±à¸™à¸—à¸¶à¸à¸™à¹‰à¸³à¸«à¸™à¸±à¸à¹€à¸žà¸·à¹ˆà¸­à¸•à¸´à¸”à¸•à¸²à¸¡à¸„à¸§à¸²à¸¡à¸„à¸·à¸šà¸«à¸™à¹‰à¸²à¸‚à¸­à¸‡à¸•à¸±à¸§à¹€à¸­à¸‡',
+            emoji: '⚖️',
+            title: 'ชั่งน้ำหนักวันนี้',
+            desc: 'บันทึกน้ำหนักเพื่อติดตามความคืบหน้าของตัวเอง',
             baseXp: 40,
             baseGems: 4,
             autoCheck: (_) => _loggedWeightToday),
         _Mission(
             id: 'streak_3',
-            emoji: 'ðŸ”¥',
-            title: 'à¹ƒà¸Šà¹‰à¹à¸­à¸›à¸•à¹ˆà¸­à¹€à¸™à¸·à¹ˆà¸­à¸‡ 3 à¸§à¸±à¸™',
-            desc: 'à¸šà¸±à¸™à¸—à¸¶à¸à¸ªà¸¸à¸‚à¸ à¸²à¸žà¸•à¹ˆà¸­à¹€à¸™à¸·à¹ˆà¸­à¸‡à¸­à¸¢à¹ˆà¸²à¸‡à¸™à¹‰à¸­à¸¢ 3 à¸§à¸±à¸™',
+            emoji: '🔥',
+            title: 'ใช้แอปต่อเนื่อง 3 วัน',
+            desc: 'บันทึกสุขภาพต่อเนื่องอย่างน้อย 3 วัน',
             baseXp: 50,
             baseGems: 5,
             autoCheck: (u) => u.currentStreak >= 3),
@@ -228,14 +228,14 @@ class _TamagotchiScreenState extends ConsumerState<TamagotchiScreen> {
 
   int get _activeTierIdx => _tierIdx.clamp(0, _tiers.length - 1);
 
-  // XP earned = baseXp Ã— (1 + tierBonus) Ã— streakMultiplier
+  // XP earned = baseXp × (1 + tierBonus) × streakMultiplier
   int _calcXp(_Mission m, int streak) {
     final bonus = 1.0 + _tiers[_activeTierIdx].xpBonus;
     return (m.baseXp * bonus * _streakMult(streak)).round();
   }
 
-  // Gems earned = baseGems Ã— (1 + tierGemsBonus) Ã— streakMultiplier Ã— weekendBonus
-  // Weekend Harvest: Sat/Sun â†’ Ã—1.5 gems
+  // Gems earned = baseGems × (1 + tierGemsBonus) × streakMultiplier × weekendBonus
+  // Weekend Harvest: Sat/Sun → ×1.5 gems
   int _calcGems(_Mission m, int streak) {
     final bonus = 1.0 + _tiers[_activeTierIdx].gemsBonus;
     final isWeekend =
@@ -340,7 +340,7 @@ class _TamagotchiScreenState extends ConsumerState<TamagotchiScreen> {
     }
   }
 
-  // Variable reward: 20% chance of Ã—2 Gems (Octalysis CD#7 Unpredictability / dopamine loop)
+  // Variable reward: 20% chance of ×2 Gems (Octalysis CD#7 Unpredictability / dopamine loop)
   Future<void> _claimMission(_Mission m, int streak) async {
     if (_claimedToday.contains(m.id)) return;
     final uid = ref.read(userDataProvider).userId;
@@ -359,11 +359,11 @@ class _TamagotchiScreenState extends ConsumerState<TamagotchiScreen> {
     final oldTierIdx = _tierIdx;
     final newMaxTier = newTier > _tierIdx ? newTier : _tierIdx;
 
-    // Perfect Day: all missions done â†’ +15 ðŸ’Ž bonus
+    // Perfect Day: all missions done → +15 💎 bonus
     final allDone = _missions.every((ms) => newClaimed.contains(ms.id));
     if (allDone) newGems += 15;
 
-    // Exercise Combo: log_exercise + any walk mission done same day â†’ +5 ðŸ’Ž
+    // Exercise Combo: log_exercise + any walk mission done same day → +5 💎
     final hasExercise = newClaimed.contains('log_exercise');
     final hasWalk =
         newClaimed.contains('walk_3k') || newClaimed.contains('walk_8k');
@@ -386,9 +386,9 @@ class _TamagotchiScreenState extends ConsumerState<TamagotchiScreen> {
     _syncToBackend(newXp, newGems, newMaxTier);
 
     if (mounted) {
-      final extra = isBonus ? '  ðŸŽ‰ à¹‚à¸Šà¸„à¸”à¸µ! ðŸŒ¾Ã—2' : '';
+      final extra = isBonus ? '  🎉 โชคดี! 🌾×2' : '';
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-        content: Text('${m.emoji} +$earnedXp XP  +$earnedGems ðŸŒ¾$extra'),
+        content: Text('${m.emoji} +$earnedXp XP  +$earnedGems 🌾$extra'),
         backgroundColor: _tiers[newMaxTier].color,
         duration: const Duration(seconds: 2),
       ));
@@ -399,7 +399,7 @@ class _TamagotchiScreenState extends ConsumerState<TamagotchiScreen> {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
             content:
-                Text('ðŸŒ¾ Exercise Combo! à¸­à¸­à¸à¸à¸³à¸¥à¸±à¸‡à¸à¸²à¸¢ + à¹€à¸”à¸´à¸™ â†’ +5 ðŸŒ¾ à¹‚à¸šà¸™à¸±à¸ª!'),
+                Text('🌾 Exercise Combo! ออกกำลังกาย + เดิน → +5 🌾 โบนัส!'),
             backgroundColor: Color(0xFF2E7D32),
             duration: Duration(seconds: 2),
           ));
@@ -411,7 +411,7 @@ class _TamagotchiScreenState extends ConsumerState<TamagotchiScreen> {
         await Future.delayed(const Duration(milliseconds: 500));
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-            content: Text('ðŸŒŸ Perfect Day! à¸—à¸³à¸„à¸£à¸šà¸—à¸¸à¸à¸ à¸²à¸£à¸à¸´à¸ˆ â†’ +15 ðŸŒ± à¹‚à¸šà¸™à¸±à¸ª!'),
+            content: Text('🌟 Perfect Day! ทำครบทุกภารกิจ → +15 🌱 โบนัส!'),
             backgroundColor: Color(0xFFE65100),
             duration: Duration(seconds: 3),
           ));
@@ -528,7 +528,7 @@ class _TamagotchiScreenState extends ConsumerState<TamagotchiScreen> {
               color: Colors.black87, size: 20),
           onPressed: () => Navigator.pop(context),
         ),
-        title: const Text('à¹„à¸£à¹ˆà¸‚à¹‰à¸²à¸§à¸‚à¸­à¸‡à¸‰à¸±à¸™',
+        title: const Text('ไร่ข้าวของฉัน',
             style: TextStyle(
                 color: Colors.black87,
                 fontFamily: 'Inter',
@@ -537,7 +537,7 @@ class _TamagotchiScreenState extends ConsumerState<TamagotchiScreen> {
         centerTitle: true,
         actions: [
           IconButton(
-            tooltip: 'à¹à¸¥à¸à¸£à¸²à¸‡à¸§à¸±à¸¥',
+            tooltip: 'แลกรางวัล',
             icon: const Icon(Icons.card_giftcard_rounded,
                 color: _primary, size: 26),
             onPressed: () async {
@@ -574,7 +574,7 @@ class _TamagotchiScreenState extends ConsumerState<TamagotchiScreen> {
     );
   }
 
-  // â”€â”€ Hero Card â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ── Hero Card ──────────────────────────────────────────────
   Widget _buildHeroCard(_Tier tier, _Tier? nextTier, double progress) {
     return Container(
       width: double.infinity,
@@ -606,7 +606,7 @@ class _TamagotchiScreenState extends ConsumerState<TamagotchiScreen> {
                       fontSize: 22,
                       fontWeight: FontWeight.w800,
                       fontFamily: 'Inter')),
-              Text('${tier.perks} â€¢ CaloriesGuard',
+              Text('${tier.perks} • CaloriesGuard',
                   style: TextStyle(
                       color: Colors.white.withOpacity(0.75),
                       fontSize: 12,
@@ -653,7 +653,7 @@ class _TamagotchiScreenState extends ConsumerState<TamagotchiScreen> {
                     fontFamily: 'Inter')),
             const Spacer(),
             Text(
-                'à¸­à¸µà¸ ${nextTier.minXp - _xp} XP â†’ ${nextTier.emoji} ${nextTier.name}',
+                'อีก ${nextTier.minXp - _xp} XP → ${nextTier.emoji} ${nextTier.name}',
                 style: TextStyle(
                     color: Colors.white.withOpacity(0.85),
                     fontSize: 11,
@@ -661,7 +661,7 @@ class _TamagotchiScreenState extends ConsumerState<TamagotchiScreen> {
           ]),
         ] else ...[
           const SizedBox(height: 16),
-          const Text('âšœï¸ Legend â€” à¸£à¸°à¸”à¸±à¸šà¸ªà¸¹à¸‡à¸ªà¸¸à¸”!',
+          const Text('⚜️ Legend — ระดับสูงสุด!',
               style: TextStyle(
                   color: Colors.white,
                   fontSize: 14,
@@ -671,30 +671,30 @@ class _TamagotchiScreenState extends ConsumerState<TamagotchiScreen> {
     );
   }
 
-  // â”€â”€ Currency Row â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ── Currency Row ─────────────────────────────────────────
   Widget _buildCurrencyRow(int streak) {
     final mult = _streakMult(streak);
     return Row(children: [
       Expanded(
           child: _currencyCard(
-              label: 'XP à¸ªà¸°à¸ªà¸¡',
+              label: 'XP สะสม',
               value: '$_xp',
-              sub: 'à¹ƒà¸Šà¹‰à¸‚à¸¶à¹‰à¸™ Tier',
+              sub: 'ใช้ขึ้น Tier',
               color: _primary)),
       const SizedBox(width: 10),
       Expanded(
           child: _currencyCard(
-              label: 'à¹€à¸¡à¸¥à¹‡à¸”à¸‚à¹‰à¸²à¸§ ðŸŒ¾',
+              label: 'เมล็ดข้าว 🌾',
               value: '$_gems',
-              sub: 'à¹ƒà¸Šà¹‰à¹à¸¥à¸à¸£à¸²à¸‡à¸§à¸±à¸¥',
+              sub: 'ใช้แลกรางวัล',
               color: const Color(0xFF2E7D32),
-              warn: _gems > 0 ? 'à¸«à¸¡à¸”à¸­à¸²à¸¢à¸¸ 30 à¸§à¸±à¸™' : null)),
+              warn: _gems > 0 ? 'หมดอายุ 30 วัน' : null)),
       const SizedBox(width: 10),
       Expanded(
           child: _currencyCard(
-        label: 'Streak ðŸ”¥',
-        value: '$streak à¸§à¸±à¸™',
-        sub: mult > 1.0 ? 'XP Ã—${mult.toStringAsFixed(1)}' : 'à¸—à¸³à¸•à¹ˆà¸­ 3 à¸§à¸±à¸™',
+        label: 'Streak 🔥',
+        value: '$streak วัน',
+        sub: mult > 1.0 ? 'XP ×${mult.toStringAsFixed(1)}' : 'ทำต่อ 3 วัน',
         color: mult > 1.0 ? const Color(0xFFE65100) : Colors.grey.shade500,
       )),
     ]);
@@ -744,7 +744,7 @@ class _TamagotchiScreenState extends ConsumerState<TamagotchiScreen> {
     );
   }
 
-  // â”€â”€ Tier Roadmap â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ── Tier Roadmap ──────────────────────────────────────────
   Widget _buildTierRoadmap() {
     return Container(
       padding: const EdgeInsets.all(16),
@@ -759,7 +759,7 @@ class _TamagotchiScreenState extends ConsumerState<TamagotchiScreen> {
         ],
       ),
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        const Text('à¸‚à¸±à¹‰à¸™à¸à¸²à¸£à¹€à¸•à¸´à¸šà¹‚à¸•à¸‚à¸­à¸‡à¹„à¸£à¹ˆà¸‚à¹‰à¸²à¸§',
+        const Text('ขั้นการเติบโตของไร่ข้าว',
             style: TextStyle(
                 fontSize: 14,
                 fontWeight: FontWeight.w700,
@@ -815,13 +815,13 @@ class _TamagotchiScreenState extends ConsumerState<TamagotchiScreen> {
     );
   }
 
-  // â”€â”€ Missions â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ── Missions ──────────────────────────────────────────────
   Widget _buildMissionsSection(UserData userData, int streak) {
     final mult = _streakMult(streak);
     final tierBonus = _tiers[_activeTierIdx].xpBonus;
     return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
       Row(children: [
-        const Text('à¸ à¸²à¸£à¸à¸´à¸ˆà¸›à¸£à¸°à¸ˆà¸³à¸§à¸±à¸™',
+        const Text('ภารกิจประจำวัน',
             style: TextStyle(
                 fontSize: 16,
                 fontWeight: FontWeight.w700,
@@ -837,7 +837,7 @@ class _TamagotchiScreenState extends ConsumerState<TamagotchiScreen> {
             ),
             child: Text(
               [
-                if (mult > 1.0) 'ðŸ”¥ Ã—${mult.toStringAsFixed(1)}',
+                if (mult > 1.0) '🔥 ×${mult.toStringAsFixed(1)}',
                 if (tierBonus > 0) '+${(tierBonus * 100).toInt()}%'
               ].join(' '),
               style: const TextStyle(
@@ -849,7 +849,7 @@ class _TamagotchiScreenState extends ConsumerState<TamagotchiScreen> {
           ),
       ]),
       const SizedBox(height: 4),
-      Text('ðŸ’¡ 20% à¹‚à¸­à¸à¸²à¸ªà¹„à¸”à¹‰à¹€à¸¡à¸¥à¹‡à¸”à¸‚à¹‰à¸²à¸§ à¹‚à¸šà¸™à¸±à¸ª Ã—2  (Octalysis Variable Reward)',
+      Text('💡 20% โอกาสได้เมล็ดข้าว โบนัส ×2  (Octalysis Variable Reward)',
           style: TextStyle(
               color: Colors.grey.shade400, fontSize: 10, fontFamily: 'Inter')),
       const SizedBox(height: 12),
@@ -922,13 +922,13 @@ class _TamagotchiScreenState extends ConsumerState<TamagotchiScreen> {
                 color: _primary.withOpacity(0.08),
                 borderRadius: BorderRadius.circular(10)),
             child: Column(mainAxisSize: MainAxisSize.min, children: [
-              Text('âœ… +$xp XP',
+              Text('✅ +$xp XP',
                   style: const TextStyle(
                       color: _primary,
                       fontSize: 11,
                       fontFamily: 'Inter',
                       fontWeight: FontWeight.w600)),
-              Text('+$gems ðŸŒ¾',
+              Text('+$gems 🌾',
                   style: TextStyle(
                       color: Colors.grey.shade500,
                       fontSize: 10,
@@ -954,7 +954,7 @@ class _TamagotchiScreenState extends ConsumerState<TamagotchiScreen> {
                         fontWeight: FontWeight.w700,
                         fontFamily: 'Inter',
                         fontSize: 12)),
-                Text('+$gems ðŸŒ¾',
+                Text('+$gems 🌾',
                     style: TextStyle(
                         color: Colors.white.withOpacity(0.8),
                         fontSize: 10,
@@ -974,7 +974,7 @@ class _TamagotchiScreenState extends ConsumerState<TamagotchiScreen> {
                       color: Colors.grey.shade400,
                       fontSize: 12,
                       fontFamily: 'Inter')),
-              Text('+$gems ðŸŒ¾',
+              Text('+$gems 🌾',
                   style: TextStyle(
                       color: Colors.grey.shade300,
                       fontSize: 10,
@@ -985,11 +985,11 @@ class _TamagotchiScreenState extends ConsumerState<TamagotchiScreen> {
     );
   }
 
-  // â”€â”€ Badges â€” 4 types (Achievement / Streak / Skill / Social) â”€â”€
+  // ── Badges — 4 types (Achievement / Streak / Skill / Social) ──
   static const _badgeInfo = {
-    'badge_newbie': ('ðŸ”°', 'à¸¡à¸·à¸­à¹ƒà¸«à¸¡à¹ˆ', 'Achievement'),
-    'badge_grower': ('ðŸ…', 'à¸œà¸¹à¹‰à¸¡à¸¸à¹ˆà¸‡à¸¡à¸±à¹ˆà¸™', 'Achievement'),
-    'badge_champion': ('âœ¨', 'Champion', 'Achievement'),
+    'badge_newbie': ('🔰', 'มือใหม่', 'Achievement'),
+    'badge_grower': ('🏅', 'ผู้มุ่งมั่น', 'Achievement'),
+    'badge_champion': ('✨', 'Champion', 'Achievement'),
   };
 
   Widget _buildBadgesSection() {
@@ -998,7 +998,7 @@ class _TamagotchiScreenState extends ConsumerState<TamagotchiScreen> {
         .toList();
     if (earned.isEmpty) return const SizedBox.shrink();
     return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-      const Text('ðŸ† à¹à¸šà¸”à¸ˆà¹Œà¸—à¸µà¹ˆà¹„à¸”à¹‰à¸£à¸±à¸š',
+      const Text('🏆 แบดจ์ที่ได้รับ',
           style: TextStyle(
               fontSize: 16,
               fontWeight: FontWeight.w700,
@@ -1042,3 +1042,377 @@ class _TamagotchiScreenState extends ConsumerState<TamagotchiScreen> {
     ]);
   }
 }
+<<<<<<< HEAD
+=======
+
+// _RicePainter removed — UI redesigned to reward system
+class _RicePainter extends CustomPainter {
+  final Color color;
+  final int stage;
+  _RicePainter(this.color, this.stage);
+
+  static const _soilA = Color(0xFF4E342E);
+  static const _soilB = Color(0xFF6D4C41);
+  static const _soilC = Color(0xFFA1887F);
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final cx = size.width / 2;
+    final cy = size.height / 2;
+    final h = size.height;
+
+    // background glow
+    canvas.drawCircle(
+        Offset(cx, cy),
+        66,
+        Paint()
+          ..color = color.withOpacity(0.2)
+          ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 28));
+
+    switch (stage) {
+      case 0:
+        _stage0(canvas, cx, cy);
+        break;
+      case 1:
+        _stage1(canvas, cx, h);
+        break;
+      case 2:
+        _stage2(canvas, cx, h);
+        break;
+      case 3:
+        _stage3(canvas, cx, h);
+        break;
+      case 4:
+        _stage4(canvas, cx, h, false);
+        break;
+      default:
+        _stage5(canvas, cx, h);
+        break;
+    }
+  }
+
+  // ── Stage 0 : ติ๊ด — cute seed with face ─────────────────
+  void _stage0(Canvas c, double cx, double cy) {
+    // drop shadow
+    c.drawOval(
+        Rect.fromCenter(center: Offset(cx, cy + 46), width: 52, height: 14),
+        Paint()..color = Colors.black.withOpacity(0.12));
+    // seed body
+    c.drawOval(
+      Rect.fromCenter(center: Offset(cx, cy), width: 68, height: 86),
+      Paint()
+        ..shader = RadialGradient(
+          colors: [
+            Color.lerp(color, Colors.white, 0.5)!,
+            color,
+            Color.lerp(color, Colors.black, 0.18)!
+          ],
+          stops: const [0.0, 0.55, 1.0],
+          center: const Alignment(-0.35, -0.4),
+        ).createShader(
+            Rect.fromCenter(center: Offset(cx, cy), width: 68, height: 86)),
+    );
+    // center seam line
+    c.drawLine(
+        Offset(cx, cy - 38),
+        Offset(cx, cy + 38),
+        Paint()
+          ..color = Colors.black.withOpacity(0.14)
+          ..strokeWidth = 1.5);
+    // tiny horizontal cracks (about to sprout)
+    _line(c, cx - 6, cy - 12, cx + 6, cy - 12, Colors.black.withOpacity(0.12),
+        1.2);
+    _line(c, cx - 5, cy + 10, cx + 5, cy + 10, Colors.black.withOpacity(0.12),
+        1.2);
+    // shine patch
+    c.drawOval(
+        Rect.fromCenter(
+            center: Offset(cx - 17, cy - 20), width: 13, height: 22),
+        Paint()..color = Colors.white.withOpacity(0.22));
+    // cute eyes
+    _eye(c, cx - 13, cy - 5);
+    _eye(c, cx + 13, cy - 5);
+    // smile
+    c.drawPath(
+        Path()
+          ..moveTo(cx - 9, cy + 14)
+          ..quadraticBezierTo(cx, cy + 23, cx + 9, cy + 14),
+        Paint()
+          ..color = Colors.black.withOpacity(0.45)
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = 2
+          ..strokeCap = StrokeCap.round);
+    // tiny roots
+    _rootLine(c, cx, cy + 42, 10, 58);
+    _rootLine(c, cx, cy + 44, -9, 56);
+  }
+
+  // ── Stage 1 : ต้อย — tiny sprout ──────────────────────────
+  void _stage1(Canvas c, double cx, double h) {
+    final gy = h - 20.0;
+    _soil(c, cx, gy);
+    // stem
+    c.drawLine(
+        Offset(cx, gy - 3),
+        Offset(cx, gy - 42),
+        Paint()
+          ..color = color
+          ..strokeWidth = 5
+          ..strokeCap = StrokeCap.round);
+    // 2 baby leaves
+    _leaf(c, cx, gy - 20, -math.pi * 0.38, 24, 7);
+    _leaf(c, cx, gy - 28, math.pi * 0.38, 24, 7);
+    // bud
+    c.drawOval(
+        Rect.fromCenter(center: Offset(cx, gy - 46), width: 10, height: 14),
+        Paint()..color = Color.lerp(color, Colors.white, 0.5)!);
+    // tiny cute face on stem
+    _miniface(c, cx, gy - 10);
+  }
+
+  // ── Stage 2 : แต้ว — young plant ──────────────────────────
+  void _stage2(Canvas c, double cx, double h) {
+    final gy = h - 18.0;
+    _soil(c, cx, gy);
+    c.drawLine(
+        Offset(cx, gy - 3),
+        Offset(cx, gy - 68),
+        Paint()
+          ..color = color
+          ..strokeWidth = 5.5
+          ..strokeCap = StrokeCap.round);
+    _leaf(c, cx, gy - 22, -math.pi * 0.42, 30, 8);
+    _leaf(c, cx, gy - 34, math.pi * 0.42, 32, 8);
+    _leaf(c, cx, gy - 52, -math.pi * 0.36, 28, 7.5);
+    c.drawOval(
+        Rect.fromCenter(center: Offset(cx, gy - 72), width: 11, height: 15),
+        Paint()..color = Color.lerp(color, Colors.white, 0.45)!);
+    c.drawOval(
+        Rect.fromCenter(center: Offset(cx, gy - 72), width: 7, height: 10),
+        Paint()..color = Color.lerp(color, Colors.white, 0.7)!);
+  }
+
+  // ── Stage 3 : โต้ง — tall & strong ────────────────────────
+  void _stage3(Canvas c, double cx, double h) {
+    final gy = h - 16.0;
+    _soil(c, cx, gy);
+    c.drawLine(
+        Offset(cx, gy - 3),
+        Offset(cx, gy - 96),
+        Paint()
+          ..color = color
+          ..strokeWidth = 6
+          ..strokeCap = StrokeCap.round);
+    _leaf(c, cx, gy - 24, -math.pi * 0.44, 36, 9);
+    _leaf(c, cx, gy - 38, math.pi * 0.44, 38, 9);
+    _leaf(c, cx, gy - 56, -math.pi * 0.40, 34, 8.5);
+    _leaf(c, cx, gy - 72, math.pi * 0.38, 32, 8);
+    _leaf(c, cx, gy - 86, -math.pi * 0.33, 26, 7);
+    // elongated bud
+    c.drawOval(
+        Rect.fromCenter(center: Offset(cx, gy - 101), width: 10, height: 16),
+        Paint()..color = Color.lerp(color, Colors.white, 0.4)!);
+  }
+
+  // ── Stage 4 : พราว — rice ear ──────────────────────────────
+  void _stage4(Canvas c, double cx, double h, bool golden) {
+    final gy = h - 16.0;
+    _soil(c, cx, gy);
+    // curved stem
+    c.drawPath(
+        Path()
+          ..moveTo(cx, gy - 3)
+          ..quadraticBezierTo(cx + 4, gy - 52, cx, gy - 106),
+        Paint()
+          ..color = color
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = 6
+          ..strokeCap = StrokeCap.round);
+    _leaf(c, cx, gy - 26, -math.pi * 0.44, 36, 9);
+    _leaf(c, cx, gy - 42, math.pi * 0.44, 38, 9);
+    _leaf(c, cx, gy - 60, -math.pi * 0.40, 34, 8.5);
+    _leaf(c, cx, gy - 78, math.pi * 0.36, 30, 8);
+    _riceEar(c, cx, gy - 106, golden);
+  }
+
+  // ── Stage 5 : วิ้งค์ — golden ──────────────────────────────
+  void _stage5(Canvas c, double cx, double h) {
+    // extra golden glow layer
+    c.drawCircle(
+        Offset(cx, h / 2),
+        72,
+        Paint()
+          ..color = color.withOpacity(0.14)
+          ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 32));
+    _stage4(c, cx, h, true);
+    // sparkle stars around ear
+    final earY = h - 16 - 106.0;
+    for (int i = 0; i < 6; i++) {
+      final a = (i * math.pi * 2 / 6) - math.pi / 3;
+      _sparkle(c, cx + 48 * math.cos(a), earY + 20 + 48 * math.sin(a));
+    }
+  }
+
+  // ──────────────────── Shared helpers ─────────────────────
+
+  /// Layered soil mound
+  void _soil(Canvas c, double cx, double gy) {
+    c.drawOval(
+        Rect.fromCenter(center: Offset(cx, gy + 4), width: 90, height: 18),
+        Paint()..color = Colors.black.withOpacity(0.1));
+    c.drawOval(Rect.fromCenter(center: Offset(cx, gy), width: 86, height: 22),
+        Paint()..color = _soilA.withOpacity(0.72));
+    c.drawOval(
+        Rect.fromCenter(center: Offset(cx, gy - 4), width: 72, height: 14),
+        Paint()..color = _soilB.withOpacity(0.55));
+    c.drawOval(
+        Rect.fromCenter(center: Offset(cx, gy - 7), width: 50, height: 8),
+        Paint()..color = _soilC.withOpacity(0.38));
+  }
+
+  /// Filled rice-leaf shape rotated from (x, y)
+  void _leaf(
+      Canvas c, double x, double y, double angle, double len, double hw) {
+    c.save();
+    c.translate(x, y);
+    c.rotate(angle);
+    // filled blade
+    c.drawPath(
+      Path()
+        ..moveTo(0, 0)
+        ..cubicTo(hw * 1.3, -len * 0.12, hw * 1.0, -len * 0.68, 0, -len)
+        ..cubicTo(-hw * 1.0, -len * 0.68, -hw * 1.3, -len * 0.12, 0, 0),
+      Paint()
+        ..color = color
+        ..style = PaintingStyle.fill,
+    );
+    // center vein
+    c.drawLine(
+        const Offset(0, -2),
+        Offset(0, -len * 0.86),
+        Paint()
+          ..color = Colors.white.withOpacity(0.16)
+          ..strokeWidth = 1.2);
+    // leaf shine
+    c.drawPath(
+        Path()
+          ..moveTo(-hw * 0.28, -len * 0.14)
+          ..quadraticBezierTo(-hw * 0.55, -len * 0.5, -hw * 0.22, -len * 0.72),
+        Paint()
+          ..color = Colors.white.withOpacity(0.14)
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = 1.8);
+    c.restore();
+  }
+
+  /// Rice panicle with individual grain ovals
+  void _riceEar(Canvas c, double cx, double topY, bool golden) {
+    // rachis (the drooping stalk of the ear)
+    c.drawPath(
+        Path()
+          ..moveTo(cx, topY)
+          ..cubicTo(cx + 8, topY - 10, cx + 32, topY + 10, cx + 30, topY + 46),
+        Paint()
+          ..color = color
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = 3.2
+          ..strokeCap = StrokeCap.round);
+
+    final grainFill = golden
+        ? const Color(0xFFFFF176)
+        : Color.lerp(color, Colors.white, 0.4)!;
+    final grainBorder = golden ? const Color(0xFFFFCA28) : color;
+
+    for (int i = 0; i < 9; i++) {
+      final t = i / 8;
+      final rx = cx + 30 * t;
+      final ry = topY - 8 + 54 * t;
+      final side = (i % 2 == 0) ? -1.0 : 1.0;
+      final gx = rx + side * 9;
+      final gy = ry + 2;
+
+      c.save();
+      c.translate(gx, gy);
+      c.rotate(side * 0.28);
+      // grain oval
+      c.drawOval(Rect.fromCenter(center: Offset.zero, width: 7, height: 12),
+          Paint()..color = grainFill);
+      c.drawOval(
+          Rect.fromCenter(center: Offset.zero, width: 7, height: 12),
+          Paint()
+            ..color = grainBorder.withOpacity(0.45)
+            ..style = PaintingStyle.stroke
+            ..strokeWidth = 1);
+      // tiny shine
+      c.drawOval(
+          Rect.fromCenter(
+              center: const Offset(-1.5, -2.5), width: 2.5, height: 4.5),
+          Paint()..color = Colors.white.withOpacity(0.55));
+      c.restore();
+    }
+  }
+
+  void _eye(Canvas c, double x, double y) {
+    c.drawCircle(
+        Offset(x, y), 5.5, Paint()..color = Colors.black.withOpacity(0.55));
+    c.drawCircle(Offset(x + 1.8, y - 1.8), 1.8,
+        Paint()..color = Colors.white.withOpacity(0.95));
+  }
+
+  void _miniface(Canvas c, double cx, double cy) {
+    c.drawCircle(Offset(cx - 5, cy), 2.5,
+        Paint()..color = Colors.black.withOpacity(0.35));
+    c.drawCircle(Offset(cx + 5, cy), 2.5,
+        Paint()..color = Colors.black.withOpacity(0.35));
+    c.drawPath(
+        Path()
+          ..moveTo(cx - 4, cy + 5)
+          ..quadraticBezierTo(cx, cy + 8, cx + 4, cy + 5),
+        Paint()
+          ..color = Colors.black.withOpacity(0.3)
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = 1.5
+          ..strokeCap = StrokeCap.round);
+  }
+
+  void _sparkle(Canvas c, double x, double y) {
+    final p = Paint()
+      ..color = color
+      ..strokeWidth = 1.8
+      ..strokeCap = StrokeCap.round
+      ..style = PaintingStyle.stroke;
+    for (int i = 0; i < 4; i++) {
+      final a = i * math.pi / 2;
+      c.drawLine(
+          Offset(x, y), Offset(x + 6 * math.cos(a), y + 6 * math.sin(a)), p);
+    }
+    c.drawCircle(Offset(x, y), 2.2, Paint()..color = color);
+  }
+
+  void _line(Canvas c, double x1, double y1, double x2, double y2, Color col,
+      double w) {
+    c.drawLine(
+        Offset(x1, y1),
+        Offset(x2, y2),
+        Paint()
+          ..color = col
+          ..strokeWidth = w);
+  }
+
+  void _rootLine(Canvas c, double sx, double sy, double dx, double dy) {
+    c.drawPath(
+        Path()
+          ..moveTo(sx, sy)
+          ..quadraticBezierTo(sx + dx, sy + 8, sx + dx ~/ 2, sy + dy - sy),
+        Paint()
+          ..color = _soilB
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = 1.8
+          ..strokeCap = StrokeCap.round);
+  }
+
+  @override
+  bool shouldRepaint(_RicePainter old) =>
+      old.color != color || old.stage != stage;
+}
+>>>>>>> 84b4935f (WIP: local changes before sync)
