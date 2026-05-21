@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_application_1/services/api_client.dart';
 import '/providers/user_data_provider.dart';
+import '/services/tamagotchi_action_logger.dart';
 import '../macro/macro_detail_screen.dart';
 
 import 'recipe_detail_screen.dart';
@@ -253,6 +254,7 @@ class _RecommendedFoodScreenState extends ConsumerState<RecommendedFoodScreen> {
           // Refresh to let newly-approved items appear. Won't show pending ones
           // (that's by design — temp_food is admin-gated).
           _fetchAllFood();
+          TamagotchiActionLogger.logFoodSuggestion(userId);
         },
       ),
     );
@@ -290,7 +292,7 @@ class _RecommendedFoodScreenState extends ConsumerState<RecommendedFoodScreen> {
                 child: Container(
                   height: 43,
                   decoration: BoxDecoration(
-                    color: Colors.grey.withOpacity( 0.2),
+                    color: Colors.grey.withOpacity(0.2),
                     borderRadius: BorderRadius.circular(100),
                   ),
                   padding: const EdgeInsets.symmetric(horizontal: 20),
@@ -348,7 +350,7 @@ class _RecommendedFoodScreenState extends ConsumerState<RecommendedFoodScreen> {
                           horizontal: 14, vertical: 8),
                       decoration: BoxDecoration(
                         color: _hideAllergic
-                            ? const Color(0xFF628141).withOpacity( 0.1)
+                            ? const Color(0xFF628141).withOpacity(0.1)
                             : Colors.grey.shade100,
                         borderRadius: BorderRadius.circular(20),
                         border: Border.all(
@@ -627,7 +629,7 @@ class _RecommendedFoodScreenState extends ConsumerState<RecommendedFoodScreen> {
           borderRadius: BorderRadius.circular(20),
           boxShadow: [
             BoxShadow(
-                color: Colors.black.withOpacity( 0.06),
+                color: Colors.black.withOpacity(0.06),
                 blurRadius: 12,
                 offset: const Offset(0, 4))
           ],
@@ -666,7 +668,7 @@ class _RecommendedFoodScreenState extends ConsumerState<RecommendedFoodScreen> {
                   padding: const EdgeInsets.all(9),
                   decoration: BoxDecoration(
                     color: isSelected
-                        ? color.withOpacity( 0.12)
+                        ? color.withOpacity(0.12)
                         : Colors.grey.shade50,
                     borderRadius: BorderRadius.circular(14),
                     border: Border.all(
@@ -747,9 +749,9 @@ class _RecommendedFoodScreenState extends ConsumerState<RecommendedFoodScreen> {
         margin: const EdgeInsets.symmetric(horizontal: 20),
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
         decoration: BoxDecoration(
-          color: color.withOpacity( 0.08),
+          color: color.withOpacity(0.08),
           borderRadius: BorderRadius.circular(14),
-          border: Border.all(color: color.withOpacity( 0.25)),
+          border: Border.all(color: color.withOpacity(0.25)),
         ),
         child: Row(children: [
           Icon(Icons.restaurant_rounded, size: 15, color: color),
@@ -945,7 +947,7 @@ class _RecommendedFoodScreenState extends ConsumerState<RecommendedFoodScreen> {
             borderRadius: BorderRadius.circular(12),
             boxShadow: [
               BoxShadow(
-                  color: Colors.black.withOpacity( 0.1),
+                  color: Colors.black.withOpacity(0.1),
                   blurRadius: 4,
                   offset: const Offset(0, 3))
             ],
@@ -1031,7 +1033,7 @@ class _RecommendedFoodScreenState extends ConsumerState<RecommendedFoodScreen> {
             borderRadius: BorderRadius.circular(10),
             boxShadow: [
               BoxShadow(
-                  color: Colors.black.withOpacity( 0.25),
+                  color: Colors.black.withOpacity(0.25),
                   blurRadius: 4,
                   offset: const Offset(0, 4))
             ],
@@ -1184,7 +1186,7 @@ class _RecommendedFoodScreenState extends ConsumerState<RecommendedFoodScreen> {
             borderRadius: BorderRadius.circular(100),
             boxShadow: [
               BoxShadow(
-                  color: Colors.black.withOpacity( 0.25),
+                  color: Colors.black.withOpacity(0.25),
                   blurRadius: 4,
                   offset: const Offset(0, 4))
             ],
@@ -1216,12 +1218,12 @@ Widget _imagePlaceholder() {
     color: const Color(0xFFE8EFCF),
     child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
       Icon(Icons.restaurant_menu_rounded,
-          color: const Color(0xFF628141).withOpacity( 0.55), size: 44),
+          color: const Color(0xFF628141).withOpacity(0.55), size: 44),
       const SizedBox(height: 6),
       Text('ไม่มีรูปภาพ',
           style: TextStyle(
               fontSize: 11,
-              color: const Color(0xFF628141).withOpacity( 0.6),
+              color: const Color(0xFF628141).withOpacity(0.6),
               fontWeight: FontWeight.w500)),
     ]),
   );
@@ -1237,7 +1239,7 @@ Widget _imageLoading() {
         child: CircularProgressIndicator(
             strokeWidth: 2.5,
             valueColor: AlwaysStoppedAnimation<Color>(
-                const Color(0xFF628141).withOpacity( 0.6))),
+                const Color(0xFF628141).withOpacity(0.6))),
       ),
     ),
   );
@@ -1288,7 +1290,7 @@ class FoodCategoryScreen extends StatelessWidget {
               child: Container(
                 padding: const EdgeInsets.all(8),
                 decoration: BoxDecoration(
-                  color: Colors.white.withOpacity( 0.2),
+                  color: Colors.white.withOpacity(0.2),
                   shape: BoxShape.circle,
                 ),
                 child: const Icon(Icons.arrow_back_ios_new_rounded,
@@ -1306,7 +1308,7 @@ class FoodCategoryScreen extends StatelessWidget {
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
               decoration: BoxDecoration(
-                color: Colors.white.withOpacity( 0.2),
+                color: Colors.white.withOpacity(0.2),
                 borderRadius: BorderRadius.circular(20),
               ),
               child: Text(
@@ -1377,7 +1379,7 @@ class FoodCategoryScreen extends StatelessWidget {
           borderRadius: BorderRadius.circular(16),
           boxShadow: [
             BoxShadow(
-                color: Colors.black.withOpacity( 0.06),
+                color: Colors.black.withOpacity(0.06),
                 blurRadius: 10,
                 offset: const Offset(0, 3))
           ],

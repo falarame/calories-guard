@@ -1,4 +1,4 @@
-import 'dart:convert';
+﻿import 'dart:convert';
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -7,6 +7,7 @@ import '/providers/user_data_provider.dart';
 import '/screens/tamagotchi/reward_shop_screen.dart';
 import '/services/api_client.dart';
 import '/services/health_service.dart';
+import '/services/tamagotchi_action_logger.dart';
 
 // ─────────────────────────────────────────────────────────
 //  Tier System — 5 levels (Octalysis: Development & Accomplishment)
@@ -129,6 +130,24 @@ class _TamagotchiScreenState extends ConsumerState<TamagotchiScreen> {
   int _waterGlasses = 0;
   int _steps = 0;
   bool _loggedWeightToday = false;
+  bool _weightChanged1kg = false;
+  int _todayMealCount = 0;
+  int _cycleDay = 0;
+  int _cycleNum = 0;
+  int _suggestCountToday = 0;
+  bool _reviewedToday = false;
+  int _pendingInviteRewards = 0;
+  int _currentInviteeCount = 0;
+
+  bool _isStreakMission(String id) =>
+      id == 'streak_3' || id == 'streak_5' || id == 'streak_7';
+
+  bool _isMissionClaimed(String id) {
+    if (_isStreakMission(id)) {
+      return _claimedBadges.contains('${id}_c$_cycleNum');
+    }
+    return _claimedToday.contains(id);
+  }
 
   List<_Mission> get _missions => [
         _Mission(
@@ -137,24 +156,93 @@ class _TamagotchiScreenState extends ConsumerState<TamagotchiScreen> {
             title: 'เช็กอินวันนี้',
             desc: 'เปิดแอปเพื่อรับ XP ประจำวัน',
             baseXp: 10,
-            baseGems: 1,
+            baseGems: 5,
             autoCheck: (_) => true),
         _Mission(
-            id: 'log_meal',
+            id: 'log_meal_1',
             emoji: '🍱',
-            title: 'บันทึกมื้ออาหาร',
-            desc: 'บันทึกอาหารอย่างน้อย 1 มื้อวันนี้',
-            baseXp: 25,
-            baseGems: 3,
-            autoCheck: (u) => u.consumedCalories > 0),
+            title: 'บันทึกอาหาร 1 มื้อ',
+            desc: 'บันทึกอาหารวันนี้อย่างน้อย 1 มื้อ (ไม่นับย้อนหลัง)',
+            baseXp: 10,
+            baseGems: 5,
+            autoCheck: (_) => _todayMealCount >= 1),
         _Mission(
-            id: 'drink_water',
-            emoji: '💧',
-            title: 'ดื่มน้ำครบ 6 แก้ว',
-            desc: 'ดื่มน้ำอย่างน้อย 6 แก้ว (1,500 ml) ต่อวัน',
+            id: 'log_meal_2',
+            emoji: '🍽️',
+            title: 'บันทึกอาหาร 2 มื้อ',
+            desc: 'บันทึกอาหารวันนี้อย่างน้อย 2 มื้อ',
+            baseXp: 20,
+            baseGems: 10,
+            autoCheck: (_) => _todayMealCount >= 2),
+        _Mission(
+            id: 'log_meal_3',
+            emoji: '🥢',
+            title: 'บันทึกอาหาร 3 มื้อ',
+            desc: 'บันทึกอาหารวันนี้อย่างน้อย 3 มื้อ',
             baseXp: 30,
-            baseGems: 3,
+            baseGems: 15,
+            autoCheck: (_) => _todayMealCount >= 3),
+        _Mission(
+            id: 'log_meal_4',
+            emoji: '🌟',
+            title: 'บันทึกอาหารครบ 4 มื้อ',
+            desc: 'บันทึกอาหารครบทุกมื้อในวันนี้',
+            baseXp: 40,
+            baseGems: 20,
+            autoCheck: (_) => _todayMealCount >= 4),
+        _Mission(
+            id: 'drink_water_2',
+            emoji: '',
+            title: 'ดื่มน้ำ 2 แก้ว',
+            desc: 'ดื่มน้ำอย่างน้อย 2 แก้ว (500 ml) วันนี้',
+            baseXp: 8,
+            baseGems: 5,
+            autoCheck: (_) => _waterGlasses >= 2),
+        _Mission(
+            id: 'drink_water_4',
+            emoji: '',
+            title: 'ดื่มน้ำ 4 แก้ว',
+            desc: 'ดื่มน้ำอย่างน้อย 4 แก้ว (1,000 ml) วันนี้',
+            baseXp: 15,
+            baseGems: 10,
+            autoCheck: (_) => _waterGlasses >= 4),
+        _Mission(
+            id: 'drink_water_6',
+            emoji: '',
+            title: 'ดื่มน้ำ 6 แก้ว',
+            desc: 'ดื่มน้ำอย่างน้อย 6 แก้ว (1,500 ml) วันนี้',
+            baseXp: 22,
+            baseGems: 15,
             autoCheck: (_) => _waterGlasses >= 6),
+        _Mission(
+            id: 'drink_water_8',
+            emoji: '',
+            title: 'ดื่มน้ำครบ 8 แก้ว',
+            desc: 'ดื่มน้ำครบ 8 แก้ว (2,000 ml) เป้าหมายวัน!',
+            baseXp: 30,
+            baseGems: 20,
+            autoCheck: (_) => _waterGlasses >= 8),
+        _Mission(
+            id: 'hit_calories',
+            emoji: '🎯',
+            title: 'แคลอรี่ไม่เกินเป้า',
+            desc: 'รับประทานแคลอรี่ไม่เกินเป้าหมายที่ตั้งไว้',
+            baseXp: 75,
+            baseGems: 30,
+            autoCheck: (u) {
+              if (u.targetCalories <= 0) return false;
+              return u.consumedCalories > 0 &&
+                  u.consumedCalories <= u.targetCalories;
+            }),
+        _Mission(
+            id: 'hit_protein',
+            emoji: '💪',
+            title: 'โปรตีนครบตามเป้า',
+            desc: 'รับโปรตีนครบตามเป้าหมายของวันนี้',
+            baseXp: 40,
+            baseGems: 15,
+            autoCheck: (u) =>
+                u.targetProtein > 0 && u.consumedProtein >= u.targetProtein),
         _Mission(
             id: 'log_exercise',
             emoji: '🏃',
@@ -180,47 +268,69 @@ class _TamagotchiScreenState extends ConsumerState<TamagotchiScreen> {
             baseGems: 8,
             autoCheck: (_) => _steps >= 8000),
         _Mission(
-            id: 'hit_calories',
-            emoji: '🎯',
-            title: 'แคลอรี่ตามเป้า',
-            desc: 'แคลอรี่อยู่ในช่วง 80–110% ของเป้า',
-            baseXp: 75,
-            baseGems: 8,
-            autoCheck: (u) {
-              if (u.targetCalories <= 0) return false;
-              final r = u.consumedCalories / u.targetCalories;
-              return r >= 0.8 && r <= 1.1;
-            }),
-        _Mission(
-            id: 'hit_all_macros',
-            emoji: '🌿',
-            title: 'ครบตามโภชนาการ',
-            desc: 'โปรตีน คาร์บ ไขมัน ครบตามเป้าทั้งหมด',
-            baseXp: 100,
-            baseGems: 10,
-            autoCheck: (u) =>
-                u.targetProtein > 0 &&
-                u.consumedProtein >= u.targetProtein &&
-                u.targetCarbs > 0 &&
-                u.consumedCarbs >= u.targetCarbs &&
-                u.targetFat > 0 &&
-                u.consumedFat >= u.targetFat),
-        _Mission(
-            id: 'log_weight',
+            id: 'weight_change',
             emoji: '⚖️',
-            title: 'ชั่งน้ำหนักวันนี้',
-            desc: 'บันทึกน้ำหนักเพื่อติดตามความคืบหน้าของตัวเอง',
+            title: 'น้ำหนักเปลี่ยนแปลง 1 กก.',
+            desc: 'บันทึกน้ำหนักวันนี้ และน้ำหนักลด/เพิ่ม ≥ 1 กก. จากครั้งก่อน',
             baseXp: 40,
-            baseGems: 4,
-            autoCheck: (_) => _loggedWeightToday),
+            baseGems: 20,
+            autoCheck: (_) => _loggedWeightToday && _weightChanged1kg),
+        _Mission(
+            id: 'suggest_food_1',
+            emoji: '🍜',
+            title: 'เพิ่มเมนูอาหารใหม่ 1 เมนู',
+            desc: 'เสนอเมนูอาหารที่ยังไม่มีในระบบผ่านหน้าค้นหาอาหาร',
+            baseXp: 20,
+            baseGems: 10,
+            autoCheck: (_) => _suggestCountToday >= 1),
+        _Mission(
+            id: 'suggest_food_2',
+            emoji: '🍜🍜',
+            title: 'เพิ่มเมนูอาหารใหม่ 2 เมนู',
+            desc: 'เสนอเมนูอาหารใหม่ 2 เมนูในวันเดียวกัน',
+            baseXp: 40,
+            baseGems: 20,
+            autoCheck: (_) => _suggestCountToday >= 2),
+        _Mission(
+            id: 'review_food',
+            emoji: '⭐',
+            title: 'รีวิวอาหาร',
+            desc: 'ให้คะแนนและรีวิวเมนูอาหารวันนี้',
+            baseXp: 10,
+            baseGems: 5,
+            autoCheck: (_) => _reviewedToday),
+        _Mission(
+            id: 'invite_friend',
+            emoji: '👥',
+            title: 'ชวนเพื่อนมาใช้แอป',
+            desc: 'เพื่อนกรอกโค้ดเชิญของเราตอนสมัคร — 100 เมล็ด/คน',
+            baseXp: 50,
+            baseGems: 100,
+            autoCheck: (_) => _pendingInviteRewards > 0),
         _Mission(
             id: 'streak_3',
             emoji: '🔥',
-            title: 'ใช้แอปต่อเนื่อง 3 วัน',
-            desc: 'บันทึกสุขภาพต่อเนื่องอย่างน้อย 3 วัน',
+            title: 'Login ต่อเนื่อง 3 วัน',
+            desc: 'เข้าใช้แอปต่อเนื่อง 3 วันในรอบสัปดาห์นี้',
             baseXp: 50,
-            baseGems: 5,
-            autoCheck: (u) => u.currentStreak >= 3),
+            baseGems: 10,
+            autoCheck: (_) => _cycleDay >= 3),
+        _Mission(
+            id: 'streak_5',
+            emoji: '🔥🔥',
+            title: 'Login ต่อเนื่อง 5 วัน',
+            desc: 'เข้าใช้แอปต่อเนื่อง 5 วันในรอบสัปดาห์นี้',
+            baseXp: 75,
+            baseGems: 15,
+            autoCheck: (_) => _cycleDay >= 5),
+        _Mission(
+            id: 'streak_7',
+            emoji: '⭐',
+            title: 'Login ต่อเนื่อง 7 วัน',
+            desc: 'ครบ 7 วันแล้ว — รีเซ็ตรอบใหม่!',
+            baseXp: 100,
+            baseGems: 20,
+            autoCheck: (_) => _cycleDay == 7),
       ];
 
   static const _bg = Color(0xFFF8FAFB);
@@ -283,12 +393,38 @@ class _TamagotchiScreenState extends ConsumerState<TamagotchiScreen> {
         }
       } catch (_) {}
       try {
+        final mealRes = await ApiClient().get(
+          '/daily_logs/$uid',
+          queryParams: {'date_query': today},
+        );
+        if (mealRes.statusCode == 200) {
+          final mData = jsonDecode(mealRes.body);
+          final meals = (mData['meals'] as Map<String, dynamic>?) ?? {};
+          int count = 0;
+          for (final mt in ['breakfast', 'lunch', 'dinner', 'snack']) {
+            final items = meals[mt];
+            if (items is List && items.isNotEmpty) count++;
+          }
+          if (mounted) setState(() => _todayMealCount = count);
+        }
+      } catch (_) {}
+      try {
         final wlogRes = await ApiClient().get('/users/$uid/weight_logs');
         if (wlogRes.statusCode == 200) {
           final wList = jsonDecode(wlogRes.body) as List;
+          final loggedToday = wList.any((e) => e['date'] == today);
+          bool changed1kg = false;
+          if (wList.length >= 2) {
+            final latest = (wList.last['weight'] as num?)?.toDouble() ?? 0;
+            final prev =
+                (wList[wList.length - 2]['weight'] as num?)?.toDouble() ?? 0;
+            changed1kg = (latest - prev).abs() >= 1.0;
+          }
           if (mounted) {
-            setState(() =>
-                _loggedWeightToday = wList.any((e) => e['date'] == today));
+            setState(() {
+              _loggedWeightToday = loggedToday;
+              _weightChanged1kg = changed1kg;
+            });
           }
         }
       } catch (_) {}
@@ -296,6 +432,28 @@ class _TamagotchiScreenState extends ConsumerState<TamagotchiScreen> {
         final summary =
             await HealthService.fetchActivitySummary(DateTime.now());
         if (mounted) setState(() => _steps = summary.steps);
+      } catch (_) {}
+      final sc = await TamagotchiActionLogger.getFoodSuggestionCount(uid);
+      final rd = await TamagotchiActionLogger.getFoodReviewDone(uid);
+      if (mounted) {
+        setState(() {
+          _suggestCountToday = sc;
+          _reviewedToday = rd;
+        });
+      }
+      try {
+        final invRes = await ApiClient().get('/referral/invitees');
+        if (invRes.statusCode == 200) {
+          final invList = jsonDecode(invRes.body) as List;
+          final currentCount = invList.length;
+          final lastCount = prefs.getInt('tama_invitee_count_$uid') ?? 0;
+          if (mounted) {
+            setState(() {
+              _currentInviteeCount = currentCount;
+              _pendingInviteRewards = (currentCount - lastCount).clamp(0, 9999);
+            });
+          }
+        }
       } catch (_) {}
       try {
         final res = await ApiClient().get('/users/$uid/tama-points');
@@ -330,37 +488,61 @@ class _TamagotchiScreenState extends ConsumerState<TamagotchiScreen> {
     if (mounted) {
       final updatedBadges =
           (prefs.getStringList(_badgesKey(uid)) ?? []).toSet();
+      final streak = ref.read(userDataProvider).currentStreak;
       setState(() {
         _xp = xp;
         _gems = gems;
         _tierIdx = tier;
         _claimedToday = claimed;
         _claimedBadges = updatedBadges;
+        _cycleDay = streak == 0 ? 0 : ((streak - 1) % 7) + 1;
+        _cycleNum = streak == 0 ? 0 : (streak - 1) ~/ 7;
       });
     }
   }
 
   // Variable reward: 20% chance of ×2 Gems (Octalysis CD#7 Unpredictability / dopamine loop)
   Future<void> _claimMission(_Mission m, int streak) async {
-    if (_claimedToday.contains(m.id)) return;
+    if (_isMissionClaimed(m.id)) return;
     final uid = ref.read(userDataProvider).userId;
     final prefs = await SharedPreferences.getInstance();
 
-    final earnedXp = _calcXp(m, streak);
-    final isBonus = math.Random().nextDouble() < 0.20;
-    final baseEarnedGems = _calcGems(m, streak);
-    final earnedGems = isBonus ? baseEarnedGems * 2 : baseEarnedGems;
+    final int earnedXp;
+    final bool isBonus;
+    final int earnedGems;
+    if (m.id == 'invite_friend') {
+      earnedXp = 50 * _pendingInviteRewards;
+      isBonus = false;
+      earnedGems = 100 * _pendingInviteRewards;
+    } else {
+      earnedXp = _calcXp(m, streak);
+      isBonus = math.Random().nextDouble() < 0.20;
+      final baseEarnedGems = _calcGems(m, streak);
+      earnedGems = isBonus ? baseEarnedGems * 2 : baseEarnedGems;
+    }
 
     final newXp = _xp + earnedXp;
     int newGems = _gems + earnedGems;
-    final newClaimed = {..._claimedToday, m.id};
     final newTier = (_tiers.lastIndexWhere((t) => newXp >= t.minXp))
         .clamp(0, _tiers.length - 1);
     final oldTierIdx = _tierIdx;
     final newMaxTier = newTier > _tierIdx ? newTier : _tierIdx;
 
-    // Perfect Day: all missions done → +15 💎 bonus
-    final allDone = _missions.every((ms) => newClaimed.contains(ms.id));
+    Set<String> newClaimed = {..._claimedToday};
+    Set<String> newBadges = {..._claimedBadges};
+
+    if (_isStreakMission(m.id)) {
+      newBadges.add('${m.id}_c$_cycleNum');
+      await prefs.setStringList(_badgesKey(uid), newBadges.toList());
+    } else {
+      newClaimed.add(m.id);
+      await prefs.setStringList(_claimedKey(uid), newClaimed.toList());
+    }
+
+    // Perfect Day: all non-streak missions done → +15 💎 bonus
+    final allDone = _missions
+        .where((ms) => !_isStreakMission(ms.id))
+        .every((ms) => newClaimed.contains(ms.id));
     if (allDone) newGems += 15;
 
     // Exercise Combo: log_exercise + any walk mission done same day → +5 💎
@@ -373,14 +555,17 @@ class _TamagotchiScreenState extends ConsumerState<TamagotchiScreen> {
 
     await prefs.setInt(_xpKey(uid), newXp);
     await prefs.setInt(_gemsKey(uid), newGems);
-    await prefs.setStringList(_claimedKey(uid), newClaimed.toList());
     if (newMaxTier > _tierIdx) await prefs.setInt(_tierKey(uid), newMaxTier);
+    if (m.id == 'invite_friend') {
+      await prefs.setInt('tama_invitee_count_$uid', _currentInviteeCount);
+    }
 
     setState(() {
       _xp = newXp;
       _gems = newGems;
       _tierIdx = newMaxTier;
       _claimedToday = newClaimed;
+      _claimedBadges = newBadges;
     });
 
     _syncToBackend(newXp, newGems, newMaxTier);
@@ -801,8 +986,7 @@ class _TamagotchiScreenState extends ConsumerState<TamagotchiScreen> {
                             isCurrent ? FontWeight.w700 : FontWeight.w500,
                         color: isUnlocked ? t.color : Colors.grey.shade400,
                         fontFamily: 'Inter')),
-                Text(
-                    t.minXp >= 1000 ? '${t.minXp ~/ 1000}k' : '${t.minXp}',
+                Text(t.minXp >= 1000 ? '${t.minXp ~/ 1000}k' : '${t.minXp}',
                     style: TextStyle(
                         fontSize: 8,
                         color: Colors.grey.shade400,
@@ -858,7 +1042,7 @@ class _TamagotchiScreenState extends ConsumerState<TamagotchiScreen> {
   }
 
   Widget _buildMissionCard(_Mission m, UserData userData, int streak) {
-    final claimed = _claimedToday.contains(m.id);
+    final claimed = _isMissionClaimed(m.id);
     final canDo = m.autoCheck(userData);
     final xp = _calcXp(m, streak);
     final gems = _calcGems(m, streak);
@@ -1042,377 +1226,3 @@ class _TamagotchiScreenState extends ConsumerState<TamagotchiScreen> {
     ]);
   }
 }
-<<<<<<< HEAD
-=======
-
-// _RicePainter removed — UI redesigned to reward system
-class _RicePainter extends CustomPainter {
-  final Color color;
-  final int stage;
-  _RicePainter(this.color, this.stage);
-
-  static const _soilA = Color(0xFF4E342E);
-  static const _soilB = Color(0xFF6D4C41);
-  static const _soilC = Color(0xFFA1887F);
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final cx = size.width / 2;
-    final cy = size.height / 2;
-    final h = size.height;
-
-    // background glow
-    canvas.drawCircle(
-        Offset(cx, cy),
-        66,
-        Paint()
-          ..color = color.withOpacity(0.2)
-          ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 28));
-
-    switch (stage) {
-      case 0:
-        _stage0(canvas, cx, cy);
-        break;
-      case 1:
-        _stage1(canvas, cx, h);
-        break;
-      case 2:
-        _stage2(canvas, cx, h);
-        break;
-      case 3:
-        _stage3(canvas, cx, h);
-        break;
-      case 4:
-        _stage4(canvas, cx, h, false);
-        break;
-      default:
-        _stage5(canvas, cx, h);
-        break;
-    }
-  }
-
-  // ── Stage 0 : ติ๊ด — cute seed with face ─────────────────
-  void _stage0(Canvas c, double cx, double cy) {
-    // drop shadow
-    c.drawOval(
-        Rect.fromCenter(center: Offset(cx, cy + 46), width: 52, height: 14),
-        Paint()..color = Colors.black.withOpacity(0.12));
-    // seed body
-    c.drawOval(
-      Rect.fromCenter(center: Offset(cx, cy), width: 68, height: 86),
-      Paint()
-        ..shader = RadialGradient(
-          colors: [
-            Color.lerp(color, Colors.white, 0.5)!,
-            color,
-            Color.lerp(color, Colors.black, 0.18)!
-          ],
-          stops: const [0.0, 0.55, 1.0],
-          center: const Alignment(-0.35, -0.4),
-        ).createShader(
-            Rect.fromCenter(center: Offset(cx, cy), width: 68, height: 86)),
-    );
-    // center seam line
-    c.drawLine(
-        Offset(cx, cy - 38),
-        Offset(cx, cy + 38),
-        Paint()
-          ..color = Colors.black.withOpacity(0.14)
-          ..strokeWidth = 1.5);
-    // tiny horizontal cracks (about to sprout)
-    _line(c, cx - 6, cy - 12, cx + 6, cy - 12, Colors.black.withOpacity(0.12),
-        1.2);
-    _line(c, cx - 5, cy + 10, cx + 5, cy + 10, Colors.black.withOpacity(0.12),
-        1.2);
-    // shine patch
-    c.drawOval(
-        Rect.fromCenter(
-            center: Offset(cx - 17, cy - 20), width: 13, height: 22),
-        Paint()..color = Colors.white.withOpacity(0.22));
-    // cute eyes
-    _eye(c, cx - 13, cy - 5);
-    _eye(c, cx + 13, cy - 5);
-    // smile
-    c.drawPath(
-        Path()
-          ..moveTo(cx - 9, cy + 14)
-          ..quadraticBezierTo(cx, cy + 23, cx + 9, cy + 14),
-        Paint()
-          ..color = Colors.black.withOpacity(0.45)
-          ..style = PaintingStyle.stroke
-          ..strokeWidth = 2
-          ..strokeCap = StrokeCap.round);
-    // tiny roots
-    _rootLine(c, cx, cy + 42, 10, 58);
-    _rootLine(c, cx, cy + 44, -9, 56);
-  }
-
-  // ── Stage 1 : ต้อย — tiny sprout ──────────────────────────
-  void _stage1(Canvas c, double cx, double h) {
-    final gy = h - 20.0;
-    _soil(c, cx, gy);
-    // stem
-    c.drawLine(
-        Offset(cx, gy - 3),
-        Offset(cx, gy - 42),
-        Paint()
-          ..color = color
-          ..strokeWidth = 5
-          ..strokeCap = StrokeCap.round);
-    // 2 baby leaves
-    _leaf(c, cx, gy - 20, -math.pi * 0.38, 24, 7);
-    _leaf(c, cx, gy - 28, math.pi * 0.38, 24, 7);
-    // bud
-    c.drawOval(
-        Rect.fromCenter(center: Offset(cx, gy - 46), width: 10, height: 14),
-        Paint()..color = Color.lerp(color, Colors.white, 0.5)!);
-    // tiny cute face on stem
-    _miniface(c, cx, gy - 10);
-  }
-
-  // ── Stage 2 : แต้ว — young plant ──────────────────────────
-  void _stage2(Canvas c, double cx, double h) {
-    final gy = h - 18.0;
-    _soil(c, cx, gy);
-    c.drawLine(
-        Offset(cx, gy - 3),
-        Offset(cx, gy - 68),
-        Paint()
-          ..color = color
-          ..strokeWidth = 5.5
-          ..strokeCap = StrokeCap.round);
-    _leaf(c, cx, gy - 22, -math.pi * 0.42, 30, 8);
-    _leaf(c, cx, gy - 34, math.pi * 0.42, 32, 8);
-    _leaf(c, cx, gy - 52, -math.pi * 0.36, 28, 7.5);
-    c.drawOval(
-        Rect.fromCenter(center: Offset(cx, gy - 72), width: 11, height: 15),
-        Paint()..color = Color.lerp(color, Colors.white, 0.45)!);
-    c.drawOval(
-        Rect.fromCenter(center: Offset(cx, gy - 72), width: 7, height: 10),
-        Paint()..color = Color.lerp(color, Colors.white, 0.7)!);
-  }
-
-  // ── Stage 3 : โต้ง — tall & strong ────────────────────────
-  void _stage3(Canvas c, double cx, double h) {
-    final gy = h - 16.0;
-    _soil(c, cx, gy);
-    c.drawLine(
-        Offset(cx, gy - 3),
-        Offset(cx, gy - 96),
-        Paint()
-          ..color = color
-          ..strokeWidth = 6
-          ..strokeCap = StrokeCap.round);
-    _leaf(c, cx, gy - 24, -math.pi * 0.44, 36, 9);
-    _leaf(c, cx, gy - 38, math.pi * 0.44, 38, 9);
-    _leaf(c, cx, gy - 56, -math.pi * 0.40, 34, 8.5);
-    _leaf(c, cx, gy - 72, math.pi * 0.38, 32, 8);
-    _leaf(c, cx, gy - 86, -math.pi * 0.33, 26, 7);
-    // elongated bud
-    c.drawOval(
-        Rect.fromCenter(center: Offset(cx, gy - 101), width: 10, height: 16),
-        Paint()..color = Color.lerp(color, Colors.white, 0.4)!);
-  }
-
-  // ── Stage 4 : พราว — rice ear ──────────────────────────────
-  void _stage4(Canvas c, double cx, double h, bool golden) {
-    final gy = h - 16.0;
-    _soil(c, cx, gy);
-    // curved stem
-    c.drawPath(
-        Path()
-          ..moveTo(cx, gy - 3)
-          ..quadraticBezierTo(cx + 4, gy - 52, cx, gy - 106),
-        Paint()
-          ..color = color
-          ..style = PaintingStyle.stroke
-          ..strokeWidth = 6
-          ..strokeCap = StrokeCap.round);
-    _leaf(c, cx, gy - 26, -math.pi * 0.44, 36, 9);
-    _leaf(c, cx, gy - 42, math.pi * 0.44, 38, 9);
-    _leaf(c, cx, gy - 60, -math.pi * 0.40, 34, 8.5);
-    _leaf(c, cx, gy - 78, math.pi * 0.36, 30, 8);
-    _riceEar(c, cx, gy - 106, golden);
-  }
-
-  // ── Stage 5 : วิ้งค์ — golden ──────────────────────────────
-  void _stage5(Canvas c, double cx, double h) {
-    // extra golden glow layer
-    c.drawCircle(
-        Offset(cx, h / 2),
-        72,
-        Paint()
-          ..color = color.withOpacity(0.14)
-          ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 32));
-    _stage4(c, cx, h, true);
-    // sparkle stars around ear
-    final earY = h - 16 - 106.0;
-    for (int i = 0; i < 6; i++) {
-      final a = (i * math.pi * 2 / 6) - math.pi / 3;
-      _sparkle(c, cx + 48 * math.cos(a), earY + 20 + 48 * math.sin(a));
-    }
-  }
-
-  // ──────────────────── Shared helpers ─────────────────────
-
-  /// Layered soil mound
-  void _soil(Canvas c, double cx, double gy) {
-    c.drawOval(
-        Rect.fromCenter(center: Offset(cx, gy + 4), width: 90, height: 18),
-        Paint()..color = Colors.black.withOpacity(0.1));
-    c.drawOval(Rect.fromCenter(center: Offset(cx, gy), width: 86, height: 22),
-        Paint()..color = _soilA.withOpacity(0.72));
-    c.drawOval(
-        Rect.fromCenter(center: Offset(cx, gy - 4), width: 72, height: 14),
-        Paint()..color = _soilB.withOpacity(0.55));
-    c.drawOval(
-        Rect.fromCenter(center: Offset(cx, gy - 7), width: 50, height: 8),
-        Paint()..color = _soilC.withOpacity(0.38));
-  }
-
-  /// Filled rice-leaf shape rotated from (x, y)
-  void _leaf(
-      Canvas c, double x, double y, double angle, double len, double hw) {
-    c.save();
-    c.translate(x, y);
-    c.rotate(angle);
-    // filled blade
-    c.drawPath(
-      Path()
-        ..moveTo(0, 0)
-        ..cubicTo(hw * 1.3, -len * 0.12, hw * 1.0, -len * 0.68, 0, -len)
-        ..cubicTo(-hw * 1.0, -len * 0.68, -hw * 1.3, -len * 0.12, 0, 0),
-      Paint()
-        ..color = color
-        ..style = PaintingStyle.fill,
-    );
-    // center vein
-    c.drawLine(
-        const Offset(0, -2),
-        Offset(0, -len * 0.86),
-        Paint()
-          ..color = Colors.white.withOpacity(0.16)
-          ..strokeWidth = 1.2);
-    // leaf shine
-    c.drawPath(
-        Path()
-          ..moveTo(-hw * 0.28, -len * 0.14)
-          ..quadraticBezierTo(-hw * 0.55, -len * 0.5, -hw * 0.22, -len * 0.72),
-        Paint()
-          ..color = Colors.white.withOpacity(0.14)
-          ..style = PaintingStyle.stroke
-          ..strokeWidth = 1.8);
-    c.restore();
-  }
-
-  /// Rice panicle with individual grain ovals
-  void _riceEar(Canvas c, double cx, double topY, bool golden) {
-    // rachis (the drooping stalk of the ear)
-    c.drawPath(
-        Path()
-          ..moveTo(cx, topY)
-          ..cubicTo(cx + 8, topY - 10, cx + 32, topY + 10, cx + 30, topY + 46),
-        Paint()
-          ..color = color
-          ..style = PaintingStyle.stroke
-          ..strokeWidth = 3.2
-          ..strokeCap = StrokeCap.round);
-
-    final grainFill = golden
-        ? const Color(0xFFFFF176)
-        : Color.lerp(color, Colors.white, 0.4)!;
-    final grainBorder = golden ? const Color(0xFFFFCA28) : color;
-
-    for (int i = 0; i < 9; i++) {
-      final t = i / 8;
-      final rx = cx + 30 * t;
-      final ry = topY - 8 + 54 * t;
-      final side = (i % 2 == 0) ? -1.0 : 1.0;
-      final gx = rx + side * 9;
-      final gy = ry + 2;
-
-      c.save();
-      c.translate(gx, gy);
-      c.rotate(side * 0.28);
-      // grain oval
-      c.drawOval(Rect.fromCenter(center: Offset.zero, width: 7, height: 12),
-          Paint()..color = grainFill);
-      c.drawOval(
-          Rect.fromCenter(center: Offset.zero, width: 7, height: 12),
-          Paint()
-            ..color = grainBorder.withOpacity(0.45)
-            ..style = PaintingStyle.stroke
-            ..strokeWidth = 1);
-      // tiny shine
-      c.drawOval(
-          Rect.fromCenter(
-              center: const Offset(-1.5, -2.5), width: 2.5, height: 4.5),
-          Paint()..color = Colors.white.withOpacity(0.55));
-      c.restore();
-    }
-  }
-
-  void _eye(Canvas c, double x, double y) {
-    c.drawCircle(
-        Offset(x, y), 5.5, Paint()..color = Colors.black.withOpacity(0.55));
-    c.drawCircle(Offset(x + 1.8, y - 1.8), 1.8,
-        Paint()..color = Colors.white.withOpacity(0.95));
-  }
-
-  void _miniface(Canvas c, double cx, double cy) {
-    c.drawCircle(Offset(cx - 5, cy), 2.5,
-        Paint()..color = Colors.black.withOpacity(0.35));
-    c.drawCircle(Offset(cx + 5, cy), 2.5,
-        Paint()..color = Colors.black.withOpacity(0.35));
-    c.drawPath(
-        Path()
-          ..moveTo(cx - 4, cy + 5)
-          ..quadraticBezierTo(cx, cy + 8, cx + 4, cy + 5),
-        Paint()
-          ..color = Colors.black.withOpacity(0.3)
-          ..style = PaintingStyle.stroke
-          ..strokeWidth = 1.5
-          ..strokeCap = StrokeCap.round);
-  }
-
-  void _sparkle(Canvas c, double x, double y) {
-    final p = Paint()
-      ..color = color
-      ..strokeWidth = 1.8
-      ..strokeCap = StrokeCap.round
-      ..style = PaintingStyle.stroke;
-    for (int i = 0; i < 4; i++) {
-      final a = i * math.pi / 2;
-      c.drawLine(
-          Offset(x, y), Offset(x + 6 * math.cos(a), y + 6 * math.sin(a)), p);
-    }
-    c.drawCircle(Offset(x, y), 2.2, Paint()..color = color);
-  }
-
-  void _line(Canvas c, double x1, double y1, double x2, double y2, Color col,
-      double w) {
-    c.drawLine(
-        Offset(x1, y1),
-        Offset(x2, y2),
-        Paint()
-          ..color = col
-          ..strokeWidth = w);
-  }
-
-  void _rootLine(Canvas c, double sx, double sy, double dx, double dy) {
-    c.drawPath(
-        Path()
-          ..moveTo(sx, sy)
-          ..quadraticBezierTo(sx + dx, sy + 8, sx + dx ~/ 2, sy + dy - sy),
-        Paint()
-          ..color = _soilB
-          ..style = PaintingStyle.stroke
-          ..strokeWidth = 1.8
-          ..strokeCap = StrokeCap.round);
-  }
-
-  @override
-  bool shouldRepaint(_RicePainter old) =>
-      old.color != color || old.stage != stage;
-}
->>>>>>> 84b4935f (WIP: local changes before sync)
