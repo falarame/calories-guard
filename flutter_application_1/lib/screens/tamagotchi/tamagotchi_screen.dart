@@ -1037,8 +1037,188 @@ class _TamagotchiScreenState extends ConsumerState<TamagotchiScreen> {
           style: TextStyle(
               color: Colors.grey.shade400, fontSize: 10, fontFamily: 'Inter')),
       const SizedBox(height: 12),
-      ..._missions.map((m) => _buildMissionCard(m, userData, streak)),
+      _buildProgressGroupCard(
+        groupId: 'meal',
+        title: 'บันทึกมื้ออาหาร',
+        current: _todayMealCount,
+        total: 4,
+        unit: 'มื้อ',
+        milestones: _missions.where((m) => m.id.startsWith('log_meal_')).toList(),
+        userData: userData,
+        streak: streak,
+        color: _primary,
+      ),
+      _buildProgressGroupCard(
+        groupId: 'water',
+        title: 'ดื่มน้ำวันนี้',
+        current: _waterGlasses,
+        total: 8,
+        unit: 'แก้ว',
+        milestones: _missions.where((m) => m.id.startsWith('drink_water_')).toList(),
+        userData: userData,
+        streak: streak,
+        color: const Color(0xFF0277BD),
+      ),
+      _buildProgressGroupCard(
+        groupId: 'suggest',
+        title: 'เพิ่มเมนูอาหารใหม่',
+        current: _suggestCountToday,
+        total: 2,
+        unit: 'เมนู',
+        milestones: _missions.where((m) => m.id.startsWith('suggest_food_')).toList(),
+        userData: userData,
+        streak: streak,
+        color: const Color(0xFF2E7D32),
+      ),
+      _buildProgressGroupCard(
+        groupId: 'streak',
+        title: 'Login ต่อเนื่อง',
+        current: _cycleDay,
+        total: 7,
+        unit: 'วัน',
+        milestones: _missions.where((m) => m.id.startsWith('streak_')).toList(),
+        userData: userData,
+        streak: streak,
+        color: const Color(0xFFE65100),
+      ),
+      ..._missions
+          .where((m) =>
+              !m.id.startsWith('log_meal_') &&
+              !m.id.startsWith('drink_water_') &&
+              !m.id.startsWith('suggest_food_') &&
+              !m.id.startsWith('streak_'))
+          .map((m) => _buildMissionCard(m, userData, streak)),
     ]);
+  }
+
+  Widget _buildProgressGroupCard({
+    required String groupId,
+    required String title,
+    required int current,
+    required int total,
+    required String unit,
+    required List<_Mission> milestones,
+    required UserData userData,
+    required int streak,
+    required Color color,
+  }) {
+    final progress = (current / total).clamp(0.0, 1.0);
+    final allClaimed = milestones.every((m) => _isMissionClaimed(m.id));
+    return Container(
+      margin: const EdgeInsets.only(bottom: 10),
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: allClaimed
+              ? color.withOpacity(0.3)
+              : progress > 0
+                  ? color.withOpacity(0.4)
+                  : Colors.grey.shade200,
+          width: progress > 0 && !allClaimed ? 1.5 : 1,
+        ),
+        boxShadow: [
+          BoxShadow(
+              color: Colors.black.withOpacity(0.04),
+              blurRadius: 8,
+              offset: const Offset(0, 2))
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(children: [
+            Expanded(
+              child: Text(title,
+                  style: const TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w700,
+                      color: Colors.black87,
+                      fontFamily: 'Inter')),
+            ),
+            Text('$current / $total $unit',
+                style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                    color: color,
+                    fontFamily: 'Inter')),
+          ]),
+          const SizedBox(height: 8),
+          ClipRRect(
+            borderRadius: BorderRadius.circular(6),
+            child: LinearProgressIndicator(
+              value: progress,
+              backgroundColor: Colors.grey.shade100,
+              color: color,
+              minHeight: 10,
+            ),
+          ),
+          const SizedBox(height: 10),
+          ...milestones.map((m) {
+            final claimed = _isMissionClaimed(m.id);
+            final canDo = m.autoCheck(userData);
+            final xp = _calcXp(m, streak);
+            final gems = _calcGems(m, streak);
+            return Padding(
+              padding: const EdgeInsets.only(top: 6),
+              child: Row(children: [
+                Icon(
+                  claimed
+                      ? Icons.check_circle_rounded
+                      : canDo
+                          ? Icons.radio_button_checked
+                          : Icons.radio_button_unchecked,
+                  size: 17,
+                  color: claimed
+                      ? color
+                      : canDo
+                          ? color.withOpacity(0.7)
+                          : Colors.grey.shade300,
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(m.title,
+                      style: TextStyle(
+                          fontSize: 13,
+                          fontFamily: 'Inter',
+                          color: claimed
+                              ? Colors.grey.shade400
+                              : canDo
+                                  ? Colors.black87
+                                  : Colors.grey.shade400,
+                          decoration: claimed ? TextDecoration.lineThrough : null)),
+                ),
+                if (claimed)
+                  Text('+$gems 🌾',
+                      style: TextStyle(fontSize: 11, color: Colors.grey.shade400, fontFamily: 'Inter'))
+                else if (canDo)
+                  GestureDetector(
+                    onTap: () => _claimMission(m, streak),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                      decoration: BoxDecoration(
+                        color: color,
+                        borderRadius: BorderRadius.circular(8),
+                        boxShadow: [BoxShadow(color: color.withOpacity(0.35), blurRadius: 6)],
+                      ),
+                      child: Text('+$xp XP  +$gems 🌾',
+                          style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 11,
+                              fontFamily: 'Inter',
+                              fontWeight: FontWeight.w600)),
+                    ),
+                  )
+                else
+                  Text('+$gems 🌾',
+                      style: TextStyle(fontSize: 11, color: Colors.grey.shade300, fontFamily: 'Inter')),
+              ]),
+            );
+          }),
+        ],
+      ),
+    );
   }
 
   Widget _buildMissionCard(_Mission m, UserData userData, int streak) {
