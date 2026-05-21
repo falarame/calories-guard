@@ -21,10 +21,12 @@ class ConversationDetailScreen extends ConsumerStatefulWidget {
   });
 
   @override
-  ConsumerState<ConversationDetailScreen> createState() => _ConversationDetailScreenState();
+  ConsumerState<ConversationDetailScreen> createState() =>
+      _ConversationDetailScreenState();
 }
 
-class _ConversationDetailScreenState extends ConsumerState<ConversationDetailScreen> {
+class _ConversationDetailScreenState
+    extends ConsumerState<ConversationDetailScreen> {
   final _scrollCtrl = ScrollController();
   final _textCtrl = TextEditingController();
   final _imagePicker = ImagePicker();
@@ -50,7 +52,8 @@ class _ConversationDetailScreenState extends ConsumerState<ConversationDetailScr
   }
 
   void _onScroll() {
-    if (_scrollCtrl.position.pixels >= _scrollCtrl.position.maxScrollExtent - 100) {
+    if (_scrollCtrl.position.pixels >=
+        _scrollCtrl.position.maxScrollExtent - 100) {
       // Reverse list — scrolling toward top means we want older messages
       ref.read(messagesProvider(widget.conversationId).notifier).loadOlder();
     }
@@ -62,10 +65,13 @@ class _ConversationDetailScreenState extends ConsumerState<ConversationDetailScr
     setState(() => _sending = true);
     _textCtrl.clear();
     try {
-      await ref.read(messagesProvider(widget.conversationId).notifier).sendText(text);
+      await ref
+          .read(messagesProvider(widget.conversationId).notifier)
+          .sendText(text);
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('ส่งไม่สำเร็จ: $e')));
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text('ส่งไม่สำเร็จ: $e')));
       }
     } finally {
       if (mounted) setState(() => _sending = false);
@@ -73,18 +79,22 @@ class _ConversationDetailScreenState extends ConsumerState<ConversationDetailScr
   }
 
   Future<void> _pickAndSendImage() async {
-    final picked = await _imagePicker.pickImage(source: ImageSource.gallery, imageQuality: 85);
+    final picked = await _imagePicker.pickImage(
+        source: ImageSource.gallery, imageQuality: 85);
     if (picked == null) return;
     setState(() => _sending = true);
     try {
       final bytes = await picked.readAsBytes();
-      await ref.read(messagesProvider(widget.conversationId).notifier).sendAttachment(
+      await ref
+          .read(messagesProvider(widget.conversationId).notifier)
+          .sendAttachment(
             bytes: bytes,
             fileName: picked.name,
           );
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('ส่งรูปไม่สำเร็จ: $e')));
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text('ส่งรูปไม่สำเร็จ: $e')));
       }
     } finally {
       if (mounted) setState(() => _sending = false);
@@ -95,7 +105,9 @@ class _ConversationDetailScreenState extends ConsumerState<ConversationDetailScr
   Widget build(BuildContext context) {
     final state = ref.watch(messagesProvider(widget.conversationId));
     final myUserId = ref.watch(userDataProvider).userId;
-    final presence = widget.peerUserId == null ? null : ref.watch(presenceProvider)[widget.peerUserId];
+    final presence = widget.peerUserId == null
+        ? null
+        : ref.watch(presenceProvider)[widget.peerUserId];
 
     return Scaffold(
       appBar: AppBar(
@@ -108,7 +120,9 @@ class _ConversationDetailScreenState extends ConsumerState<ConversationDetailScr
                 presence == PresenceStatus.online ? 'ออนไลน์' : 'ออฟไลน์',
                 style: TextStyle(
                   fontSize: 12,
-                  color: presence == PresenceStatus.online ? Colors.green.shade300 : Colors.white70,
+                  color: presence == PresenceStatus.online
+                      ? Colors.green.shade300
+                      : Colors.white70,
                 ),
               ),
           ],
@@ -128,7 +142,9 @@ class _ConversationDetailScreenState extends ConsumerState<ConversationDetailScr
       return const Center(child: CircularProgressIndicator());
     }
     if (state.messages.isEmpty) {
-      return const Center(child: Text('ส่งข้อความแรกของคุณ', style: TextStyle(color: Colors.grey)));
+      return const Center(
+          child: Text('ส่งข้อความแรกของคุณ',
+              style: TextStyle(color: Colors.grey)));
     }
 
     // Reverse list so newest sits at the bottom; scroll up loads older
@@ -141,7 +157,11 @@ class _ConversationDetailScreenState extends ConsumerState<ConversationDetailScr
         if (state.isLoadingHistory && i == state.messages.length) {
           return const Padding(
             padding: EdgeInsets.all(12),
-            child: Center(child: SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2))),
+            child: Center(
+                child: SizedBox(
+                    width: 20,
+                    height: 20,
+                    child: CircularProgressIndicator(strokeWidth: 2))),
           );
         }
         // reverse-index lookup
@@ -185,7 +205,10 @@ class _ConversationDetailScreenState extends ConsumerState<ConversationDetailScr
             ),
             IconButton(
               icon: _sending
-                  ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2))
+                  ? const SizedBox(
+                      width: 18,
+                      height: 18,
+                      child: CircularProgressIndicator(strokeWidth: 2))
                   : Icon(Icons.send, color: context.palette.brand),
               onPressed: _sending ? null : _sendText,
             ),
@@ -214,7 +237,8 @@ class _MessageBubble extends StatelessWidget {
               color: Colors.grey.shade200,
               borderRadius: BorderRadius.circular(12),
             ),
-            child: Text(msg.body ?? '', style: const TextStyle(fontSize: 12, color: Colors.grey)),
+            child: Text(msg.body ?? '',
+                style: const TextStyle(fontSize: 12, color: Colors.grey)),
           ),
         ),
       );
@@ -255,14 +279,16 @@ class _MessageBubble extends StatelessWidget {
                           fit: BoxFit.cover,
                           errorBuilder: (_, __, ___) => Container(
                             padding: const EdgeInsets.all(12),
-                            child: const Text('โหลดรูปไม่สำเร็จ', style: TextStyle(color: Colors.white)),
+                            child: const Text('โหลดรูปไม่สำเร็จ',
+                                style: TextStyle(color: Colors.white)),
                           ),
                         ),
                       ),
                     )
                   else if (msg.kind == 'file' && msg.attachmentUrl != null)
                     Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 12, vertical: 10),
                       child: Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
@@ -280,13 +306,19 @@ class _MessageBubble extends StatelessWidget {
                     ),
                   if (msg.body != null && msg.body!.isNotEmpty)
                     Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-                      child: Text(msg.body!, style: TextStyle(color: fg, fontSize: 15)),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 14, vertical: 8),
+                      child: Text(msg.body!,
+                          style: TextStyle(color: fg, fontSize: 15)),
                     ),
                   if (msg.isDeleted)
                     Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
-                      child: Text('ข้อความถูกลบ', style: TextStyle(color: fg.withValues(alpha: 0.7), fontStyle: FontStyle.italic)),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 14, vertical: 6),
+                      child: Text('ข้อความถูกลบ',
+                          style: TextStyle(
+                              color: fg.withOpacity(0.7),
+                              fontStyle: FontStyle.italic)),
                     ),
                 ],
               ),

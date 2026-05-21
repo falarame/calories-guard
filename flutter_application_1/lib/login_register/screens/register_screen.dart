@@ -64,8 +64,10 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
       // Only discard the code when the server explicitly rejects it (gone/not-found).
       // For network errors or 5xx, keep the code so it still gets sent at registration
       // time — the backend will validate it then.
-      final isDefinitelyInvalid = msg.contains('410') || msg.contains('404') ||
-          msg.contains('ลิงก์เชิญถูกใช้งานไปแล้ว') || msg.contains('ลิงก์เชิญหมดอายุแล้ว') ||
+      final isDefinitelyInvalid = msg.contains('410') ||
+          msg.contains('404') ||
+          msg.contains('ลิงก์เชิญถูกใช้งานไปแล้ว') ||
+          msg.contains('ลิงก์เชิญหมดอายุแล้ว') ||
           msg.contains('ไม่พบลิงก์เชิญนี้');
       if (isDefinitelyInvalid && mounted) {
         await PendingInvite.consume(); // clear from secure storage too
@@ -112,7 +114,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
       decoration: BoxDecoration(
         color: const Color(0xFFE8EFCF),
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: const Color(0xFF628141).withValues(alpha: 0.4)),
+        border: Border.all(color: const Color(0xFF628141).withOpacity(0.4)),
       ),
       child: Row(
         children: [
@@ -132,7 +134,8 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text('${preview.inviterUsername} เชิญคุณ',
-                    style: const TextStyle(fontWeight: FontWeight.bold, color: Color(0xFF3D5A27))),
+                    style: const TextStyle(
+                        fontWeight: FontWeight.bold, color: Color(0xFF3D5A27))),
                 const Text('สมัครเลยรับ 20 gems ฟรี!',
                     style: TextStyle(fontSize: 12, color: Color(0xFF3D5A27))),
               ],
@@ -326,9 +329,8 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
     setState(() => _isLoading = true);
 
     // Pull-and-clear the pending invite so it's only used once
-    final referralCode = _pendingReferralCode != null
-        ? await PendingInvite.consume()
-        : null;
+    final referralCode =
+        _pendingReferralCode != null ? await PendingInvite.consume() : null;
 
     final result = await _authService.register(
       fullName,
@@ -510,8 +512,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                                     disabledBackgroundColor:
                                         Colors.grey.shade300,
                                     elevation: 2,
-                                    shadowColor:
-                                        Colors.black.withOpacity( 0.24),
+                                    shadowColor: Colors.black.withOpacity(0.24),
                                     shape: RoundedRectangleBorder(
                                       borderRadius: BorderRadius.circular(18),
                                     ),
@@ -558,7 +559,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                   fontFamily: 'Inter',
                   fontSize: 16,
                   fontWeight: FontWeight.w400,
-                  color: Colors.black.withOpacity( 0.5))),
+                  color: Colors.black.withOpacity(0.5))),
           if (onInfoTap != null) ...[
             const SizedBox(width: 8),
             GestureDetector(

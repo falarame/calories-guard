@@ -67,10 +67,12 @@ class _AppHomeScreenState extends ConsumerState<AppHomeScreen> {
       NotificationHelper.pendingPayload.addListener(_payloadListener!);
       // Handle payload that arrived before listener was set (app launched from notification)
       final initialPayload = NotificationHelper.pendingPayload.value;
-      if (initialPayload != null && initialPayload.startsWith('copy_yesterday:')) {
+      if (initialPayload != null &&
+          initialPayload.startsWith('copy_yesterday:')) {
         final mealType = initialPayload.substring('copy_yesterday:'.length);
         NotificationHelper.pendingPayload.value = null;
-        WidgetsBinding.instance.addPostFrameCallback((_) => _handleCopyYesterday(mealType));
+        WidgetsBinding.instance
+            .addPostFrameCallback((_) => _handleCopyYesterday(mealType));
       }
       ref.listenManual(navIndexProvider, (prev, next) {
         if (next == 0 && prev != 0) {
@@ -265,7 +267,9 @@ class _AppHomeScreenState extends ConsumerState<AppHomeScreen> {
           final userData = ref.read(userDataProvider);
           final target = userData.targetCalories.toInt();
           final eaten = userData.consumedCalories;
-          if (target > 0 && eaten >= (target * 0.9).toInt() && eaten <= (target * 1.1).toInt()) {
+          if (target > 0 &&
+              eaten >= (target * 0.9).toInt() &&
+              eaten <= (target * 1.1).toInt()) {
             unawaited(NotificationHelper.showGoalAchievedNotification(eaten));
           }
         }
@@ -1072,9 +1076,7 @@ class _AppHomeScreenState extends ConsumerState<AppHomeScreen> {
         return Container(
           padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
           decoration: BoxDecoration(
-            color: isWalking
-                ? _green.withValues(alpha: 0.1)
-                : Colors.grey.shade100,
+            color: isWalking ? _green.withOpacity(0.1) : Colors.grey.shade100,
             borderRadius: BorderRadius.circular(20),
           ),
           child: Row(mainAxisSize: MainAxisSize.min, children: [
@@ -1109,7 +1111,7 @@ class _AppHomeScreenState extends ConsumerState<AppHomeScreen> {
           borderRadius: BorderRadius.circular(20),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withValues(alpha: 0.05),
+              color: Colors.black.withOpacity(0.05),
               blurRadius: 12,
               offset: const Offset(0, 3),
             ),
@@ -1121,7 +1123,7 @@ class _AppHomeScreenState extends ConsumerState<AppHomeScreen> {
               width: 36,
               height: 36,
               decoration: BoxDecoration(
-                color: _green.withValues(alpha: 0.1),
+                color: _green.withOpacity(0.1),
                 shape: BoxShape.circle,
               ),
               child: const Icon(Icons.directions_walk_rounded,
@@ -1294,8 +1296,8 @@ class _AppHomeScreenState extends ConsumerState<AppHomeScreen> {
                 child: SizedBox(
                   width: 20,
                   height: 20,
-                  child: CircularProgressIndicator(
-                      strokeWidth: 2, color: _green),
+                  child:
+                      CircularProgressIndicator(strokeWidth: 2, color: _green),
                 ),
               ),
             ),

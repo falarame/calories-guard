@@ -16,10 +16,11 @@ ThemeData buildLightTheme() {
     brightness: Brightness.light,
     colorScheme: scheme,
     scaffoldBackgroundColor: const Color(0xFFF5F7F0),
-    cardTheme: CardThemeData(
+    cardTheme: const CardTheme(
       color: Colors.white,
       elevation: 0,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+      shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.all(Radius.circular(20))),
     ),
     appBarTheme: const AppBarTheme(
       backgroundColor: _brandGreenDark,
@@ -56,10 +57,11 @@ ThemeData buildDarkTheme() {
     brightness: Brightness.dark,
     colorScheme: scheme,
     scaffoldBackgroundColor: const Color(0xFF0F1310),
-    cardTheme: CardThemeData(
-      color: const Color(0xFF1B211C),
+    cardTheme: const CardTheme(
+      color: Color(0xFF1B211C),
       elevation: 0,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+      shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.all(Radius.circular(20))),
     ),
     appBarTheme: const AppBarTheme(
       backgroundColor: Color(0xFF1B211C),

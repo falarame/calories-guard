@@ -112,7 +112,8 @@ class _SettingScreenState extends ConsumerState<SettingScreen> {
             Padding(
               padding: const EdgeInsets.fromLTRB(20, 8, 20, 4),
               child: Row(children: [
-                const Icon(Icons.scale_outlined, size: 18, color: Color(0xFF628141)),
+                const Icon(Icons.scale_outlined,
+                    size: 18, color: Color(0xFF628141)),
                 const SizedBox(width: 8),
                 Text('เลือกวันชั่งน้ำหนัก',
                     style: TextStyle(
@@ -143,8 +144,7 @@ class _SettingScreenState extends ConsumerState<SettingScreen> {
                             : palette.textPrimary)),
                 trailing: isSelected
                     ? const Text('(ค่าเริ่มต้น)',
-                        style:
-                            TextStyle(fontSize: 12, color: Colors.grey))
+                        style: TextStyle(fontSize: 12, color: Colors.grey))
                     : null,
                 onTap: () async {
                   Navigator.pop(context);
@@ -235,8 +235,7 @@ class _SettingScreenState extends ConsumerState<SettingScreen> {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        shape:
-            RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
         title: Text(l10n.tr('settings.delete_account.confirm_title'),
             style: const TextStyle(
                 fontWeight: FontWeight.bold, color: Colors.red)),
@@ -270,10 +269,8 @@ class _SettingScreenState extends ConsumerState<SettingScreen> {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        shape:
-            RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title:
-            Text(title, style: const TextStyle(fontWeight: FontWeight.bold)),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: Text(title, style: const TextStyle(fontWeight: FontWeight.bold)),
         content: Text(content),
         actions: [
           ElevatedButton(
@@ -295,8 +292,7 @@ class _SettingScreenState extends ConsumerState<SettingScreen> {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-            content:
-                Text(AppLocalizations.of(context).tr('common.error'))),
+            content: Text(AppLocalizations.of(context).tr('common.error'))),
       );
     }
   }
@@ -327,7 +323,7 @@ class _SettingScreenState extends ConsumerState<SettingScreen> {
                 child: Container(
                   padding: const EdgeInsets.all(8),
                   decoration: BoxDecoration(
-                      color: Colors.white.withOpacity( 0.15),
+                      color: Colors.white.withOpacity(0.15),
                       shape: BoxShape.circle),
                   child: const Icon(Icons.arrow_back_ios_new_rounded,
                       color: Colors.white, size: 18),
@@ -438,8 +434,7 @@ class _SettingScreenState extends ConsumerState<SettingScreen> {
                   if (!context.mounted) return;
                   Navigator.pushAndRemoveUntil(
                       context,
-                      MaterialPageRoute(
-                          builder: (_) => const WelcomeScreen()),
+                      MaterialPageRoute(builder: (_) => const WelcomeScreen()),
                       (route) => false);
                 },
                 icon: const Icon(Icons.logout_rounded),
@@ -502,7 +497,7 @@ class _SettingScreenState extends ConsumerState<SettingScreen> {
           borderRadius: BorderRadius.circular(20),
           boxShadow: [
             BoxShadow(
-                color: Colors.black.withOpacity( 0.05),
+                color: Colors.black.withOpacity(0.05),
                 blurRadius: 14,
                 offset: const Offset(0, 4))
           ],
@@ -522,8 +517,7 @@ class _SettingScreenState extends ConsumerState<SettingScreen> {
     final palette = context.palette;
     return Column(children: [
       ListTile(
-        contentPadding:
-            const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
         leading: Container(
           width: 38,
           height: 38,
@@ -555,8 +549,7 @@ class _SettingScreenState extends ConsumerState<SettingScreen> {
     final palette = context.palette;
     return Column(children: [
       ListTile(
-        contentPadding:
-            const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
         leading: Container(
           width: 38,
           height: 38,
@@ -590,16 +583,14 @@ class _SettingScreenState extends ConsumerState<SettingScreen> {
     final l10n = AppLocalizations.of(context);
     final palette = context.palette;
     // Build a short summary subtitle
-    final enabledCount =
-        _categoryEnabled.values.where((v) => v).length;
+    final enabledCount = _categoryEnabled.values.where((v) => v).length;
     final total = NotificationCategory.values.length;
     final subtitle = _quietEnabled
         ? '${_minToString(_quietStartMin)}–${_minToString(_quietEndMin)} · $enabledCount/$total'
         : '$enabledCount/$total ${l10n.tr("settings.notifications.categories_section").toLowerCase()}';
     return Column(children: [
       ListTile(
-        contentPadding:
-            const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
         leading: Container(
           width: 38,
           height: 38,
@@ -615,8 +606,7 @@ class _SettingScreenState extends ConsumerState<SettingScreen> {
                 fontWeight: FontWeight.w500,
                 color: palette.textPrimary)),
         subtitle: Text(subtitle,
-            style:
-                TextStyle(fontSize: 12, color: palette.textSecondary)),
+            style: TextStyle(fontSize: 12, color: palette.textSecondary)),
         trailing: Icon(Icons.arrow_forward_ios_rounded,
             size: 14, color: palette.textFaint),
         onTap: _openNotifPrefsSheet,
@@ -633,8 +623,7 @@ class _SettingScreenState extends ConsumerState<SettingScreen> {
     final palette = context.palette;
     final dayLabel = _thaiDays[_weighInDay] ?? 'วันจันทร์';
     return ListTile(
-      contentPadding:
-          const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
       leading: Container(
         width: 38,
         height: 38,
@@ -650,8 +639,7 @@ class _SettingScreenState extends ConsumerState<SettingScreen> {
               fontWeight: FontWeight.w500,
               color: palette.textPrimary)),
       subtitle: Text(dayLabel,
-          style:
-              TextStyle(fontSize: 13, color: palette.textSecondary)),
+          style: TextStyle(fontSize: 13, color: palette.textSecondary)),
       trailing: Icon(Icons.arrow_forward_ios_rounded,
           size: 14, color: palette.textFaint),
       onTap: _onPickWeighInDay,
@@ -758,8 +746,7 @@ class _NotifPrefsSheetState extends State<_NotifPrefsSheet> {
     final currentMin = isStart ? _quietStart : _quietEnd;
     final picked = await showTimePicker(
       context: context,
-      initialTime:
-          TimeOfDay(hour: currentMin ~/ 60, minute: currentMin % 60),
+      initialTime: TimeOfDay(hour: currentMin ~/ 60, minute: currentMin % 60),
     );
     if (picked == null || !mounted) return;
     final newMin = picked.hour * 60 + picked.minute;
@@ -819,7 +806,12 @@ class _NotifPrefsSheetState extends State<_NotifPrefsSheet> {
     final bf = await NotificationHelper.getBreakfastHm();
     final ln = await NotificationHelper.getLunchHm();
     final dn = await NotificationHelper.getDinnerHm();
-    if (mounted) setState(() { _bfHm = bf; _lnHm = ln; _dnHm = dn; });
+    if (mounted)
+      setState(() {
+        _bfHm = bf;
+        _lnHm = ln;
+        _dnHm = dn;
+      });
     await _pushPrefs();
   }
 
@@ -854,8 +846,7 @@ class _NotifPrefsSheetState extends State<_NotifPrefsSheet> {
         return Container(
           decoration: BoxDecoration(
             color: palette.surfaceCard,
-            borderRadius:
-                const BorderRadius.vertical(top: Radius.circular(24)),
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
           ),
           child: Column(
             children: [
@@ -910,13 +901,12 @@ class _NotifPrefsSheetState extends State<_NotifPrefsSheet> {
                           (entry) {
                             final i = entry.$1;
                             final cat = entry.$2;
-                            final isLast = i ==
-                                NotificationCategory.values.length - 1;
+                            final isLast =
+                                i == NotificationCategory.values.length - 1;
                             return Column(children: [
                               SwitchListTile(
-                                contentPadding:
-                                    const EdgeInsets.symmetric(
-                                        horizontal: 16, vertical: 2),
+                                contentPadding: const EdgeInsets.symmetric(
+                                    horizontal: 16, vertical: 2),
                                 title: Text(
                                   l10n.tr(
                                       'settings.notifications.category.${cat.name}'),
@@ -928,8 +918,7 @@ class _NotifPrefsSheetState extends State<_NotifPrefsSheet> {
                                 ),
                                 value: _cats[cat] ?? true,
                                 activeColor: palette.brand,
-                                onChanged: (val) =>
-                                    _toggleCategory(cat, val),
+                                onChanged: (val) => _toggleCategory(cat, val),
                               ),
                               if (!isLast)
                                 Divider(
@@ -945,8 +934,7 @@ class _NotifPrefsSheetState extends State<_NotifPrefsSheet> {
 
                       // ── Quiet hours ────────────────────────────────────
                       _sheetSectionLabel(
-                          l10n.tr(
-                              'settings.notifications.quiet_hours'),
+                          l10n.tr('settings.notifications.quiet_hours'),
                           palette),
                       const SizedBox(height: 8),
                       _sheetCard([
@@ -954,8 +942,7 @@ class _NotifPrefsSheetState extends State<_NotifPrefsSheet> {
                           contentPadding: const EdgeInsets.symmetric(
                               horizontal: 16, vertical: 2),
                           title: Text(
-                            l10n.tr(
-                                'settings.notifications.quiet_hours'),
+                            l10n.tr('settings.notifications.quiet_hours'),
                             style: TextStyle(
                               fontSize: 15,
                               fontWeight: FontWeight.w600,
@@ -965,8 +952,7 @@ class _NotifPrefsSheetState extends State<_NotifPrefsSheet> {
                           subtitle: Text(
                             '${_minStr(_quietStart)} – ${_minStr(_quietEnd)}',
                             style: TextStyle(
-                                fontSize: 13,
-                                color: palette.textSecondary),
+                                fontSize: 13, color: palette.textSecondary),
                           ),
                           value: _quietEnabled,
                           activeColor: palette.brand,
@@ -987,8 +973,7 @@ class _NotifPrefsSheetState extends State<_NotifPrefsSheet> {
                               l10n.tr(
                                   'settings.notifications.quiet_hours.start'),
                               style: TextStyle(
-                                  fontSize: 14,
-                                  color: palette.textSecondary),
+                                  fontSize: 14, color: palette.textSecondary),
                             ),
                             trailing: Text(
                               _minStr(_quietStart),
@@ -1010,11 +995,9 @@ class _NotifPrefsSheetState extends State<_NotifPrefsSheet> {
                             leading: Icon(Icons.wb_sunny_outlined,
                                 size: 20, color: palette.textSecondary),
                             title: Text(
-                              l10n.tr(
-                                  'settings.notifications.quiet_hours.end'),
+                              l10n.tr('settings.notifications.quiet_hours.end'),
                               style: TextStyle(
-                                  fontSize: 14,
-                                  color: palette.textSecondary),
+                                  fontSize: 14, color: palette.textSecondary),
                             ),
                             trailing: Text(
                               _minStr(_quietEnd),
@@ -1032,8 +1015,7 @@ class _NotifPrefsSheetState extends State<_NotifPrefsSheet> {
                       // ── Meal times (only when meal category enabled) ───
                       if (_cats[NotificationCategory.meal] == true) ...[
                         _sheetSectionLabel(
-                            l10n.tr(
-                                'settings.notifications.meal_times'),
+                            l10n.tr('settings.notifications.meal_times'),
                             palette),
                         const SizedBox(height: 8),
                         // Feature 3: Smart timing toggle
@@ -1054,17 +1036,24 @@ class _NotifPrefsSheetState extends State<_NotifPrefsSheet> {
                                   ? 'ปรับตามพฤติกรรมจริงของคุณ'
                                   : 'ปรับเวลาแจ้งเตือนตามพฤติกรรมอัตโนมัติ',
                               style: TextStyle(
-                                  fontSize: 12,
-                                  color: palette.textSecondary),
+                                  fontSize: 12, color: palette.textSecondary),
                             ),
                             value: _smartTimingEnabled,
-                            activeThumbColor: palette.brand,
+                            thumbColor: WidgetStateProperty.resolveWith<Color?>(
+                              (states) => states.contains(WidgetState.selected)
+                                  ? palette.brand
+                                  : null,
+                            ),
                             onChanged: _smartSuggested.isNotEmpty
                                 ? _toggleSmartTiming
                                 : null,
                           ),
-                          if (_smartTimingEnabled && _smartSuggested.isNotEmpty) ...[
-                            Divider(height: 1, indent: 16, endIndent: 16,
+                          if (_smartTimingEnabled &&
+                              _smartSuggested.isNotEmpty) ...[
+                            Divider(
+                                height: 1,
+                                indent: 16,
+                                endIndent: 16,
                                 color: Theme.of(context).dividerColor),
                             Padding(
                               padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
@@ -1080,18 +1069,26 @@ class _NotifPrefsSheetState extends State<_NotifPrefsSheet> {
                                   const SizedBox(height: 6),
                                   Wrap(spacing: 8, runSpacing: 4, children: [
                                     if (_smartSuggested['breakfast'] != null)
-                                      _smartChip('🍳 เช้า', _smartSuggested['breakfast']!, palette),
+                                      _smartChip(
+                                          '🍳 เช้า',
+                                          _smartSuggested['breakfast']!,
+                                          palette),
                                     if (_smartSuggested['lunch'] != null)
-                                      _smartChip('🍱 เที่ยง', _smartSuggested['lunch']!, palette),
+                                      _smartChip('🍱 เที่ยง',
+                                          _smartSuggested['lunch']!, palette),
                                     if (_smartSuggested['dinner'] != null)
-                                      _smartChip('🌙 เย็น', _smartSuggested['dinner']!, palette),
+                                      _smartChip('🌙 เย็น',
+                                          _smartSuggested['dinner']!, palette),
                                   ]),
                                 ],
                               ),
                             ),
                           ],
                           if (_smartSuggested.isEmpty) ...[
-                            Divider(height: 1, indent: 16, endIndent: 16,
+                            Divider(
+                                height: 1,
+                                indent: 16,
+                                endIndent: 16,
                                 color: Theme.of(context).dividerColor),
                             Padding(
                               padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
@@ -1132,13 +1129,11 @@ class _NotifPrefsSheetState extends State<_NotifPrefsSheet> {
                       // ── Water times (only when water category enabled) ─
                       if (_cats[NotificationCategory.water] == true) ...[
                         _sheetSectionLabel(
-                            l10n.tr(
-                                'settings.notifications.water_times'),
+                            l10n.tr('settings.notifications.water_times'),
                             palette),
                         const SizedBox(height: 8),
                         Padding(
-                          padding:
-                              const EdgeInsets.symmetric(horizontal: 4),
+                          padding: const EdgeInsets.symmetric(horizontal: 4),
                           child: Wrap(
                             spacing: 6,
                             runSpacing: 6,
@@ -1151,7 +1146,7 @@ class _NotifPrefsSheetState extends State<_NotifPrefsSheet> {
                                   ),
                                   selected: _waterHH.contains(h),
                                   selectedColor:
-                                      palette.brand.withOpacity( 0.15),
+                                      palette.brand.withOpacity(0.15),
                                   checkmarkColor: palette.brand,
                                   side: BorderSide(
                                     color: _waterHH.contains(h)
@@ -1197,7 +1192,7 @@ class _NotifPrefsSheetState extends State<_NotifPrefsSheet> {
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity( 0.05),
+            color: Colors.black.withOpacity(0.05),
             blurRadius: 10,
             offset: const Offset(0, 3),
           ),
@@ -1210,26 +1205,24 @@ class _NotifPrefsSheetState extends State<_NotifPrefsSheet> {
   Widget _smartChip(String label, int hm, AppPalette palette) {
     final h = hm ~/ 100;
     final m = hm % 100;
-    final time = '${h.toString().padLeft(2, '0')}:${m.toString().padLeft(2, '0')}';
+    final time =
+        '${h.toString().padLeft(2, '0')}:${m.toString().padLeft(2, '0')}';
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
       decoration: BoxDecoration(
-        color: palette.brand.withValues(alpha: 0.1),
+        color: palette.brand.withOpacity(0.1),
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: palette.brand.withValues(alpha: 0.3)),
+        border: Border.all(color: palette.brand.withOpacity(0.3)),
       ),
       child: Text(
         '$label $time',
         style: TextStyle(
-            fontSize: 12,
-            color: palette.brand,
-            fontWeight: FontWeight.w600),
+            fontSize: 12, color: palette.brand, fontWeight: FontWeight.w600),
       ),
     );
   }
 
-  Widget _mealTimeTile(
-      String meal, AppLocalizations l10n, AppPalette palette) {
+  Widget _mealTimeTile(String meal, AppLocalizations l10n, AppPalette palette) {
     final key = meal == 'breakfast'
         ? 'settings.notifications.breakfast_time'
         : meal == 'lunch'
@@ -1241,8 +1234,7 @@ class _NotifPrefsSheetState extends State<_NotifPrefsSheet> {
             ? _lnHm
             : _dnHm;
     return ListTile(
-      contentPadding:
-          const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
       title: Text(
         l10n.tr(key),
         style: TextStyle(
@@ -1253,9 +1245,7 @@ class _NotifPrefsSheetState extends State<_NotifPrefsSheet> {
       trailing: Text(
         _hmStr(hm),
         style: TextStyle(
-            fontSize: 16,
-            fontWeight: FontWeight.bold,
-            color: palette.brand),
+            fontSize: 16, fontWeight: FontWeight.bold, color: palette.brand),
       ),
       onTap: () => _pickMealTime(meal),
     );
@@ -1286,9 +1276,17 @@ class _DebugNotifSheetState extends State<_DebugNotifSheet> {
     try {
       final pending = await NotificationHelper.getPendingRequests()
           .timeout(const Duration(seconds: 4), onTimeout: () => []);
-      if (mounted) setState(() { _pending = pending; _loaded = true; });
+      if (mounted)
+        setState(() {
+          _pending = pending;
+          _loaded = true;
+        });
     } catch (_) {
-      if (mounted) setState(() { _pending = []; _loaded = true; });
+      if (mounted)
+        setState(() {
+          _pending = [];
+          _loaded = true;
+        });
     }
   }
 
@@ -1312,26 +1310,22 @@ class _DebugNotifSheetState extends State<_DebugNotifSheet> {
       ),
       label: Text(label, style: const TextStyle(fontSize: 12)),
       style: ElevatedButton.styleFrom(
-        backgroundColor: isActive
-            ? Colors.green
-            : (color ?? palette.brand),
+        backgroundColor: isActive ? Colors.green : (color ?? palette.brand),
         foregroundColor: Colors.white,
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-        shape:
-            RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         minimumSize: Size.zero,
         tapTargetSize: MaterialTapTargetSize.shrinkWrap,
       ),
     );
   }
 
-  Widget _debugInfoRow(
-      String label, String desc, AppPalette palette) {
+  Widget _debugInfoRow(String label, String desc, AppPalette palette) {
     return Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
       Container(
         padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
         decoration: BoxDecoration(
-          color: palette.brand.withValues(alpha: 0.1),
+          color: palette.brand.withOpacity(0.1),
           borderRadius: BorderRadius.circular(6),
         ),
         child: Text(label,
@@ -1362,8 +1356,7 @@ class _DebugNotifSheetState extends State<_DebugNotifSheet> {
         return Container(
           decoration: BoxDecoration(
             color: palette.surfaceCard,
-            borderRadius:
-                const BorderRadius.vertical(top: Radius.circular(24)),
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
           ),
           child: Column(
             children: [
@@ -1394,8 +1387,7 @@ class _DebugNotifSheetState extends State<_DebugNotifSheet> {
                         color: palette.textPrimary),
                   ),
                   const Spacer(),
-                  const Text('🛠️',
-                      style: TextStyle(fontSize: 14)),
+                  const Text('🛠️', style: TextStyle(fontSize: 14)),
                 ]),
               ),
               Divider(height: 1, color: Theme.of(context).dividerColor),
@@ -1408,8 +1400,7 @@ class _DebugNotifSheetState extends State<_DebugNotifSheet> {
                         children: [
                           // ── Original triggers ──────────────────────────
                           Text(
-                            l10n.tr(
-                                'settings.notifications.debug.trigger'),
+                            l10n.tr('settings.notifications.debug.trigger'),
                             style: TextStyle(
                                 fontSize: 13,
                                 fontWeight: FontWeight.w600,
@@ -1454,15 +1445,20 @@ class _DebugNotifSheetState extends State<_DebugNotifSheet> {
                             spacing: 8,
                             runSpacing: 8,
                             children: [
-                              _triggerBtn('meal_actions', '🍱 + Actions', palette,
+                              _triggerBtn(
+                                  'meal_actions', '🍱 + Actions', palette,
                                   color: Colors.indigo),
-                              _triggerBtn('gap_fill', '⏰ Gap Fill (+10s)', palette,
+                              _triggerBtn(
+                                  'gap_fill', '⏰ Gap Fill (+10s)', palette,
                                   color: Colors.deepOrange),
-                              _triggerBtn('celebration_goal', '🎉 Goal!', palette,
+                              _triggerBtn(
+                                  'celebration_goal', '🎉 Goal!', palette,
                                   color: Colors.green.shade700),
-                              _triggerBtn('celebration_streak', '🥇 Streak 7d', palette,
+                              _triggerBtn(
+                                  'celebration_streak', '🥇 Streak 7d', palette,
                                   color: Colors.amber.shade800),
-                              _triggerBtn('personalized_dinner', '🥩 Protein Tip', palette,
+                              _triggerBtn('personalized_dinner',
+                                  '🥩 Protein Tip', palette,
                                   color: Colors.teal),
                             ],
                           ),
@@ -1501,8 +1497,7 @@ class _DebugNotifSheetState extends State<_DebugNotifSheet> {
 
                           // Pending list header
                           Row(
-                            mainAxisAlignment:
-                                MainAxisAlignment.spaceBetween,
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
                               Text(
                                 '${l10n.tr('settings.notifications.debug.pending')} (${_pending.length})',
@@ -1514,8 +1509,7 @@ class _DebugNotifSheetState extends State<_DebugNotifSheet> {
                               ),
                               TextButton.icon(
                                 onPressed: _reload,
-                                icon:
-                                    const Icon(Icons.refresh, size: 16),
+                                icon: const Icon(Icons.refresh, size: 16),
                                 label: const Text('Refresh',
                                     style: TextStyle(fontSize: 12)),
                                 style: TextButton.styleFrom(
@@ -1531,8 +1525,8 @@ class _DebugNotifSheetState extends State<_DebugNotifSheet> {
                                 padding: const EdgeInsets.all(16),
                                 child: Text(
                                   'No pending notifications',
-                                  style: TextStyle(
-                                      color: palette.textSecondary),
+                                  style:
+                                      TextStyle(color: palette.textSecondary),
                                 ),
                               ),
                             )
@@ -1542,21 +1536,17 @@ class _DebugNotifSheetState extends State<_DebugNotifSheet> {
                                   elevation: 0,
                                   color: palette.surfaceMuted,
                                   shape: RoundedRectangleBorder(
-                                      borderRadius:
-                                          BorderRadius.circular(12)),
+                                      borderRadius: BorderRadius.circular(12)),
                                   child: ListTile(
                                     dense: true,
-                                    contentPadding:
-                                        const EdgeInsets.symmetric(
-                                            horizontal: 12, vertical: 4),
+                                    contentPadding: const EdgeInsets.symmetric(
+                                        horizontal: 12, vertical: 4),
                                     leading: Container(
                                       width: 32,
                                       height: 32,
                                       decoration: BoxDecoration(
-                                        color: palette.brand
-                                            .withOpacity( 0.12),
-                                        borderRadius:
-                                            BorderRadius.circular(8),
+                                        color: palette.brand.withOpacity(0.12),
+                                        borderRadius: BorderRadius.circular(8),
                                       ),
                                       child: Center(
                                         child: Text(
