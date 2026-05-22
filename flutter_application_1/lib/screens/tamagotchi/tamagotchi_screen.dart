@@ -1,4 +1,4 @@
-﻿import 'dart:convert';
+import 'dart:convert';
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -8,6 +8,8 @@ import '/screens/tamagotchi/reward_shop_screen.dart';
 import '/services/api_client.dart';
 import '/services/health_service.dart';
 import '/services/tamagotchi_action_logger.dart';
+import '/screens/weight/weight_chart_screen.dart';
+import '/screens/community/friends_screen.dart';
 
 // ─────────────────────────────────────────────────────────
 //  Tier System — 5 levels (Octalysis: Development & Accomplishment)
@@ -147,6 +149,32 @@ class _TamagotchiScreenState extends ConsumerState<TamagotchiScreen> {
       return _claimedBadges.contains('${id}_c$_cycleNum');
     }
     return _claimedToday.contains(id);
+  }
+
+  VoidCallback? _missionGoAction(String id) {
+    void goRecord() {
+      Navigator.pop(context);
+      ref.read(navIndexProvider.notifier).state = 1;
+    }
+    void goRecommend() {
+      Navigator.pop(context);
+      ref.read(navIndexProvider.notifier).state = 2;
+    }
+    if (id.startsWith('log_meal_') ||
+        id.startsWith('drink_water_') ||
+        id == 'hit_calories' ||
+        id == 'hit_protein' ||
+        id == 'log_exercise') return goRecord;
+    if (id.startsWith('suggest_food_') || id == 'review_food') return goRecommend;
+    if (id == 'weight_change') {
+      return () => Navigator.push(context,
+          MaterialPageRoute(builder: (_) => const WeightChartScreen()));
+    }
+    if (id == 'invite_friend') {
+      return () => Navigator.push(context,
+          MaterialPageRoute(builder: (_) => const FriendsScreen()));
+    }
+    return null;
   }
 
   List<_Mission> get _missions => [
@@ -1039,6 +1067,7 @@ class _TamagotchiScreenState extends ConsumerState<TamagotchiScreen> {
       const SizedBox(height: 12),
       _buildProgressGroupCard(
         groupId: 'meal',
+        onGo: () { Navigator.pop(context); ref.read(navIndexProvider.notifier).state = 1; },
         title: 'บันทึกมื้ออาหาร',
         current: _todayMealCount,
         total: 4,
@@ -1050,6 +1079,7 @@ class _TamagotchiScreenState extends ConsumerState<TamagotchiScreen> {
       ),
       _buildProgressGroupCard(
         groupId: 'water',
+        onGo: () { Navigator.pop(context); ref.read(navIndexProvider.notifier).state = 1; },
         title: 'ดื่มน้ำวันนี้',
         current: _waterGlasses,
         total: 8,
@@ -1061,6 +1091,7 @@ class _TamagotchiScreenState extends ConsumerState<TamagotchiScreen> {
       ),
       _buildProgressGroupCard(
         groupId: 'suggest',
+        onGo: () { Navigator.pop(context); ref.read(navIndexProvider.notifier).state = 2; },
         title: 'เพิ่มเมนูอาหารใหม่',
         current: _suggestCountToday,
         total: 2,
@@ -1087,12 +1118,13 @@ class _TamagotchiScreenState extends ConsumerState<TamagotchiScreen> {
               !m.id.startsWith('drink_water_') &&
               !m.id.startsWith('suggest_food_') &&
               !m.id.startsWith('streak_'))
-          .map((m) => _buildMissionCard(m, userData, streak)),
+          .map((m) => _buildMissionCard(m, userData, streak, onGo: _missionGoAction(m.id))),
     ]);
   }
 
   Widget _buildProgressGroupCard({
     required String groupId,
+    VoidCallback? onGo,
     required String title,
     required int current,
     required int total,
@@ -1137,12 +1169,28 @@ class _TamagotchiScreenState extends ConsumerState<TamagotchiScreen> {
                       color: Colors.black87,
                       fontFamily: 'Inter')),
             ),
-            Text('$current / $total $unit',
-                style: TextStyle(
-                    fontSize: 12,
-                    fontWeight: FontWeight.w600,
-                    color: color,
-                    fontFamily: 'Inter')),
+            if (onGo != null && !allClaimed) ...[ 
+              const SizedBox(width: 8),
+              GestureDetector(
+                onTap: onGo,
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: color.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Row(mainAxisSize: MainAxisSize.min, children: [
+                    Text('$current / $total $unit',
+                        style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: color, fontFamily: 'Inter')),
+                    const SizedBox(width: 4),
+                    Icon(Icons.arrow_forward_ios_rounded, size: 11, color: color),
+                  ]),
+                ),
+              ),
+            ]
+            else
+              Text('$current / $total $unit',
+                  style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: color, fontFamily: 'Inter')),
           ]),
           const SizedBox(height: 8),
           ClipRRect(
@@ -1221,7 +1269,7 @@ class _TamagotchiScreenState extends ConsumerState<TamagotchiScreen> {
     );
   }
 
-  Widget _buildMissionCard(_Mission m, UserData userData, int streak) {
+  Widget _buildMissionCard(_Mission m, UserData userData, int streak, {VoidCallback? onGo}) {
     final claimed = _isMissionClaimed(m.id);
     final canDo = m.autoCheck(userData);
     final xp = _calcXp(m, streak);
@@ -1276,6 +1324,23 @@ class _TamagotchiScreenState extends ConsumerState<TamagotchiScreen> {
                     decoration: claimed ? TextDecoration.lineThrough : null)),
             Text(m.desc,
                 style: TextStyle(color: Colors.grey.shade500, fontSize: 11)),
+            if (onGo != null && !claimed) ...[ 
+              const SizedBox(height: 4),
+              GestureDetector(
+                onTap: onGo,
+                child: const Row(mainAxisSize: MainAxisSize.min, children: [
+                  Text('ไปทำเลย',
+                      style: TextStyle(
+                          color: Color(0xFF1565C0),
+                          fontSize: 11,
+                          fontWeight: FontWeight.w600,
+                          fontFamily: 'Inter')),
+                  SizedBox(width: 2),
+                  Icon(Icons.arrow_forward_ios_rounded,
+                      size: 10, color: Color(0xFF1565C0)),
+                ]),
+              ),
+            ]
           ]),
         ),
         const SizedBox(width: 10),
