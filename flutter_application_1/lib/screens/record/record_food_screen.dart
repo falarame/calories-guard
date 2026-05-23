@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter_application_1/services/api_client.dart';
 import '/providers/user_data_provider.dart';
 import '/services/daily_summary_enrichment.dart';
@@ -231,6 +232,22 @@ class _FoodLogScreenState extends ConsumerState<FoodLogScreen>
         },
       );
       if (res.statusCode >= 200 && res.statusCode < 300) {
+        final selectedDateKey = DateFormat('yyyy-MM-dd').format(_selectedDate);
+        final today = DateTime.now();
+        final todayKey = DateFormat('yyyy-MM-dd').format(today);
+        if (selectedDateKey == todayKey) {
+          final prefs = await SharedPreferences.getInstance();
+          await prefs.setInt(
+            'tama_water_glasses_${userId}_${today.year}-${today.month}-${today.day}',
+            _waterGlasses,
+          );
+          if (_waterGlasses >= _waterGoal) {
+            await prefs.setBool(
+              'tama_water_8_${userId}_${today.year}-${today.month}-${today.day}',
+              true,
+            );
+          }
+        }
         final decoded = jsonDecode(utf8.decode(res.bodyBytes));
         final safety =
             decoded is Map<String, dynamic> ? decoded['water_safety'] : null;
@@ -321,8 +338,7 @@ class _FoodLogScreenState extends ConsumerState<FoodLogScreen>
                 name: n,
                 emoji: _emojiForStoredActivity(n),
                 durationMin: (m['duration_minutes'] as num?)?.toInt() ?? 0,
-                caloriesBurned:
-                    (m['calories_burned'] as num?)?.toDouble() ?? 0,
+                caloriesBurned: (m['calories_burned'] as num?)?.toDouble() ?? 0,
               ));
             }
           }
@@ -582,7 +598,7 @@ class _FoodLogScreenState extends ConsumerState<FoodLogScreen>
         borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
-              color: _blue.withOpacity( 0.3),
+              color: _blue.withValues(alpha: 0.3),
               blurRadius: 12,
               offset: const Offset(0, 4))
         ],
@@ -643,7 +659,7 @@ class _FoodLogScreenState extends ConsumerState<FoodLogScreen>
                           decoration: BoxDecoration(
                             color: i < _waterGlasses
                                 ? Colors.white
-                                : Colors.white.withOpacity( 0.2),
+                                : Colors.white.withValues(alpha: 0.2),
                             borderRadius: BorderRadius.circular(6),
                           ),
                           child: Center(
@@ -666,7 +682,7 @@ class _FoodLogScreenState extends ConsumerState<FoodLogScreen>
         width: 30,
         height: 30,
         decoration: BoxDecoration(
-            color: Colors.white.withOpacity( 0.2),
+            color: Colors.white.withValues(alpha: 0.2),
             borderRadius: BorderRadius.circular(8)),
         child: Icon(icon, color: Colors.white, size: 18),
       ),
@@ -681,7 +697,7 @@ class _FoodLogScreenState extends ConsumerState<FoodLogScreen>
         borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
-              color: Colors.black.withOpacity( 0.06),
+              color: Colors.black.withValues(alpha: 0.06),
               blurRadius: 12,
               offset: const Offset(0, 3))
         ],
@@ -809,8 +825,7 @@ class _FoodLogScreenState extends ConsumerState<FoodLogScreen>
               action: SnackBarAction(
                 label: 'ไปหน้าหลัก',
                 textColor: Colors.white,
-                onPressed: () =>
-                    ref.read(navIndexProvider.notifier).state = 0,
+                onPressed: () => ref.read(navIndexProvider.notifier).state = 0,
               ),
             ),
           );
@@ -1044,7 +1059,7 @@ class _FoodLogScreenState extends ConsumerState<FoodLogScreen>
         borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
-              color: Colors.black.withOpacity( 0.06),
+              color: Colors.black.withValues(alpha: 0.06),
               blurRadius: 12,
               offset: const Offset(0, 3))
         ],
@@ -1069,8 +1084,7 @@ class _FoodLogScreenState extends ConsumerState<FoodLogScreen>
                       fontFamily: 'Inter',
                       fontSize: 15,
                       fontWeight: FontWeight.w700)),
-              Text(
-                  'เผาผลาญรวม ${NutritionApprox.kcal(_totalCalBurned)}',
+              Text('เผาผลาญรวม ${NutritionApprox.kcal(_totalCalBurned)}',
                   style: TextStyle(fontSize: 11, color: Colors.grey.shade500)),
             ]),
           ]),
@@ -1407,10 +1421,8 @@ class _FoodLogScreenState extends ConsumerState<FoodLogScreen>
       final foods = meal.foods.where((food) => food.name.trim().isNotEmpty);
       if (foods.isEmpty) continue;
       mealsMap[meal.id] = foods.map((food) => food.name.trim()).join(', ');
-      totalCalories +=
-          foods.fold(0.0, (sum, food) => sum + food.totalCalories);
-      totalProtein +=
-          foods.fold(0.0, (sum, food) => sum + food.totalProtein);
+      totalCalories += foods.fold(0.0, (sum, food) => sum + food.totalCalories);
+      totalProtein += foods.fold(0.0, (sum, food) => sum + food.totalProtein);
       totalCarbs += foods.fold(0.0, (sum, food) => sum + food.totalCarbs);
       totalFat += foods.fold(0.0, (sum, food) => sum + food.totalFat);
     }
@@ -1513,7 +1525,9 @@ class _FoodLogScreenState extends ConsumerState<FoodLogScreen>
 
       // Update streak เฉพาะเมื่อบันทึกอาหารของวันนี้เท่านั้น
       final today = DateFormat('yyyy-MM-dd').format(DateTime.now());
-      if (meal.foods.isNotEmpty && dateStr == today) StreakService.updateStreak();
+      if (meal.foods.isNotEmpty && dateStr == today) {
+        StreakService.updateStreak();
+      }
 
       // ── Sync provider ทันทีหลัง save เพื่อให้ home screen อัปเดตเลย ──────
       if (mounted) {
@@ -2562,23 +2576,31 @@ class _AddActivitySheetState extends State<_AddActivitySheet> {
   // MET values from: Herrmann et al. (2024) 2024 Adult Compendium of Physical Activities,
   // J Sport Health Sci 13:6-12. DOI: 10.1016/j.jshs.2023.10.010
   static const _presets = [
-    {'name': 'เดิน', 'emoji': '🚶', 'met': 3.5},          // walking slow-moderate 2-3 mph
-    {'name': 'เดินเร็ว', 'emoji': '🚶‍♂️', 'met': 4.3},   // brisk walking 3.5 mph
-    {'name': 'วิ่ง', 'emoji': '🏃', 'met': 8.3},           // jogging general ~5 mph
-    {'name': 'ปั่นจักรยาน', 'emoji': '🚴', 'met': 7.5},    // cycling moderate 12-14 mph
-    {'name': 'ว่ายน้ำ', 'emoji': '🏊', 'met': 6.0},        // swimming general moderate
-    {'name': 'เต้น Zumba', 'emoji': '💃', 'met': 6.0},     // aerobic dance general
-    {'name': 'แอโรบิก', 'emoji': '🤸', 'met': 7.3},        // aerobics general
-    {'name': 'โยคะ', 'emoji': '🧘', 'met': 3.0},           // Hatha yoga
+    {
+      'name': 'เดิน',
+      'emoji': '🚶',
+      'met': 3.5
+    }, // walking slow-moderate 2-3 mph
+    {'name': 'เดินเร็ว', 'emoji': '🚶‍♂️', 'met': 4.3}, // brisk walking 3.5 mph
+    {'name': 'วิ่ง', 'emoji': '🏃', 'met': 8.3}, // jogging general ~5 mph
+    {
+      'name': 'ปั่นจักรยาน',
+      'emoji': '🚴',
+      'met': 7.5
+    }, // cycling moderate 12-14 mph
+    {'name': 'ว่ายน้ำ', 'emoji': '🏊', 'met': 6.0}, // swimming general moderate
+    {'name': 'เต้น Zumba', 'emoji': '💃', 'met': 6.0}, // aerobic dance general
+    {'name': 'แอโรบิก', 'emoji': '🤸', 'met': 7.3}, // aerobics general
+    {'name': 'โยคะ', 'emoji': '🧘', 'met': 3.0}, // Hatha yoga
     {'name': 'ยืดกล้ามเนื้อ', 'emoji': '🧎', 'met': 2.3}, // stretching light
-    {'name': 'ยกน้ำหนัก', 'emoji': '🏋️', 'met': 3.5},    // weight lifting general
-    {'name': 'ฟุตบอล', 'emoji': '⚽', 'met': 7.0},         // soccer general
-    {'name': 'บาสเกตบอล', 'emoji': '🏀', 'met': 6.5},      // basketball general
-    {'name': 'แบดมินตัน', 'emoji': '🏸', 'met': 5.5},      // badminton general
-    {'name': 'เทนนิส', 'emoji': '🎾', 'met': 7.3},         // tennis general
-    {'name': 'วอลเลย์บอล', 'emoji': '🏐', 'met': 4.0},    // volleyball general
-    {'name': 'กระโดดเชือก', 'emoji': '🪢', 'met': 11.8},   // jump rope moderate
-    {'name': 'HIIT', 'emoji': '🔥', 'met': 8.0},           // circuit training vigorous
+    {'name': 'ยกน้ำหนัก', 'emoji': '🏋️', 'met': 3.5}, // weight lifting general
+    {'name': 'ฟุตบอล', 'emoji': '⚽', 'met': 7.0}, // soccer general
+    {'name': 'บาสเกตบอล', 'emoji': '🏀', 'met': 6.5}, // basketball general
+    {'name': 'แบดมินตัน', 'emoji': '🏸', 'met': 5.5}, // badminton general
+    {'name': 'เทนนิส', 'emoji': '🎾', 'met': 7.3}, // tennis general
+    {'name': 'วอลเลย์บอล', 'emoji': '🏐', 'met': 4.0}, // volleyball general
+    {'name': 'กระโดดเชือก', 'emoji': '🪢', 'met': 11.8}, // jump rope moderate
+    {'name': 'HIIT', 'emoji': '🔥', 'met': 8.0}, // circuit training vigorous
     {'name': 'เดินขึ้นบันได', 'emoji': '🪜', 'met': 4.0}, // stair climbing slow
   ];
 
@@ -2658,16 +2680,19 @@ class _AddActivitySheetState extends State<_AddActivitySheet> {
                 Row(children: [
                   const Text('🔥', style: TextStyle(fontSize: 28)),
                   const SizedBox(width: 12),
-                  Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                    const Text('คาดว่าจะเผาผลาญ',
-                        style: TextStyle(color: Colors.white70, fontSize: 11)),
-                    Text(NutritionApprox.kcal(_caloriesBurned),
-                        style: const TextStyle(
-                            color: Colors.white,
-                            fontFamily: 'Inter',
-                            fontSize: 26,
-                            fontWeight: FontWeight.w800)),
-                  ]),
+                  Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text('คาดว่าจะเผาผลาญ',
+                            style:
+                                TextStyle(color: Colors.white70, fontSize: 11)),
+                        Text(NutritionApprox.kcal(_caloriesBurned),
+                            style: const TextStyle(
+                                color: Colors.white,
+                                fontFamily: 'Inter',
+                                fontSize: 26,
+                                fontWeight: FontWeight.w800)),
+                      ]),
                   const Spacer(),
                   Column(crossAxisAlignment: CrossAxisAlignment.end, children: [
                     Text('น้ำหนัก $_userWeight kg',
@@ -2681,8 +2706,8 @@ class _AddActivitySheetState extends State<_AddActivitySheet> {
                 const SizedBox(height: 8),
                 Row(children: [
                   Container(
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 8, vertical: 3),
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                     decoration: BoxDecoration(
                         color: Colors.white24,
                         borderRadius: BorderRadius.circular(99)),

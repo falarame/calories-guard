@@ -323,13 +323,13 @@ class _FoodAllergyScreenState extends ConsumerState<FoodAllergyScreen> {
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 150),
         decoration: BoxDecoration(
-          color: selected ? _selected.withOpacity( 0.08) : Colors.white,
+          color: selected ? _selected.withValues(alpha: 0.08) : Colors.white,
           borderRadius: BorderRadius.circular(16),
           border: Border.all(
               color: selected ? _selected : Colors.grey.shade200, width: 2),
           boxShadow: [
             BoxShadow(
-                color: Colors.black.withOpacity( 0.04),
+                color: Colors.black.withValues(alpha: 0.04),
                 blurRadius: 10,
                 offset: const Offset(0, 4))
           ],
@@ -360,7 +360,7 @@ class _FoodAllergyScreenState extends ConsumerState<FoodAllergyScreen> {
                     padding: const EdgeInsets.all(10),
                     decoration: BoxDecoration(
                       color: selected
-                          ? _selected.withOpacity( 0.15)
+                          ? _selected.withValues(alpha: 0.15)
                           : Colors.grey.shade50,
                       shape: BoxShape.circle,
                     ),

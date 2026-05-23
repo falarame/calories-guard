@@ -35,7 +35,7 @@ class WebUnsupportedPlaceholder extends StatelessWidget {
                 Container(
                   padding: const EdgeInsets.all(24),
                   decoration: BoxDecoration(
-                    color: const Color(0xFF628141).withOpacity( 0.12),
+                    color: const Color(0xFF628141).withValues(alpha: 0.12),
                     shape: BoxShape.circle,
                   ),
                   child: Icon(icon, size: 56, color: const Color(0xFF628141)),

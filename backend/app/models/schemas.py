@@ -200,6 +200,7 @@ class SocialLoginRequest(BaseModel):
 
 class WeightLogEntry(BaseModel):
     weight_kg: float
+    recorded_date: date | None = None
 
 
 class ChatMessage(BaseModel):

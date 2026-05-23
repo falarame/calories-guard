@@ -297,7 +297,7 @@ class _ExerciseRecommendationScreenState
             boxShadow: active
                 ? [
                     BoxShadow(
-                        color: Colors.black.withOpacity(0.08),
+                        color: Colors.black.withValues(alpha: 0.08),
                         blurRadius: 6,
                         offset: const Offset(0, 2))
                   ]
@@ -349,7 +349,7 @@ class _ExerciseRecommendationScreenState
         border: Border.all(color: const Color(0xFFDDEDD5)),
         boxShadow: [
           BoxShadow(
-              color: Colors.black.withOpacity(0.06),
+              color: Colors.black.withValues(alpha: 0.06),
               blurRadius: 16,
               offset: const Offset(0, 4))
         ],
@@ -361,7 +361,7 @@ class _ExerciseRecommendationScreenState
                 fontWeight: FontWeight.bold,
                 fontFamily: 'Inter',
                 letterSpacing: 2.5,
-                color: _green.withOpacity(0.85))),
+                color: _green.withValues(alpha: 0.85))),
         const SizedBox(height: 20),
         Row(
           crossAxisAlignment: CrossAxisAlignment.end,
@@ -414,11 +414,11 @@ class _ExerciseRecommendationScreenState
           height: 58,
           decoration: BoxDecoration(
             shape: BoxShape.circle,
-            color: rankColor.withOpacity(0.18),
+            color: rankColor.withValues(alpha: 0.18),
             border: Border.all(color: rankColor, width: isMe ? 3 : 2),
             boxShadow: [
               BoxShadow(
-                  color: rankColor.withOpacity(0.35),
+                  color: rankColor.withValues(alpha: 0.35),
                   blurRadius: 10,
                   offset: const Offset(0, 4))
             ],
@@ -448,7 +448,7 @@ class _ExerciseRecommendationScreenState
             decoration: BoxDecoration(
                 shape: BoxShape.circle,
                 color: Colors.white,
-                border: Border.all(color: tColor.withOpacity(0.5))),
+                border: Border.all(color: tColor.withValues(alpha: 0.5))),
             child: Center(
                 child: Text(_xpTierEmoji(xp),
                     style: const TextStyle(fontSize: 10))),
@@ -488,7 +488,7 @@ class _ExerciseRecommendationScreenState
             topLeft: Radius.circular(10),
             topRight: Radius.circular(10),
           ),
-          border: Border.all(color: rankColor.withOpacity(0.4)),
+          border: Border.all(color: rankColor.withValues(alpha: 0.4)),
         ),
         child: Center(
           child: Text('#$rank',
@@ -521,34 +521,39 @@ class _ExerciseRecommendationScreenState
         gradient: badge != null
             ? LinearGradient(
                 colors: [
-                  glowColor.withOpacity(0.13),
+                  glowColor.withValues(alpha: 0.13),
                   Colors.white,
-                  glowColor.withOpacity(0.07),
+                  glowColor.withValues(alpha: 0.07),
                 ],
                 begin: Alignment.centerLeft,
                 end: Alignment.centerRight,
               )
             : LinearGradient(
                 colors: isMe
-                    ? [tColor.withOpacity(0.10), tColor.withOpacity(0.04)]
+                    ? [
+                        tColor.withValues(alpha: 0.10),
+                        tColor.withValues(alpha: 0.04)
+                      ]
                     : [Colors.white, Colors.white],
               ),
         border: Border.all(
             color: badge != null
-                ? glowColor.withOpacity(0.6)
-                : (isMe ? tColor.withOpacity(0.45) : const Color(0xFFE8F0E2)),
+                ? glowColor.withValues(alpha: 0.6)
+                : (isMe
+                    ? tColor.withValues(alpha: 0.45)
+                    : const Color(0xFFE8F0E2)),
             width: badge != null ? 2 : (isMe ? 1.5 : 1)),
         boxShadow: badge != null
             ? [
                 BoxShadow(
-                    color: glowColor.withOpacity(0.30),
+                    color: glowColor.withValues(alpha: 0.30),
                     blurRadius: 18,
                     spreadRadius: 1,
                     offset: const Offset(0, 4)),
               ]
             : [
                 BoxShadow(
-                    color: Colors.black.withOpacity(0.04),
+                    color: Colors.black.withValues(alpha: 0.04),
                     blurRadius: 8,
                     offset: const Offset(0, 2))
               ],
@@ -573,14 +578,15 @@ class _ExerciseRecommendationScreenState
             height: 46,
             decoration: BoxDecoration(
               shape: BoxShape.circle,
-              color: tColor.withOpacity(0.15),
+              color: tColor.withValues(alpha: 0.15),
               border: Border.all(
-                  color: badge != null ? glowColor : tColor.withOpacity(0.5),
+                  color:
+                      badge != null ? glowColor : tColor.withValues(alpha: 0.5),
                   width: badge != null ? 2.5 : 1.5),
               boxShadow: badge != null
                   ? [
                       BoxShadow(
-                          color: glowColor.withOpacity(0.55),
+                          color: glowColor.withValues(alpha: 0.55),
                           blurRadius: 12,
                           spreadRadius: 1)
                     ]
@@ -613,9 +619,10 @@ class _ExerciseRecommendationScreenState
                     padding:
                         const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                     decoration: BoxDecoration(
-                        color: tColor.withOpacity(0.15),
+                        color: tColor.withValues(alpha: 0.15),
                         borderRadius: BorderRadius.circular(6),
-                        border: Border.all(color: tColor.withOpacity(0.4))),
+                        border:
+                            Border.all(color: tColor.withValues(alpha: 0.4))),
                     child: Text('${_xpTierEmoji(xp)} ${_xpTierName(xp)}',
                         style: TextStyle(
                             fontSize: 9,
@@ -654,11 +661,11 @@ class _ExerciseRecommendationScreenState
                     border: Border.all(color: Colors.white, width: 2.5),
                     boxShadow: [
                       BoxShadow(
-                          color: glowColor.withOpacity(0.7),
+                          color: glowColor.withValues(alpha: 0.7),
                           blurRadius: 18,
                           spreadRadius: 2),
                       BoxShadow(
-                          color: glowColor.withOpacity(0.35),
+                          color: glowColor.withValues(alpha: 0.35),
                           blurRadius: 32,
                           spreadRadius: 4),
                     ],
@@ -678,9 +685,9 @@ class _ExerciseRecommendationScreenState
   Widget _streakBadge(int streak, Color color) => Container(
         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
         decoration: BoxDecoration(
-          color: color.withOpacity(0.10),
+          color: color.withValues(alpha: 0.10),
           borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: color.withOpacity(0.35)),
+          border: Border.all(color: color.withValues(alpha: 0.35)),
         ),
         child: Row(mainAxisSize: MainAxisSize.min, children: [
           const Text('🔥', style: TextStyle(fontSize: 12)),

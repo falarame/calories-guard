@@ -231,11 +231,13 @@ class _LeaderboardScreenState extends ConsumerState<LeaderboardScreen>
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
       decoration: BoxDecoration(
-        color: isMe ? const Color(0xFF1565C0).withOpacity(0.08) : Colors.white,
+        color: isMe
+            ? const Color(0xFF1565C0).withValues(alpha: 0.08)
+            : Colors.white,
         borderRadius: BorderRadius.circular(14),
         border: Border.all(
             color: isMe
-                ? const Color(0xFF1565C0).withOpacity(0.5)
+                ? const Color(0xFF1565C0).withValues(alpha: 0.5)
                 : Colors.grey.shade200),
       ),
       child: Row(children: [

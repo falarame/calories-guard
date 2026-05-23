@@ -210,7 +210,7 @@ class _DurationSliderScreenState extends State<DurationSliderScreen> {
                                 padding: const EdgeInsets.symmetric(
                                     horizontal: 12, vertical: 8),
                                 decoration: BoxDecoration(
-                                    color: _goalColor.withOpacity( 0.54),
+                                    color: _goalColor.withValues(alpha: 0.54),
                                     borderRadius: BorderRadius.circular(10)),
                                 child: Text(
                                   _formatDate(widget.currentDate),
@@ -241,7 +241,7 @@ class _DurationSliderScreenState extends State<DurationSliderScreen> {
                                 padding: const EdgeInsets.symmetric(
                                     horizontal: 12, vertical: 8),
                                 decoration: BoxDecoration(
-                                    color: _goalColor.withOpacity( 0.25),
+                                    color: _goalColor.withValues(alpha: 0.25),
                                     borderRadius: BorderRadius.circular(10)),
                                 child: Text(
                                   _formatDate(_targetDate),
@@ -268,7 +268,7 @@ class _DurationSliderScreenState extends State<DurationSliderScreen> {
                         color: Colors.white,
                         borderRadius: BorderRadius.circular(12),
                         border: Border.all(
-                            color: _goalColor.withOpacity( 0.3), width: 1),
+                            color: _goalColor.withValues(alpha: 0.3), width: 1),
                       ),
                       child: Row(
                         children: [
@@ -357,7 +357,7 @@ class _DurationSliderScreenState extends State<DurationSliderScreen> {
                       return Container(
                         padding: const EdgeInsets.all(12),
                         decoration: BoxDecoration(
-                          color: _goalColor.withOpacity( 0.08),
+                          color: _goalColor.withValues(alpha: 0.08),
                           borderRadius: BorderRadius.circular(12),
                         ),
                         child: Row(
@@ -414,7 +414,7 @@ class _DurationSliderScreenState extends State<DurationSliderScreen> {
                         borderRadius: BorderRadius.circular(24),
                         boxShadow: [
                           BoxShadow(
-                              color: Colors.black.withOpacity( 0.25),
+                              color: Colors.black.withValues(alpha: 0.25),
                               blurRadius: 4,
                               offset: const Offset(0, 4))
                         ]),

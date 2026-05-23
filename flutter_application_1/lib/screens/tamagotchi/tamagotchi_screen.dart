@@ -176,13 +176,14 @@ class _TamagotchiScreenState extends ConsumerState<TamagotchiScreen>
       return goRecommend;
     }
     if (id == 'weight_log') {
-      return () {
-        Navigator.push(
+      return () async {
+        await Navigator.push(
           context,
           MaterialPageRoute(
             builder: (_) => const WeightChartScreen(openRecordOnStart: true),
           ),
         );
+        if (mounted) await _load();
       };
     }
     if (id == 'invite_friend') {
@@ -401,6 +402,21 @@ class _TamagotchiScreenState extends ConsumerState<TamagotchiScreen>
     return 'tama_perfect_day_${uid}_${n.year}-${n.month}-${n.day}';
   }
 
+  String _localWeightLoggedKey(int uid) {
+    final n = DateTime.now();
+    return 'tama_weight_logged_${uid}_${n.year}-${n.month}-${n.day}';
+  }
+
+  String _localWater8Key(int uid) {
+    final n = DateTime.now();
+    return 'tama_water_8_${uid}_${n.year}-${n.month}-${n.day}';
+  }
+
+  String _localWaterGlassesKey(int uid) {
+    final n = DateTime.now();
+    return 'tama_water_glasses_${uid}_${n.year}-${n.month}-${n.day}';
+  }
+
   @override
   void initState() {
     super.initState();
@@ -478,12 +494,21 @@ class _TamagotchiScreenState extends ConsumerState<TamagotchiScreen>
       final today =
           '${DateTime.now().year}-${DateTime.now().month.toString().padLeft(2, '0')}-${DateTime.now().day.toString().padLeft(2, '0')}';
       try {
-        final waterRes = await ApiClient().get('/water_logs/$uid?date=$today');
+        final waterRes = await ApiClient().get(
+          '/water_logs/$uid',
+          queryParams: {'date_record': today},
+        );
         if (waterRes.statusCode == 200) {
           final wData = jsonDecode(waterRes.body);
           final ml = (wData['amount_ml'] as num?)?.toInt() ?? 0;
           if (mounted) {
-            setState(() => _waterGlasses = (ml / 250).round().clamp(0, 20));
+            final backendGlasses = (ml / 250).round().clamp(0, 20).toInt();
+            final localGlasses = prefs.getInt(_localWaterGlassesKey(uid)) ?? 0;
+            final waterDone = prefs.getBool(_localWater8Key(uid)) == true;
+            final glasses = waterDone
+                ? backendGlasses.clamp(8, 20)
+                : (backendGlasses > 0 ? backendGlasses : localGlasses);
+            setState(() => _waterGlasses = glasses.toInt());
           }
         }
       } catch (e, st) {
@@ -511,7 +536,8 @@ class _TamagotchiScreenState extends ConsumerState<TamagotchiScreen>
         final wlogRes = await ApiClient().get('/users/$uid/weight_logs');
         if (wlogRes.statusCode == 200) {
           final wList = jsonDecode(wlogRes.body) as List;
-          final loggedToday = wList.any((e) => e['date'] == today);
+          final loggedToday = wList.any((e) => e['date'] == today) ||
+              prefs.getBool(_localWeightLoggedKey(uid)) == true;
           // Compute this week's weight range (Mon → today)
           final now = DateTime.now();
           final weekStart = now.subtract(Duration(days: now.weekday - 1));
@@ -523,12 +549,16 @@ class _TamagotchiScreenState extends ConsumerState<TamagotchiScreen>
           }).toList()
             ..sort(
                 (a, b) => (a['date'] as String).compareTo(b['date'] as String));
-          final wStart = weekEntries.isNotEmpty
-              ? (weekEntries.first['weight_kg'] as num?)?.toDouble()
-              : null;
-          final wLatest = weekEntries.isNotEmpty
-              ? (weekEntries.last['weight_kg'] as num?)?.toDouble()
-              : null;
+          double? weightOf(dynamic entry) {
+            if (entry is! Map) return null;
+            return ((entry['weight_kg'] ?? entry['weight']) as num?)
+                ?.toDouble();
+          }
+
+          final wStart =
+              weekEntries.isNotEmpty ? weightOf(weekEntries.first) : null;
+          final wLatest =
+              weekEntries.isNotEmpty ? weightOf(weekEntries.last) : null;
           if (mounted) {
             setState(() {
               _loggedWeightToday = loggedToday;
@@ -777,7 +807,7 @@ class _TamagotchiScreenState extends ConsumerState<TamagotchiScreen>
     showDialog(
       context: context,
       barrierDismissible: true,
-      barrierColor: Colors.black.withOpacity(0.6),
+      barrierColor: Colors.black.withValues(alpha: 0.6),
       builder: (_) => _TierUpDialog(tier: t),
     );
   }
@@ -787,7 +817,7 @@ class _TamagotchiScreenState extends ConsumerState<TamagotchiScreen>
     showDialog(
       context: context,
       barrierDismissible: true,
-      barrierColor: Colors.black.withOpacity(0.6),
+      barrierColor: Colors.black.withValues(alpha: 0.6),
       builder: (_) => _FirstTimeBadgeDialog(tier: t, rewardGems: rewardGems),
     );
   }
@@ -797,7 +827,7 @@ class _TamagotchiScreenState extends ConsumerState<TamagotchiScreen>
     showDialog(
       context: context,
       barrierDismissible: true,
-      barrierColor: Colors.black.withOpacity(0.6),
+      barrierColor: Colors.black.withValues(alpha: 0.6),
       builder: (_) => _WeeklyRewardDialog(
         tier: t,
         rank: rank,
@@ -918,7 +948,7 @@ class _TamagotchiScreenState extends ConsumerState<TamagotchiScreen>
         borderRadius: BorderRadius.circular(24),
         boxShadow: [
           BoxShadow(
-              color: tier.color.withOpacity(0.45),
+              color: tier.color.withValues(alpha: 0.45),
               blurRadius: 20,
               offset: const Offset(0, 8))
         ],
@@ -938,7 +968,7 @@ class _TamagotchiScreenState extends ConsumerState<TamagotchiScreen>
                       fontFamily: 'Inter')),
               Text('${tier.perks} • CaloriesGuard',
                   style: TextStyle(
-                      color: Colors.white.withOpacity(0.75),
+                      color: Colors.white.withValues(alpha: 0.75),
                       fontSize: 12,
                       fontFamily: 'Inter')),
             ]),
@@ -946,7 +976,7 @@ class _TamagotchiScreenState extends ConsumerState<TamagotchiScreen>
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
             decoration: BoxDecoration(
-                color: Colors.white.withOpacity(0.2),
+                color: Colors.white.withValues(alpha: 0.2),
                 borderRadius: BorderRadius.circular(16)),
             child: Column(mainAxisSize: MainAxisSize.min, children: [
               Text('$_weeklyXp',
@@ -969,7 +999,7 @@ class _TamagotchiScreenState extends ConsumerState<TamagotchiScreen>
             borderRadius: BorderRadius.circular(6),
             child: LinearProgressIndicator(
               value: progress,
-              backgroundColor: Colors.white.withOpacity(0.25),
+              backgroundColor: Colors.white.withValues(alpha: 0.25),
               valueColor: const AlwaysStoppedAnimation(Colors.white),
               minHeight: 8,
             ),
@@ -978,14 +1008,14 @@ class _TamagotchiScreenState extends ConsumerState<TamagotchiScreen>
           Row(children: [
             Text('${tier.emoji} ${tier.name}',
                 style: TextStyle(
-                    color: Colors.white.withOpacity(0.8),
+                    color: Colors.white.withValues(alpha: 0.8),
                     fontSize: 11,
                     fontFamily: 'Inter')),
             const Spacer(),
             Text(
                 'อีก ${nextTier.minXp - _weeklyXp} XP → ${nextTier.emoji} ${nextTier.name}',
                 style: TextStyle(
-                    color: Colors.white.withOpacity(0.85),
+                    color: Colors.white.withValues(alpha: 0.85),
                     fontSize: 11,
                     fontFamily: 'Inter')),
           ]),
@@ -1042,11 +1072,11 @@ class _TamagotchiScreenState extends ConsumerState<TamagotchiScreen>
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-              color: Colors.black.withOpacity(0.05),
+              color: Colors.black.withValues(alpha: 0.05),
               blurRadius: 8,
               offset: const Offset(0, 2))
         ],
-        border: Border.all(color: color.withOpacity(0.18)),
+        border: Border.all(color: color.withValues(alpha: 0.18)),
       ),
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
         Text(label,
@@ -1180,7 +1210,7 @@ class _TamagotchiScreenState extends ConsumerState<TamagotchiScreen>
         borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
-              color: Colors.black.withOpacity(0.05),
+              color: Colors.black.withValues(alpha: 0.05),
               blurRadius: 10,
               offset: const Offset(0, 3))
         ],
@@ -1190,7 +1220,7 @@ class _TamagotchiScreenState extends ConsumerState<TamagotchiScreen>
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
             decoration: BoxDecoration(
-              color: statusColor.withOpacity(0.1),
+              color: statusColor.withValues(alpha: 0.1),
               borderRadius: BorderRadius.circular(10),
             ),
             child: Text(programLabel,
@@ -1227,9 +1257,9 @@ class _TamagotchiScreenState extends ConsumerState<TamagotchiScreen>
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
           decoration: BoxDecoration(
-            color: statusColor.withOpacity(0.07),
+            color: statusColor.withValues(alpha: 0.07),
             borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: statusColor.withOpacity(0.25)),
+            border: Border.all(color: statusColor.withValues(alpha: 0.25)),
           ),
           child: Row(children: [
             Icon(statusIcon, color: statusColor, size: 20),
@@ -1272,7 +1302,7 @@ class _TamagotchiScreenState extends ConsumerState<TamagotchiScreen>
             label: const Text('บันทึกน้ำหนักเพื่อดูความคืบหน้า'),
             style: OutlinedButton.styleFrom(
               foregroundColor: statusColor,
-              side: BorderSide(color: statusColor.withOpacity(0.35)),
+              side: BorderSide(color: statusColor.withValues(alpha: 0.35)),
               padding: const EdgeInsets.symmetric(vertical: 12),
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(12),
@@ -1297,7 +1327,7 @@ class _TamagotchiScreenState extends ConsumerState<TamagotchiScreen>
         borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
-              color: Colors.black.withOpacity(0.05),
+              color: Colors.black.withValues(alpha: 0.05),
               blurRadius: 10,
               offset: const Offset(0, 4))
         ],
@@ -1324,12 +1354,13 @@ class _TamagotchiScreenState extends ConsumerState<TamagotchiScreen>
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
                     color: isUnlocked
-                        ? t.color.withOpacity(isCurrent ? 1.0 : 0.45)
+                        ? t.color.withValues(alpha: isCurrent ? 1.0 : 0.45)
                         : Colors.grey.shade200,
                     boxShadow: isCurrent
                         ? [
                             BoxShadow(
-                                color: t.color.withOpacity(0.5), blurRadius: 10)
+                                color: t.color.withValues(alpha: 0.5),
+                                blurRadius: 10)
                           ]
                         : [],
                   ),
@@ -1499,15 +1530,15 @@ class _TamagotchiScreenState extends ConsumerState<TamagotchiScreen>
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
           color: allClaimed
-              ? color.withOpacity(0.3)
+              ? color.withValues(alpha: 0.3)
               : progress > 0
-                  ? color.withOpacity(0.4)
+                  ? color.withValues(alpha: 0.4)
                   : Colors.grey.shade200,
           width: progress > 0 && !allClaimed ? 1.5 : 1,
         ),
         boxShadow: [
           BoxShadow(
-              color: Colors.black.withOpacity(0.04),
+              color: Colors.black.withValues(alpha: 0.04),
               blurRadius: 8,
               offset: const Offset(0, 2))
         ],
@@ -1532,7 +1563,7 @@ class _TamagotchiScreenState extends ConsumerState<TamagotchiScreen>
                   padding:
                       const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                   decoration: BoxDecoration(
-                    color: color.withOpacity(0.1),
+                    color: color.withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: Row(mainAxisSize: MainAxisSize.min, children: [
@@ -1569,9 +1600,9 @@ class _TamagotchiScreenState extends ConsumerState<TamagotchiScreen>
           if (extraInfo != null) ...[
             const SizedBox(height: 6),
             Text(extraInfo,
-                style: TextStyle(
+                style: const TextStyle(
                     fontSize: 11,
-                    color: const Color(0xFF0277BD),
+                    color: Color(0xFF0277BD),
                     fontWeight: FontWeight.w600,
                     fontFamily: 'Inter')),
           ],
@@ -1594,7 +1625,7 @@ class _TamagotchiScreenState extends ConsumerState<TamagotchiScreen>
                   color: claimed
                       ? color
                       : canDo
-                          ? color.withOpacity(0.7)
+                          ? color.withValues(alpha: 0.7)
                           : Colors.grey.shade300,
                 ),
                 const SizedBox(width: 8),
@@ -1628,7 +1659,8 @@ class _TamagotchiScreenState extends ConsumerState<TamagotchiScreen>
                         borderRadius: BorderRadius.circular(8),
                         boxShadow: [
                           BoxShadow(
-                              color: color.withOpacity(0.35), blurRadius: 6)
+                              color: color.withValues(alpha: 0.35),
+                              blurRadius: 6)
                         ],
                       ),
                       child: Text('+$xp XP  +$gems 🌾',
@@ -1668,15 +1700,15 @@ class _TamagotchiScreenState extends ConsumerState<TamagotchiScreen>
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
           color: claimed
-              ? _primary.withOpacity(0.25)
+              ? _primary.withValues(alpha: 0.25)
               : canDo
-                  ? _primary.withOpacity(0.5)
+                  ? _primary.withValues(alpha: 0.5)
                   : Colors.grey.shade200,
           width: canDo && !claimed ? 1.5 : 1,
         ),
         boxShadow: [
           BoxShadow(
-              color: Colors.black.withOpacity(0.04),
+              color: Colors.black.withValues(alpha: 0.04),
               blurRadius: 8,
               offset: const Offset(0, 2))
         ],
@@ -1687,9 +1719,9 @@ class _TamagotchiScreenState extends ConsumerState<TamagotchiScreen>
           height: 44,
           decoration: BoxDecoration(
             color: claimed
-                ? _primary.withOpacity(0.08)
+                ? _primary.withValues(alpha: 0.08)
                 : canDo
-                    ? _primary.withOpacity(0.1)
+                    ? _primary.withValues(alpha: 0.1)
                     : Colors.grey.shade100,
             borderRadius: BorderRadius.circular(12),
           ),
@@ -1733,7 +1765,7 @@ class _TamagotchiScreenState extends ConsumerState<TamagotchiScreen>
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
             decoration: BoxDecoration(
-                color: _primary.withOpacity(0.08),
+                color: _primary.withValues(alpha: 0.08),
                 borderRadius: BorderRadius.circular(10)),
             child: Column(mainAxisSize: MainAxisSize.min, children: [
               Text('✅ +$xp XP',
@@ -1758,7 +1790,8 @@ class _TamagotchiScreenState extends ConsumerState<TamagotchiScreen>
                 color: _primary,
                 borderRadius: BorderRadius.circular(10),
                 boxShadow: [
-                  BoxShadow(color: _primary.withOpacity(0.35), blurRadius: 8)
+                  BoxShadow(
+                      color: _primary.withValues(alpha: 0.35), blurRadius: 8)
                 ],
               ),
               child: Column(mainAxisSize: MainAxisSize.min, children: [
@@ -1770,7 +1803,7 @@ class _TamagotchiScreenState extends ConsumerState<TamagotchiScreen>
                         fontSize: 12)),
                 Text('+$gems 🌾',
                     style: TextStyle(
-                        color: Colors.white.withOpacity(0.8),
+                        color: Colors.white.withValues(alpha: 0.8),
                         fontSize: 10,
                         fontFamily: 'Inter')),
               ]),
@@ -1828,9 +1861,9 @@ class _TamagotchiScreenState extends ConsumerState<TamagotchiScreen>
             decoration: BoxDecoration(
               color: Colors.white,
               borderRadius: BorderRadius.circular(14),
-              border: Border.all(color: _primary.withOpacity(0.35)),
+              border: Border.all(color: _primary.withValues(alpha: 0.35)),
               boxShadow: [
-                BoxShadow(color: _primary.withOpacity(0.1), blurRadius: 8)
+                BoxShadow(color: _primary.withValues(alpha: 0.1), blurRadius: 8)
               ],
             ),
             child: Row(mainAxisSize: MainAxisSize.min, children: [
@@ -1937,7 +1970,7 @@ class _TierUpDialogState extends State<_TierUpDialog>
                   borderRadius: BorderRadius.circular(28),
                   boxShadow: [
                     BoxShadow(
-                        color: t.color.withOpacity(0.55),
+                        color: t.color.withValues(alpha: 0.55),
                         blurRadius: 30,
                         offset: const Offset(0, 12)),
                   ],
@@ -1971,7 +2004,7 @@ class _TierUpDialogState extends State<_TierUpDialog>
                     padding:
                         const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                     decoration: BoxDecoration(
-                        color: Colors.white.withOpacity(0.22),
+                        color: Colors.white.withValues(alpha: 0.22),
                         borderRadius: BorderRadius.circular(14)),
                     child: Text(t.perks,
                         style: const TextStyle(
@@ -2013,7 +2046,7 @@ class _TierUpDialogState extends State<_TierUpDialog>
                       shape: BoxShape.circle,
                       boxShadow: [
                         BoxShadow(
-                            color: t.color.withOpacity(0.45),
+                            color: t.color.withValues(alpha: 0.45),
                             blurRadius: 22,
                             spreadRadius: 2),
                       ],
@@ -2050,7 +2083,8 @@ class _FirstTimeBadgeDialog extends StatelessWidget {
           Container(
             padding: const EdgeInsets.all(14),
             decoration: BoxDecoration(
-                color: tier.color.withOpacity(0.12), shape: BoxShape.circle),
+                color: tier.color.withValues(alpha: 0.12),
+                shape: BoxShape.circle),
             child: Text(tier.emoji, style: const TextStyle(fontSize: 48)),
           ),
           const SizedBox(height: 16),
@@ -2070,7 +2104,7 @@ class _FirstTimeBadgeDialog extends StatelessWidget {
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 10),
             decoration: BoxDecoration(
-              color: const Color(0xFF2E7D32).withOpacity(0.1),
+              color: const Color(0xFF2E7D32).withValues(alpha: 0.1),
               borderRadius: BorderRadius.circular(14),
             ),
             child: Text('🎁 รางวัล +$rewardGems 🌾',
@@ -2167,7 +2201,7 @@ class _WeeklyRewardDialogState extends State<_WeeklyRewardDialog> {
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
             decoration: BoxDecoration(
-              color: const Color(0xFF2E7D32).withOpacity(0.1),
+              color: const Color(0xFF2E7D32).withValues(alpha: 0.1),
               borderRadius: BorderRadius.circular(14),
             ),
             child: Text('🎁 ได้รับ +${widget.totalReward} 🌾',

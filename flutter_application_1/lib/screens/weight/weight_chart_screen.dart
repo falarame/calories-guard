@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../l10n/app_localizations.dart';
 import '../../providers/user_data_provider.dart';
@@ -223,6 +224,12 @@ class _WeightChartScreenState extends ConsumerState<WeightChartScreen> {
       };
       final res = await ApiClient().post('/weight_logs/$userId', body: body);
       if (res.statusCode == 200 || res.statusCode == 201) {
+        final prefs = await SharedPreferences.getInstance();
+        final now = DateTime.now();
+        await prefs.setBool(
+          'tama_weight_logged_${userId}_${now.year}-${now.month}-${now.day}',
+          true,
+        );
         ref.read(userDataProvider.notifier).setCurrentWeight(kg);
         await _fetch();
         if (!mounted) return true;

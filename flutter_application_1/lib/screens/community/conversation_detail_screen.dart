@@ -317,7 +317,7 @@ class _MessageBubble extends StatelessWidget {
                           horizontal: 14, vertical: 6),
                       child: Text('ข้อความถูกลบ',
                           style: TextStyle(
-                              color: fg.withOpacity(0.7),
+                              color: fg.withValues(alpha: 0.7),
                               fontStyle: FontStyle.italic)),
                     ),
                 ],

@@ -392,7 +392,7 @@ class _ProgressScreenState extends ConsumerState<ProgressScreen> {
                                     boxShadow: [
                                       BoxShadow(
                                           color: Colors.black
-                                              .withOpacity( 0.04),
+                                              .withValues(alpha: 0.04),
                                           blurRadius: 6,
                                           offset: const Offset(0, 2))
                                     ],
@@ -524,7 +524,7 @@ class _ProgressScreenState extends ConsumerState<ProgressScreen> {
   Widget _miniMacroChip(String text, Color color) => Container(
         padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
         decoration: BoxDecoration(
-            color: color.withOpacity( 0.1),
+            color: color.withValues(alpha: 0.1),
             borderRadius: BorderRadius.circular(6)),
         child: Text(text,
             style: TextStyle(
@@ -702,7 +702,7 @@ class _ProgressScreenState extends ConsumerState<ProgressScreen> {
                             shape: BoxShape.circle,
                             boxShadow: [
                               BoxShadow(
-                                  color: Colors.black.withOpacity( 0.1),
+                                  color: Colors.black.withValues(alpha: 0.1),
                                   blurRadius: 5)
                             ]),
                         child: const Icon(Icons.arrow_back_ios_new,
@@ -779,7 +779,7 @@ class _ProgressScreenState extends ConsumerState<ProgressScreen> {
                                     padding: const EdgeInsets.symmetric(
                                         horizontal: 8, vertical: 2),
                                     decoration: BoxDecoration(
-                                        color: bmiColor.withOpacity( 0.2),
+                                        color: bmiColor.withValues(alpha: 0.2),
                                         borderRadius: BorderRadius.circular(5)),
                                     child: Text(bmiStatus,
                                         style: TextStyle(
@@ -965,7 +965,7 @@ class _ProgressScreenState extends ConsumerState<ProgressScreen> {
               border: Border.all(color: const Color(0xFFE8EFCF)),
               boxShadow: [
                 BoxShadow(
-                    color: Colors.black.withOpacity( 0.05),
+                    color: Colors.black.withValues(alpha: 0.05),
                     blurRadius: 12,
                     offset: const Offset(0, 2))
               ],
@@ -1058,7 +1058,7 @@ class _ProgressScreenState extends ConsumerState<ProgressScreen> {
               border: Border.all(color: const Color(0xFFE8EFCF)),
               boxShadow: [
                 BoxShadow(
-                    color: Colors.black.withOpacity( 0.06),
+                    color: Colors.black.withValues(alpha: 0.06),
                     blurRadius: 16,
                     offset: const Offset(0, 4))
               ],
@@ -1102,7 +1102,7 @@ class _ProgressScreenState extends ConsumerState<ProgressScreen> {
                         borderRadius: BorderRadius.circular(20),
                         border: Border.all(
                             color:
-                                const Color(0xFF628141).withOpacity( 0.3)),
+                                const Color(0xFF628141).withValues(alpha: 0.3)),
                       ),
                       child: Row(
                         mainAxisSize: MainAxisSize.min,
@@ -1260,7 +1260,7 @@ class _ProgressScreenState extends ConsumerState<ProgressScreen> {
           border: Border.all(color: const Color(0xFFE8EFCF)),
           boxShadow: [
             BoxShadow(
-                color: Colors.black.withOpacity( 0.05),
+                color: Colors.black.withValues(alpha: 0.05),
                 blurRadius: 12,
                 offset: const Offset(0, 2))
           ],
@@ -1272,7 +1272,7 @@ class _ProgressScreenState extends ConsumerState<ProgressScreen> {
               width: 36,
               height: 36,
               decoration: BoxDecoration(
-                color: statusColor.withOpacity( 0.12),
+                color: statusColor.withValues(alpha: 0.12),
                 borderRadius: BorderRadius.circular(10),
               ),
               child: Icon(Icons.local_fire_department,
@@ -1292,7 +1292,7 @@ class _ProgressScreenState extends ConsumerState<ProgressScreen> {
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
               decoration: BoxDecoration(
-                color: statusColor.withOpacity( 0.12),
+                color: statusColor.withValues(alpha: 0.12),
                 borderRadius: BorderRadius.circular(20),
               ),
               child: Text(
@@ -1348,8 +1348,8 @@ class _ProgressScreenState extends ConsumerState<ProgressScreen> {
                     decoration: BoxDecoration(
                       gradient: LinearGradient(
                         colors: [
-                          redOver.withOpacity( 0.9),
-                          redOver.withOpacity( 0.6),
+                          redOver.withValues(alpha: 0.9),
+                          redOver.withValues(alpha: 0.6),
                         ],
                       ),
                     ),
@@ -1970,7 +1970,7 @@ class _WeeklyBarChart extends StatelessWidget {
           horizontalLines: [
             HorizontalLine(
               y: targetCal,
-              color: Colors.orange.withOpacity( 0.7),
+              color: Colors.orange.withValues(alpha: 0.7),
               strokeWidth: 2,
               dashArray: [5, 5],
               label: HorizontalLineLabel(
@@ -2010,7 +2010,7 @@ class _WeeklyBarChart extends StatelessWidget {
 
           final isSelected = selectedBarIndex == index;
 
-          final barColor = isSelected ? color : color.withOpacity( 0.35);
+          final barColor = isSelected ? color : color.withValues(alpha: 0.35);
 
           return BarChartGroupData(
             x: index,

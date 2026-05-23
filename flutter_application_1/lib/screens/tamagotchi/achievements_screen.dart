@@ -9,7 +9,8 @@ class _AchievementInfo {
   final String title;
   final String desc;
   final int rewardGems;
-  final int? target; // streak target for progress display (null = no progress UI)
+  final int?
+      target; // streak target for progress display (null = no progress UI)
   const _AchievementInfo({
     required this.id,
     required this.emoji,
@@ -102,8 +103,7 @@ const _achievements = [
 class AchievementsScreen extends ConsumerStatefulWidget {
   const AchievementsScreen({super.key});
   @override
-  ConsumerState<AchievementsScreen> createState() =>
-      _AchievementsScreenState();
+  ConsumerState<AchievementsScreen> createState() => _AchievementsScreenState();
 }
 
 class _AchievementsScreenState extends ConsumerState<AchievementsScreen> {
@@ -131,7 +131,8 @@ class _AchievementsScreenState extends ConsumerState<AchievementsScreen> {
   @override
   Widget build(BuildContext context) {
     final userData = ref.watch(userDataProvider);
-    final earnedCount = _achievements.where((a) => _earned.contains(a.id)).length;
+    final earnedCount =
+        _achievements.where((a) => _earned.contains(a.id)).length;
     return Scaffold(
       backgroundColor: const Color(0xFFF8FAFB),
       appBar: AppBar(
@@ -182,16 +183,14 @@ class _AchievementsScreenState extends ConsumerState<AchievementsScreen> {
               Expanded(
                 child: GridView.builder(
                   padding: const EdgeInsets.all(16),
-                  gridDelegate:
-                      const SliverGridDelegateWithFixedCrossAxisCount(
+                  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
                     crossAxisCount: 2,
                     crossAxisSpacing: 12,
                     mainAxisSpacing: 12,
                     childAspectRatio: 0.95,
                   ),
                   itemCount: _achievements.length,
-                  itemBuilder: (_, i) =>
-                      _buildTile(_achievements[i], userData),
+                  itemBuilder: (_, i) => _buildTile(_achievements[i], userData),
                 ),
               ),
             ]),
@@ -211,70 +210,67 @@ class _AchievementsScreenState extends ConsumerState<AchievementsScreen> {
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
             color: earned
-                ? const Color(0xFF1565C0).withOpacity(0.4)
+                ? const Color(0xFF1565C0).withValues(alpha: 0.4)
                 : Colors.grey.shade300),
         boxShadow: earned
             ? [
                 BoxShadow(
-                    color: const Color(0xFF1565C0).withOpacity(0.1),
+                    color: const Color(0xFF1565C0).withValues(alpha: 0.1),
                     blurRadius: 8,
                     offset: const Offset(0, 2))
               ]
             : null,
       ),
-      child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Opacity(
-              opacity: earned ? 1.0 : 0.35,
-              child: Text(a.emoji, style: const TextStyle(fontSize: 40)),
+      child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
+        Opacity(
+          opacity: earned ? 1.0 : 0.35,
+          child: Text(a.emoji, style: const TextStyle(fontSize: 40)),
+        ),
+        const SizedBox(height: 8),
+        Text(a.title,
+            textAlign: TextAlign.center,
+            style: TextStyle(
+                fontSize: 12,
+                fontFamily: 'Inter',
+                fontWeight: FontWeight.w700,
+                color: earned ? Colors.black87 : Colors.grey.shade500)),
+        const SizedBox(height: 4),
+        Text(a.desc,
+            textAlign: TextAlign.center,
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+            style: TextStyle(
+                fontSize: 10,
+                color: Colors.grey.shade600,
+                fontFamily: 'Inter')),
+        const SizedBox(height: 6),
+        if (earned)
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+            decoration: BoxDecoration(
+              color: const Color(0xFF2E7D32).withValues(alpha: 0.12),
+              borderRadius: BorderRadius.circular(8),
             ),
-            const SizedBox(height: 8),
-            Text(a.title,
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                    fontSize: 12,
-                    fontFamily: 'Inter',
+            child: Text('+${a.rewardGems} 🌾',
+                style: const TextStyle(
+                    color: Color(0xFF1B5E20),
+                    fontSize: 11,
                     fontWeight: FontWeight.w700,
-                    color: earned ? Colors.black87 : Colors.grey.shade500)),
-            const SizedBox(height: 4),
-            Text(a.desc,
-                textAlign: TextAlign.center,
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
-                style: TextStyle(
-                    fontSize: 10,
-                    color: Colors.grey.shade600,
                     fontFamily: 'Inter')),
-            const SizedBox(height: 6),
-            if (earned)
-              Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                decoration: BoxDecoration(
-                  color: const Color(0xFF2E7D32).withOpacity(0.12),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Text('+${a.rewardGems} 🌾',
-                    style: const TextStyle(
-                        color: Color(0xFF1B5E20),
-                        fontSize: 11,
-                        fontWeight: FontWeight.w700,
-                        fontFamily: 'Inter')),
-              )
-            else if (progress != null && a.target != null)
-              Text('$progress / ${a.target}',
-                  style: TextStyle(
-                      color: Colors.grey.shade600,
-                      fontSize: 11,
-                      fontFamily: 'Inter'))
-            else
-              Text('+${a.rewardGems} 🌾',
-                  style: TextStyle(
-                      color: Colors.grey.shade400,
-                      fontSize: 11,
-                      fontFamily: 'Inter')),
-          ]),
+          )
+        else if (progress != null && a.target != null)
+          Text('$progress / ${a.target}',
+              style: TextStyle(
+                  color: Colors.grey.shade600,
+                  fontSize: 11,
+                  fontFamily: 'Inter'))
+        else
+          Text('+${a.rewardGems} 🌾',
+              style: TextStyle(
+                  color: Colors.grey.shade400,
+                  fontSize: 11,
+                  fontFamily: 'Inter')),
+      ]),
     );
   }
 }

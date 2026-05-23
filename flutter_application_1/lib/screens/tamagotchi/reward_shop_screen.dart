@@ -262,6 +262,7 @@ class _RewardShopScreenState extends State<RewardShopScreen> {
       return;
     }
     final prefs = await SharedPreferences.getInstance();
+    if (!mounted) return;
     final monthKey = DateFormat('yyyy-MM').format(DateTime.now());
     final freeUsed =
         _parseMonthlyCount(prefs.getString(_freeRepairsKey), monthKey);
@@ -301,7 +302,7 @@ class _RewardShopScreenState extends State<RewardShopScreen> {
                   onTap: () => Navigator.pop(context, 'free'),
                 )
               else
-                _RepairOptionRow(
+                const _RepairOptionRow(
                   emoji: '🆓',
                   title: 'สิทธิ์ฟรี',
                   subtitle: 'ใช้ไปแล้วเดือนนี้',
@@ -318,7 +319,7 @@ class _RewardShopScreenState extends State<RewardShopScreen> {
                   onTap: () => Navigator.pop(context, 'shop'),
                 )
               else if (shopUsed >= _shopRepairQuotaPerMonth)
-                _RepairOptionRow(
+                const _RepairOptionRow(
                   emoji: '💰',
                   title: 'ซื้อจากร้าน',
                   subtitle: 'ใช้สิทธิ์ shop เดือนนี้แล้ว',
@@ -411,7 +412,7 @@ class _RewardShopScreenState extends State<RewardShopScreen> {
             borderRadius: BorderRadius.circular(18),
             boxShadow: [
               BoxShadow(
-                  color: _primary.withOpacity(0.3),
+                  color: _primary.withValues(alpha: 0.3),
                   blurRadius: 12,
                   offset: const Offset(0, 4))
             ],
@@ -476,11 +477,11 @@ class _RewardShopScreenState extends State<RewardShopScreen> {
     final canAfford = isRepair ? repairEnabled : _gems >= r.cost;
     final isAvailable = !r.comingSoon && !isClaimed && canAfford;
     final borderColor = isClaimed
-        ? _primary.withOpacity(0.4)
+        ? _primary.withValues(alpha: 0.4)
         : r.comingSoon
             ? Colors.grey.shade200
             : canAfford
-                ? _primary.withOpacity(0.3)
+                ? _primary.withValues(alpha: 0.3)
                 : Colors.grey.shade200;
 
     return Container(
@@ -491,8 +492,8 @@ class _RewardShopScreenState extends State<RewardShopScreen> {
         boxShadow: [
           BoxShadow(
               color: isClaimed
-                  ? _primary.withOpacity(0.08)
-                  : Colors.black.withOpacity(0.04),
+                  ? _primary.withValues(alpha: 0.08)
+                  : Colors.black.withValues(alpha: 0.04),
               blurRadius: 8,
               offset: const Offset(0, 2))
         ],
@@ -506,10 +507,10 @@ class _RewardShopScreenState extends State<RewardShopScreen> {
             height: 52,
             decoration: BoxDecoration(
               color: isClaimed
-                  ? _primary.withOpacity(0.1)
+                  ? _primary.withValues(alpha: 0.1)
                   : r.comingSoon
                       ? Colors.grey.shade100
-                      : _primary.withOpacity(0.07),
+                      : _primary.withValues(alpha: 0.07),
               borderRadius: BorderRadius.circular(14),
             ),
             child: Center(
@@ -541,10 +542,10 @@ class _RewardShopScreenState extends State<RewardShopScreen> {
                       padding: const EdgeInsets.symmetric(
                           horizontal: 6, vertical: 2),
                       decoration: BoxDecoration(
-                          color: Colors.amber.withOpacity(0.12),
+                          color: Colors.amber.withValues(alpha: 0.12),
                           borderRadius: BorderRadius.circular(6),
-                          border:
-                              Border.all(color: Colors.amber.withOpacity(0.4))),
+                          border: Border.all(
+                              color: Colors.amber.withValues(alpha: 0.4))),
                       child: const Text('เร็วๆ นี้',
                           style: TextStyle(
                               color: Colors.amber,
@@ -566,9 +567,9 @@ class _RewardShopScreenState extends State<RewardShopScreen> {
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
               decoration: BoxDecoration(
-                  color: _primary.withOpacity(0.08),
+                  color: _primary.withValues(alpha: 0.08),
                   borderRadius: BorderRadius.circular(10),
-                  border: Border.all(color: _primary.withOpacity(0.3))),
+                  border: Border.all(color: _primary.withValues(alpha: 0.3))),
               child: const Text('✅ ได้แล้ว',
                   style: TextStyle(
                       color: Color(0xFF6A1B9A),
@@ -589,7 +590,8 @@ class _RewardShopScreenState extends State<RewardShopScreen> {
                   boxShadow: isAvailable
                       ? [
                           BoxShadow(
-                              color: _primary.withOpacity(0.35), blurRadius: 8)
+                              color: _primary.withValues(alpha: 0.35),
+                              blurRadius: 8)
                         ]
                       : [],
                 ),
@@ -642,10 +644,12 @@ class _RepairOptionRow extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
         decoration: BoxDecoration(
-          color: enabled ? color.withOpacity(0.06) : Colors.grey.shade100,
+          color: enabled ? color.withValues(alpha: 0.06) : Colors.grey.shade100,
           borderRadius: BorderRadius.circular(12),
           border: Border.all(
-              color: enabled ? color.withOpacity(0.3) : Colors.grey.shade300),
+              color: enabled
+                  ? color.withValues(alpha: 0.3)
+                  : Colors.grey.shade300),
         ),
         child: Row(children: [
           Text(emoji, style: const TextStyle(fontSize: 22)),
