@@ -341,12 +341,11 @@ void main() {
   });
 
   group('[UserDataNotifier] setLoginInfo', () {
-    test('setLoginInfo → email/password ถูก set', () {
+    test('setLoginInfo → email ถูก set', () {
       final c = makeContainer();
-      c.read(userDataProvider.notifier).setLoginInfo('a@b.com', 'pass123');
+      c.read(userDataProvider.notifier).setLoginInfo('a@b.com');
       final s = c.read(userDataProvider);
       expect(s.email, 'a@b.com');
-      expect(s.password, 'pass123');
     });
   });
 
@@ -642,7 +641,7 @@ void main() {
 
     test('reset → เหมือน logout', () {
       final c = makeContainer();
-      c.read(userDataProvider.notifier).setLoginInfo('a@b.com', 'pass');
+      c.read(userDataProvider.notifier).setLoginInfo('a@b.com');
       c.read(userDataProvider.notifier).reset();
       expect(c.read(userDataProvider).email, '');
     });

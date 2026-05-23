@@ -1304,10 +1304,10 @@ class _FoodLogScreenState extends ConsumerState<FoodLogScreen>
           ),
         ));
       }
-    } catch (e) {
+    } catch (_) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-          content: Text('เกิดข้อผิดพลาด: $e'),
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+          content: Text('เกิดข้อผิดพลาด กรุณาลองใหม่'),
           backgroundColor: Colors.red,
         ));
       }
@@ -1511,8 +1511,9 @@ class _FoodLogScreenState extends ConsumerState<FoodLogScreen>
       }
       debugPrint('✅ SAVE COMPLETE');
 
-      // Update streak เมื่อบันทึกอาหารสำเร็จ (cancel streak warning อัตโนมัติ)
-      if (meal.foods.isNotEmpty) StreakService.updateStreak();
+      // Update streak เฉพาะเมื่อบันทึกอาหารของวันนี้เท่านั้น
+      final today = DateFormat('yyyy-MM-dd').format(DateTime.now());
+      if (meal.foods.isNotEmpty && dateStr == today) StreakService.updateStreak();
 
       // ── Sync provider ทันทีหลัง save เพื่อให้ home screen อัปเดตเลย ──────
       if (mounted) {
@@ -1592,10 +1593,10 @@ class _FoodLogScreenState extends ConsumerState<FoodLogScreen>
     } catch (e) {
       debugPrint('❌ Error saving meal: $e');
       if (mounted) {
-        messenger.showSnackBar(SnackBar(
-          content: Text('บันทึกอาหารไม่สำเร็จ\n$e'),
+        messenger.showSnackBar(const SnackBar(
+          content: Text('บันทึกอาหารไม่สำเร็จ กรุณาลองใหม่'),
           backgroundColor: Colors.redAccent,
-          duration: const Duration(seconds: 5),
+          duration: Duration(seconds: 5),
         ));
       }
       return false;
@@ -2525,10 +2526,11 @@ class _AddFoodSheetState extends ConsumerState<_AddFoodSheet>
       if (res.statusCode != 200) {
         throw Exception('Failed to submit: ${res.body}');
       }
-    } catch (e) {
+    } catch (_) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-            content: Text('เกิดข้อผิดพลาด: $e'), backgroundColor: Colors.red));
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+            content: Text('เกิดข้อผิดพลาด กรุณาลองใหม่'),
+            backgroundColor: Colors.red));
       }
       setState(() => _qSending = false);
       return;

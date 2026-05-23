@@ -17,20 +17,36 @@ class TamagotchiActionLogger {
   static String _suggestKey(int uid) =>
       'tama_suggest_${uid}_${_todayStr()}';
 
+  // Stores the normalized (lowercased) names submitted today for dedup.
+  static String _suggestNamesKey(int uid) =>
+      'tama_suggest_names_${uid}_${_todayStr()}';
+
   static String _reviewKey(int uid) =>
       'tama_review_${uid}_${_todayStr()}';
 
   // ── Food Suggestion ────────────────────────────────────────────────────────
 
   /// Call this right after a successful /foods/auto-add POST.
-  static Future<void> logFoodSuggestion(int uid) async {
-    if (uid <= 0) return;
+  /// Returns `true` if the food name was new (not already submitted today).
+  /// Duplicate names (case-insensitive) are silently ignored.
+  static Future<bool> logFoodSuggestion(int uid, String foodName) async {
+    if (uid <= 0) return false;
+    final name = foodName.trim().toLowerCase();
+    if (name.isEmpty) return false;
+
     final prefs = await SharedPreferences.getInstance();
-    final key = _suggestKey(uid);
-    await prefs.setInt(key, (prefs.getInt(key) ?? 0) + 1);
+    final namesKey = _suggestNamesKey(uid);
+    final existing = prefs.getStringList(namesKey) ?? [];
+
+    if (existing.contains(name)) return false; // duplicate — no reward
+
+    final updated = [...existing, name];
+    await prefs.setStringList(namesKey, updated);
+    await prefs.setInt(_suggestKey(uid), updated.length);
+    return true;
   }
 
-  /// Returns how many food suggestions the user has submitted today.
+  /// Returns how many unique food names the user has submitted today.
   static Future<int> getFoodSuggestionCount(int uid) async {
     if (uid <= 0) return 0;
     final prefs = await SharedPreferences.getInstance();

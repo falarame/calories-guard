@@ -350,7 +350,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
       final int newId = data['user']['user_id'];
 
       ref.read(userDataProvider.notifier).setUserId(newId);
-      ref.read(userDataProvider.notifier).setLoginInfo(email, password);
+      ref.read(userDataProvider.notifier).setLoginInfo(email);
       ref.read(userDataProvider.notifier).setPersonalInfo(
           name: fullName,
           birthDate: DateTime.now(), // ค่าชั่วคราว เดี๋ยวไปแก้หน้า PersonalInfo

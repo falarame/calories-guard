@@ -753,6 +753,29 @@ class NotificationHelper {
     for (final cat in NotificationCategory.values) {
       await prefs.remove(_catKey(cat));
     }
+    // Tamagotchi V2.1 per-user keys
+    for (final key in [
+      'tama_gems_$userId',
+      'tama_weekly_xp_$userId',
+      'tama_weekly_week_$userId',
+      'tama_achievements_$userId',
+      'tama_last_reward_week_$userId',
+      'tama_free_repairs_$userId',
+      'tama_shop_repairs_$userId',
+      'tama_pending_food_credits_$userId',
+      'tama_invitee_count_$userId',
+      'streak_freeze_until_$userId',
+    ]) {
+      await prefs.remove(key);
+    }
+    // Daily-scoped tama keys (date suffix) — wipe all that match prefix
+    final allKeys = prefs.getKeys();
+    for (final k in allKeys) {
+      if (k.startsWith('tama_claimed_${userId}_') ||
+          k.startsWith('tama_perfect_day_${userId}_')) {
+        await prefs.remove(k);
+      }
+    }
   }
 
   // ── Smart suppression (Tier 2.4) ──────────────────────────────────────────
@@ -1252,15 +1275,35 @@ class NotificationHelper {
 
   // ── Streak warning ────────────────────────────────────────────────────────
 
-  static Future<void> scheduleStreakWarning(int currentStreak) async {
+  /// Schedule a daily streak warning. Message wording depends on the grace
+  /// status (0 = ok, 1 = first miss, 2 = last chance, -1 = expired).
+  /// Pass [graceStatus] from `StreakService.getGraceStatus()`.
+  static Future<void> scheduleStreakWarning(int currentStreak,
+      {int graceStatus = 0}) async {
     if (kIsWeb || currentStreak < 2) return;
     if (!await isCategoryEnabled(NotificationCategory.streak)) return;
+
+    final String title;
+    final String body;
+    if (graceStatus == -1) {
+      title = '💔 Streak ขาดแล้ว';
+      body = 'กู้คืน streak $currentStreak วันได้ในแอป (ฟรี 1 ครั้ง/เดือน หรือซื้อร้าน 300 🌾)';
+    } else if (graceStatus == 2) {
+      title = '🚨 วันสุดท้าย! Streak $currentStreak วันจะหาย';
+      body = 'บันทึกวันนี้เพื่อรักษา streak ไว้ก่อนเที่ยงคืน';
+    } else if (graceStatus == 1) {
+      title = '🌱 คุณรอดตัวไป!';
+      body = 'บันทึกอาหารวันนี้เพื่อรักษา streak $currentStreak วัน';
+    } else {
+      title = '🔥 Streak $currentStreak วันของคุณกำลังจะหาย!';
+      body = 'บันทึกอาหารวันนี้ก่อน 4 ทุ่มเพื่อรักษา streak ไว้นะ';
+    }
 
     await _notification.cancel(1001);
     await _notification.zonedSchedule(
       1001,
-      '🔥 Streak $currentStreak วันของคุณกำลังจะหาย!',
-      'บันทึกอาหารวันนี้ก่อน 4 ทุ่มเพื่อรักษา streak ไว้นะ',
+      title,
+      body,
       _nextInstanceOfTime(20, 0),
       const NotificationDetails(
         android: AndroidNotificationDetails(

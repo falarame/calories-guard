@@ -9,6 +9,18 @@ from app.models.schemas import RegionalNameApprove, TempFoodApprove
 router = APIRouter()
 
 
+def _insert_temp_food_notification(cur, user_id: int | None, title: str, message: str) -> None:
+    if not user_id:
+        return
+    cur.execute(
+        """
+        INSERT INTO notifications (user_id, title, message, type)
+        VALUES (%s, %s, %s, 'content_update')
+        """,
+        (user_id, title, message),
+    )
+
+
 @router.get("/admin/users")
 def admin_list_users(search: str = "", current_user: dict = Depends(get_current_admin)):
     """ดึงรายการ user ทั้งหมด สำหรับ admin panel"""
@@ -412,6 +424,13 @@ def admin_approve_temp_food(tf_id: int, req: TempFoodApprove, current_user: dict
                 (new_food_id, tf["user_id"], tf["food_name"]),
             )
 
+        _insert_temp_food_notification(
+            cur,
+            tf.get("user_id"),
+            "เมนูของคุณได้รับการอนุมัติแล้ว",
+            f"เมนู {tf['food_name']} ถูกเพิ่มเข้าสู่ฐานข้อมูลอาหารแล้ว",
+        )
+
         conn.commit()
         return {"message": "Approved and added to foods", "food_id": new_food_id}
     except HTTPException:
@@ -428,10 +447,20 @@ def admin_approve_temp_food(tf_id: int, req: TempFoodApprove, current_user: dict
 def admin_reject_temp_food(tf_id: int, current_user: dict = Depends(get_current_admin)):
     conn = get_db_connection()
     try:
-        cur = conn.cursor()
+        cur = conn.cursor(cursor_factory=RealDictCursor)
+        cur.execute("SELECT user_id, food_name FROM temp_food WHERE tf_id = %s", (tf_id,))
+        tf = cur.fetchone()
+        if not tf:
+            raise HTTPException(status_code=404, detail="Temp food not found")
         cur.execute("DELETE FROM temp_food WHERE tf_id = %s", (tf_id,))
         if cur.rowcount == 0:
             raise HTTPException(status_code=404, detail="Temp food not found")
+        _insert_temp_food_notification(
+            cur,
+            tf.get("user_id"),
+            "คำขอเพิ่มเมนูไม่ได้รับการอนุมัติ",
+            f"เมนู {tf['food_name']} ยังไม่ผ่านการตรวจสอบจากแอดมิน",
+        )
         conn.commit()
         return {"message": "Temp food rejected and deleted"}
     except HTTPException:

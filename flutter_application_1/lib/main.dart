@@ -53,7 +53,7 @@ void main() async {
 
   // Setup API client 401 handler
   ApiClient().onUnauthorized = () {
-    // Will be connected to navigation once we have a global navigator key
+    ApiClient.setManualToken(null);
     Supabase.instance.client.auth.signOut();
   };
 
@@ -255,7 +255,6 @@ class _AuthBootstrapState extends ConsumerState<AuthBootstrap> {
           ref.read(userDataProvider.notifier).setUserId(data['user_id'] as int);
           ref.read(userDataProvider.notifier).setLoginInfo(
                 data['email'] as String? ?? session.user.email ?? '',
-                '',
               );
           if (mounted) {
             final needsOnboarding = data['onboarding_required'] == true;
@@ -320,7 +319,7 @@ class _AuthBootstrapState extends ConsumerState<AuthBootstrap> {
 
     final data = result['data'] as Map<String, dynamic>;
     ref.read(userDataProvider.notifier).setUserId(data['user_id'] as int);
-    ref.read(userDataProvider.notifier).setLoginInfo(user.email!, '');
+    ref.read(userDataProvider.notifier).setLoginInfo(user.email!);
 
     final shouldContinueOnboarding = data['onboarding_required'] == true;
     if (shouldContinueOnboarding) {

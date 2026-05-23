@@ -20,7 +20,12 @@ class ApiClient {
 
   static const Duration _defaultTimeout = Duration(seconds: 30);
 
-  String get _baseUrl => AppConstants.baseUrl;
+  String get _baseUrl {
+    const url = AppConstants.baseUrl;
+    assert(url.startsWith('https://') || kDebugMode,
+        'API base URL must use HTTPS in production');
+    return url;
+  }
 
   /// Returns an HTTP client. In debug mode on non-web platforms we allow
   /// all certificates so that an incomplete SSL chain on the server does

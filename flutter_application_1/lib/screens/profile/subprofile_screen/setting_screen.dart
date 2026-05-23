@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart' show kDebugMode;
 import 'package:flutter/material.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -188,6 +189,7 @@ class _SettingScreenState extends ConsumerState<SettingScreen> {
   }
 
   void _onVersionTap() {
+    if (!kDebugMode) return;
     _versionTapCount++;
     if (_versionTapCount >= 7) {
       _versionTapCount = 0;
@@ -218,12 +220,12 @@ class _SettingScreenState extends ConsumerState<SettingScreen> {
           );
         }
       }
-    } catch (e) {
+    } catch (_) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-              content: Text(
-                  l10n.tr('settings.delete_account.error', {'message': '$e'})),
+              content: Text(l10n.tr('settings.delete_account.error',
+                  {'message': 'กรุณาลองใหม่อีกครั้ง'})),
               backgroundColor: Colors.red),
         );
       }
@@ -232,33 +234,63 @@ class _SettingScreenState extends ConsumerState<SettingScreen> {
 
   void _showDeleteConfirmDialog() {
     final l10n = AppLocalizations.of(context);
+    final email = ref.read(userDataProvider).email;
+    final ctrl = TextEditingController();
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: Text(l10n.tr('settings.delete_account.confirm_title'),
-            style: const TextStyle(
-                fontWeight: FontWeight.bold, color: Colors.red)),
-        content: Text(l10n.tr('settings.delete_account.confirm_body')),
-        actions: [
-          TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: Text(l10n.tr('common.cancel'),
-                  style: const TextStyle(color: Colors.grey))),
-          ElevatedButton(
-            onPressed: () {
-              Navigator.pop(context);
-              _deleteAccount();
-            },
-            style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.red,
-                foregroundColor: Colors.white,
-                shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12))),
-            child: Text(l10n.tr('settings.delete_account.confirm_cta'),
-                style: const TextStyle(fontWeight: FontWeight.bold)),
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setStateDlg) => AlertDialog(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          title: Text(l10n.tr('settings.delete_account.confirm_title'),
+              style: const TextStyle(
+                  fontWeight: FontWeight.bold, color: Colors.red)),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(l10n.tr('settings.delete_account.confirm_body')),
+              const SizedBox(height: 16),
+              Text('พิมพ์อีเมลของคุณเพื่อยืนยัน:',
+                  style: TextStyle(fontSize: 13, color: Colors.grey.shade700)),
+              const SizedBox(height: 6),
+              TextField(
+                controller: ctrl,
+                onChanged: (_) => setStateDlg(() {}),
+                decoration: InputDecoration(
+                  hintText: email,
+                  border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(10)),
+                  contentPadding: const EdgeInsets.symmetric(
+                      horizontal: 12, vertical: 10),
+                ),
+                keyboardType: TextInputType.emailAddress,
+                autocorrect: false,
+              ),
+            ],
           ),
-        ],
+          actions: [
+            TextButton(
+                onPressed: () => Navigator.pop(ctx),
+                child: Text(l10n.tr('common.cancel'),
+                    style: const TextStyle(color: Colors.grey))),
+            ElevatedButton(
+              onPressed: ctrl.text.trim() == email
+                  ? () {
+                      Navigator.pop(ctx);
+                      _deleteAccount();
+                    }
+                  : null,
+              style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.red,
+                  foregroundColor: Colors.white,
+                  disabledBackgroundColor: Colors.red.withOpacity(0.3),
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12))),
+              child: Text(l10n.tr('settings.delete_account.confirm_cta'),
+                  style: const TextStyle(fontWeight: FontWeight.bold)),
+            ),
+          ],
+        ),
       ),
     );
   }

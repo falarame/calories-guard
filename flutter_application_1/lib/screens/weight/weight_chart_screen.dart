@@ -132,7 +132,11 @@ class _WeightChartScreenState extends ConsumerState<WeightChartScreen> {
                       ),
                       validator: (v) {
                         final parsed = double.tryParse((v ?? '').trim());
-                        if (parsed == null || parsed < 20 || parsed > 400) {
+                        if (parsed == null ||
+                            parsed.isNaN ||
+                            parsed.isInfinite ||
+                            parsed < 20 ||
+                            parsed > 400) {
                           return l10n.tr('weight.dialog.error.invalid');
                         }
                         return null;

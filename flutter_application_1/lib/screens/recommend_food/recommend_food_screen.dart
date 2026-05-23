@@ -250,11 +250,11 @@ class _RecommendedFoodScreenState extends ConsumerState<RecommendedFoodScreen> {
       builder: (ctx) => _SuggestFoodSheet(
         initialName: prefillName,
         userId: userId,
-        onSubmitted: () {
+        onSubmitted: (String foodName) {
           // Refresh to let newly-approved items appear. Won't show pending ones
           // (that's by design — temp_food is admin-gated).
           _fetchAllFood();
-          TamagotchiActionLogger.logFoodSuggestion(userId);
+          TamagotchiActionLogger.logFoodSuggestion(userId, foodName);
         },
       ),
     );
@@ -1441,7 +1441,7 @@ class FoodCategoryScreen extends StatelessWidget {
 class _SuggestFoodSheet extends StatefulWidget {
   final String initialName;
   final int userId;
-  final VoidCallback onSubmitted;
+  final void Function(String foodName) onSubmitted;
   const _SuggestFoodSheet({
     required this.initialName,
     required this.userId,
@@ -1500,8 +1500,9 @@ class _SuggestFoodSheetState extends State<_SuggestFoodSheet> {
       );
       if (!mounted) return;
       if (res.statusCode == 200) {
+        final submittedName = name;
         Navigator.pop(context);
-        widget.onSubmitted();
+        widget.onSubmitted(submittedName);
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
               content: Text('ส่งคำขอเพิ่มเมนูแล้ว รอแอดมินตรวจสอบ'),

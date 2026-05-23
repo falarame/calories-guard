@@ -542,6 +542,7 @@ class AuthService {
   // --- Sign Out ---
 
   Future<void> signOut() async {
+    ApiClient.setManualToken(null);
     await _supabase.auth.signOut();
   }
 

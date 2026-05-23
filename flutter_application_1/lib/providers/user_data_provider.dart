@@ -61,7 +61,6 @@ class UserData {
   // --- 1. ส่วนข้อมูลพื้นฐาน (Login & Profile) ---
   final int userId;
   final String email;
-  final String password;
   final String name;
   final String gender;
   final DateTime? birthDate;
@@ -98,6 +97,11 @@ class UserData {
   final int currentStreak;
   final int totalLoginDays;
 
+  // --- Weekly tier system ---
+  final int weeklyXp;
+  final String weeklyXpWeek; // YYYY-WW
+  final int? weeklyRank;
+
   // --- 5. หน่วยนับ (Unit) ---
   final String unitWeight;
   final String unitHeight;
@@ -113,7 +117,6 @@ class UserData {
   UserData({
     this.userId = 0,
     this.email = '',
-    this.password = '',
     this.name = 'User',
     this.gender = 'male',
     this.birthDate,
@@ -137,6 +140,9 @@ class UserData {
     this.storedTargetFat,
     this.currentStreak = 0,
     this.totalLoginDays = 0,
+    this.weeklyXp = 0,
+    this.weeklyXpWeek = '',
+    this.weeklyRank,
     this.unitWeight = 'kg',
     this.unitHeight = 'cm',
     this.unitEnergy = 'kcal',
@@ -288,7 +294,6 @@ class UserData {
   UserData copyWith({
     int? userId,
     String? email,
-    String? password,
     String? name,
     String? gender,
     DateTime? birthDate,
@@ -312,6 +317,9 @@ class UserData {
     int? storedTargetFat,
     int? currentStreak,
     int? totalLoginDays,
+    int? weeklyXp,
+    String? weeklyXpWeek,
+    int? weeklyRank,
     String? unitWeight,
     String? unitHeight,
     String? unitEnergy,
@@ -323,7 +331,6 @@ class UserData {
     return UserData(
       userId: userId ?? this.userId,
       email: email ?? this.email,
-      password: password ?? this.password,
       name: name ?? this.name,
       gender: gender ?? this.gender,
       birthDate: birthDate ?? this.birthDate,
@@ -347,6 +354,9 @@ class UserData {
       storedTargetFat: storedTargetFat ?? this.storedTargetFat,
       currentStreak: currentStreak ?? this.currentStreak,
       totalLoginDays: totalLoginDays ?? this.totalLoginDays,
+      weeklyXp: weeklyXp ?? this.weeklyXp,
+      weeklyXpWeek: weeklyXpWeek ?? this.weeklyXpWeek,
+      weeklyRank: weeklyRank ?? this.weeklyRank,
       unitWeight: unitWeight ?? this.unitWeight,
       unitHeight: unitHeight ?? this.unitHeight,
       unitEnergy: unitEnergy ?? this.unitEnergy,
@@ -369,8 +379,8 @@ class UserDataNotifier extends StateNotifier<UserData> {
     state = state.copyWith(userId: id);
   }
 
-  void setLoginInfo(String email, String password) {
-    state = state.copyWith(email: email, password: password);
+  void setLoginInfo(String email) {
+    state = state.copyWith(email: email);
   }
 
   void setGender(String gender) {
@@ -530,6 +540,9 @@ class UserDataNotifier extends StateNotifier<UserData> {
       storedTargetFat: (data['target_fat'] as num?)?.toInt(),
       currentStreak: (data['current_streak'] as num?)?.toInt() ?? 0,
       totalLoginDays: (data['total_login_days'] as num?)?.toInt() ?? 0,
+      weeklyXp: (data['weekly_xp'] as num?)?.toInt() ?? 0,
+      weeklyXpWeek: data['weekly_xp_week']?.toString() ?? '',
+      weeklyRank: (data['weekly_rank'] as num?)?.toInt(),
       unitWeight: data['unit_weight']?.toString() ?? state.unitWeight,
       unitHeight: data['unit_height']?.toString() ?? state.unitHeight,
       unitEnergy: data['unit_energy']?.toString() ?? state.unitEnergy,

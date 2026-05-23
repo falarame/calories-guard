@@ -99,14 +99,23 @@ class FcmService {
 
   // ─── Private handlers ──────────────────────────────────────────────────────
 
+  static String _sanitizeText(String? text, {int maxLen = 200}) {
+    if (text == null) return '';
+    // Strip any HTML/script tags and limit length
+    final stripped = text.replaceAll(RegExp(r'<[^>]*>'), '');
+    return stripped.length > maxLen ? stripped.substring(0, maxLen) : stripped;
+  }
+
   static Future<void> _onForegroundMessage(RemoteMessage message) async {
     final notification = message.notification;
     if (notification == null) return;
+    final title = _sanitizeText(notification.title, maxLen: 100);
+    final body = _sanitizeText(notification.body, maxLen: 200);
     // FCM ไม่แสดง notification อัตโนมัติตอน foreground → ต้อง show เอง
     await NotificationHelper.showNotification(
       id: message.hashCode & 0x7FFFFFFF,
-      title: notification.title ?? 'CaloriesGuard',
-      body: notification.body ?? '',
+      title: title.isEmpty ? 'CaloriesGuard' : title,
+      body: body,
       payload: message.data['payload'] as String?,
     );
   }
@@ -116,8 +125,9 @@ class FcmService {
     // MainScreen can route into the conversation detail screen.
     final type = message.data['type'] as String?;
     if (type == 'chat') {
-      final convId = message.data['conversation_id']?.toString();
-      if (convId != null && convId.isNotEmpty) {
+      final rawId = message.data['conversation_id']?.toString();
+      final convId = rawId != null ? int.tryParse(rawId) : null;
+      if (convId != null && convId > 0) {
         NotificationHelper.pendingPayload.value = 'chat:$convId';
         return;
       }

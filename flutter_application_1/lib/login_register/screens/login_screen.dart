@@ -148,7 +148,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
       ref.read(userDataProvider.notifier).setUserId(data['user_id'] as int);
       ref
           .read(userDataProvider.notifier)
-          .setLoginInfo(_emailCtrl.text.trim(), _passCtrl.text);
+          .setLoginInfo(_emailCtrl.text.trim());
       if (data['onboarding_required'] == true) {
         ref.read(userDataProvider.notifier).setPersonalInfo(
               name: (data['username'] as String?) ?? 'User',
@@ -191,7 +191,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
     if (result['success']) {
       final data = result['data'];
       ref.read(userDataProvider.notifier).setUserId(data['user_id'] as int);
-      ref.read(userDataProvider.notifier).setLoginInfo(email, '');
+      ref.read(userDataProvider.notifier).setLoginInfo(email);
       if (data['onboarding_required'] == true) {
         ref.read(userDataProvider.notifier).setPersonalInfo(
               name: (data['username'] as String?) ?? name,
