@@ -42,17 +42,11 @@ const _rewards = [
       desc: 'Achievement badge ระดับสูง — มีเพียงไม่กี่คน',
       cost: 500),
   _Reward(
-      id: 'streak_freeze',
-      emoji: '🛡️',
-      name: 'Streak Freeze',
-      desc: 'ป้องกัน streak ไม่ให้รีเซ็ตในวันที่ขาดไป 1 วัน',
-      cost: 20),
-  _Reward(
       id: 'streak_repair',
       emoji: '💎',
       name: 'Streak Repair',
-      desc: 'กู้คืน streak ที่ขาดไป — flat 300 🌾, 1 ครั้ง/เดือน (สิทธิ์ฟรีอีก 1 ครั้ง/เดือน แยกจากนี้)',
-      cost: 300),
+      desc: 'กู้คืน streak ที่ขาดไป 1ครั้งต่อเดือน',
+      cost: 700),
   _Reward(
       id: 'food_coupon',
       emoji: '🍱',
@@ -123,7 +117,7 @@ class _RewardShopScreenState extends State<RewardShopScreen> {
   String get _shopRepairsKey => 'tama_shop_repairs_${widget.userId}';
   String get _freezeKey => 'streak_freeze_until_${widget.userId}';
 
-  static const int _streakRepairShopCost = 300;
+  static const int _streakRepairShopCost = 700;
   static const int _freeRepairQuotaPerMonth = 1;
   static const int _shopRepairQuotaPerMonth = 1;
 
@@ -153,7 +147,7 @@ class _RewardShopScreenState extends State<RewardShopScreen> {
 
   Future<void> _redeem(_Reward r) async {
     if (_isRedeeming) return;
-    // Streak Repair has its own dedicated flow (dynamic cost, free quota)
+    // Streak Repair has its own dedicated flow (free quota + monthly shop quota)
     if (r.id == 'streak_repair') {
       await _handleStreakRepair();
       return;
@@ -199,61 +193,57 @@ class _RewardShopScreenState extends State<RewardShopScreen> {
     if (confirm != true) return;
     setState(() => _isRedeeming = true);
     try {
-    final prefs = await SharedPreferences.getInstance();
-    final newGems = _gems - r.cost;
-    await prefs.setInt(_gemsKey, newGems);
+      final prefs = await SharedPreferences.getInstance();
+      final newGems = _gems - r.cost;
+      await prefs.setInt(_gemsKey, newGems);
 
-    if (isFreeze) {
-      final until = DateTime.now().add(const Duration(days: 2));
-      await prefs.setInt(_freezeKey, until.millisecondsSinceEpoch);
-      if (mounted) {
-        setState(() {
-          _gems = newGems;
-          _freezeUntil = until;
-        });
+      if (isFreeze) {
+        final until = DateTime.now().add(const Duration(days: 2));
+        await prefs.setInt(_freezeKey, until.millisecondsSinceEpoch);
+        if (mounted) {
+          setState(() {
+            _gems = newGems;
+            _freezeUntil = until;
+          });
+        }
+        widget.onGemsUpdated(newGems);
+        ApiClient().patch('/users/${widget.userId}/tama-points',
+            body: {'gems': newGems, 'tier_level': widget.tierIdx}).ignore();
+        if (mounted) {
+          HapticFeedback.mediumImpact();
+          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+            content: Text(
+                '\ud83d\udee1\ufe0f Streak Freeze \u0e40\u0e1b\u0e34\u0e14\u0e43\u0e0a\u0e49\u0e07\u0e32\u0e19\u0e41\u0e25\u0e49\u0e27! \u0e1b\u0e49\u0e2d\u0e07\u0e01\u0e31\u0e19 2 \u0e27\u0e31\u0e19'),
+            backgroundColor: Color(0xFF1565C0),
+            duration: Duration(seconds: 2),
+          ));
+        }
+        return;
       }
+
+      final newClaimed = {..._claimed, r.id};
+      await prefs.setStringList(_claimedKey, newClaimed.toList());
+      setState(() {
+        _gems = newGems;
+        _claimed = newClaimed;
+      });
       widget.onGemsUpdated(newGems);
-      ApiClient()
-          .patch('/users/${widget.userId}/tama-points',
-              body: {'gems': newGems, 'tier_level': widget.tierIdx})
-          .ignore();
+      ApiClient().patch(
+        '/users/${widget.userId}/tama-points',
+        body: {
+          'gems': newGems,
+          'tier_level': widget.tierIdx,
+          'claimed_badges': newClaimed.toList(),
+        },
+      ).ignore();
       if (mounted) {
         HapticFeedback.mediumImpact();
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-          content: Text(
-              '\ud83d\udee1\ufe0f Streak Freeze \u0e40\u0e1b\u0e34\u0e14\u0e43\u0e0a\u0e49\u0e07\u0e32\u0e19\u0e41\u0e25\u0e49\u0e27! \u0e1b\u0e49\u0e2d\u0e07\u0e01\u0e31\u0e19 2 \u0e27\u0e31\u0e19'),
-          backgroundColor: Color(0xFF1565C0),
-          duration: Duration(seconds: 2),
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text('${r.emoji} ได้รับ "${r.name}" แล้ว!'),
+          backgroundColor: _primary,
+          duration: const Duration(seconds: 2),
         ));
       }
-      return;
-    }
-
-    final newClaimed = {..._claimed, r.id};
-    await prefs.setStringList(_claimedKey, newClaimed.toList());
-    setState(() {
-      _gems = newGems;
-      _claimed = newClaimed;
-    });
-    widget.onGemsUpdated(newGems);
-    ApiClient()
-        .patch(
-          '/users/${widget.userId}/tama-points',
-          body: {
-            'gems': newGems,
-            'tier_level': widget.tierIdx,
-            'claimed_badges': newClaimed.toList(),
-          },
-        )
-        .ignore();
-    if (mounted) {
-      HapticFeedback.mediumImpact();
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-        content: Text('${r.emoji} ได้รับ "${r.name}" แล้ว!'),
-        backgroundColor: _primary,
-        duration: const Duration(seconds: 2),
-      ));
-    }
     } finally {
       if (mounted) setState(() => _isRedeeming = false);
     }
@@ -261,7 +251,7 @@ class _RewardShopScreenState extends State<RewardShopScreen> {
 
   /// Streak Repair (V2.1): 1 free + 1 shop purchase per month (separate quotas)
   /// Free  = 0 🌾 cost, 1/month
-  /// Shop  = 300 🌾 flat cost, 1/month (independent of free quota)
+  /// Shop  = 700 🌾 flat cost, 1/month (independent of free quota)
   Future<void> _handleStreakRepair() async {
     if (_isRedeeming) return;
     if (widget.streakGrace != -1) {
@@ -273,8 +263,10 @@ class _RewardShopScreenState extends State<RewardShopScreen> {
     }
     final prefs = await SharedPreferences.getInstance();
     final monthKey = DateFormat('yyyy-MM').format(DateTime.now());
-    final freeUsed = _parseMonthlyCount(prefs.getString(_freeRepairsKey), monthKey);
-    final shopUsed = _parseMonthlyCount(prefs.getString(_shopRepairsKey), monthKey);
+    final freeUsed =
+        _parseMonthlyCount(prefs.getString(_freeRepairsKey), monthKey);
+    final shopUsed =
+        _parseMonthlyCount(prefs.getString(_shopRepairsKey), monthKey);
     final freeAvailable = freeUsed < _freeRepairQuotaPerMonth;
     final shopAvailable =
         shopUsed < _shopRepairQuotaPerMonth && _gems >= _streakRepairShopCost;
@@ -295,8 +287,7 @@ class _RewardShopScreenState extends State<RewardShopScreen> {
       builder: (_) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
         title: const Text('💎 กู้คืน Streak',
-            style: TextStyle(
-                fontFamily: 'Inter', fontWeight: FontWeight.w700)),
+            style: TextStyle(fontFamily: 'Inter', fontWeight: FontWeight.w700)),
         content: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -344,8 +335,8 @@ class _RewardShopScreenState extends State<RewardShopScreen> {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: Text('ยกเลิก',
-                style: TextStyle(color: Colors.grey.shade500)),
+            child:
+                Text('ยกเลิก', style: TextStyle(color: Colors.grey.shade500)),
           ),
         ],
       ),
@@ -363,12 +354,10 @@ class _RewardShopScreenState extends State<RewardShopScreen> {
       } else {
         await prefs.setString(_shopRepairsKey, '$monthKey:${shopUsed + 1}');
       }
-      ApiClient()
-          .post('/users/${widget.userId}/streak-repair', body: {
-            'source': useFree ? 'free' : 'shop',
-            'cost_gems': cost,
-          })
-          .ignore();
+      ApiClient().post('/users/${widget.userId}/streak-repair', body: {
+        'source': useFree ? 'free' : 'shop',
+        'cost_gems': cost,
+      }).ignore();
       await widget.onStreakRepaired?.call();
       if (mounted) {
         setState(() => _gems = newGems);
@@ -481,9 +470,8 @@ class _RewardShopScreenState extends State<RewardShopScreen> {
     final isFreeze = r.id == 'streak_freeze';
     final isRepair = r.id == 'streak_repair';
     // Streak Repair: re-buyable monthly — only enabled when streak expired (grace -1)
-    final isClaimed = isRepair
-        ? false
-        : (isFreeze ? _freezeActive : _claimed.contains(r.id));
+    final isClaimed =
+        isRepair ? false : (isFreeze ? _freezeActive : _claimed.contains(r.id));
     final repairEnabled = isRepair && widget.streakGrace == -1;
     final canAfford = isRepair ? repairEnabled : _gems >= r.cost;
     final isAvailable = !r.comingSoon && !isClaimed && canAfford;
@@ -654,9 +642,7 @@ class _RepairOptionRow extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
         decoration: BoxDecoration(
-          color: enabled
-              ? color.withOpacity(0.06)
-              : Colors.grey.shade100,
+          color: enabled ? color.withOpacity(0.06) : Colors.grey.shade100,
           borderRadius: BorderRadius.circular(12),
           border: Border.all(
               color: enabled ? color.withOpacity(0.3) : Colors.grey.shade300),
@@ -665,27 +651,23 @@ class _RepairOptionRow extends StatelessWidget {
           Text(emoji, style: const TextStyle(fontSize: 22)),
           const SizedBox(width: 10),
           Expanded(
-            child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(title,
-                      style: TextStyle(
-                          fontFamily: 'Inter',
-                          fontWeight: FontWeight.w700,
-                          fontSize: 13,
-                          color: enabled
-                              ? Colors.black87
-                              : Colors.grey.shade500)),
-                  Text(subtitle,
-                      style: TextStyle(
-                          fontSize: 11,
-                          color: enabled
-                              ? Colors.grey.shade600
-                              : Colors.grey.shade400)),
-                ]),
+            child:
+                Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              Text(title,
+                  style: TextStyle(
+                      fontFamily: 'Inter',
+                      fontWeight: FontWeight.w700,
+                      fontSize: 13,
+                      color: enabled ? Colors.black87 : Colors.grey.shade500)),
+              Text(subtitle,
+                  style: TextStyle(
+                      fontSize: 11,
+                      color: enabled
+                          ? Colors.grey.shade600
+                          : Colors.grey.shade400)),
+            ]),
           ),
-          if (enabled)
-            Icon(Icons.chevron_right, color: color, size: 22),
+          if (enabled) Icon(Icons.chevron_right, color: color, size: 22),
         ]),
       ),
     );

@@ -30,9 +30,11 @@ class _LeaderboardEntry {
       userId: uid,
       username: (m['username'] ?? 'User').toString(),
       avatarUrl: m['avatar_url']?.toString(),
-      weeklyXp: (m['weekly_xp'] as num?)?.toInt() ?? 0,
+      weeklyXp: (m['weekly_xp'] as num?)?.toInt() ??
+          (m['tama_points'] as num?)?.toInt() ??
+          0,
       tierIdx: (m['tier_level'] as num?)?.toInt() ?? 0,
-      rank: rank,
+      rank: (m['rank'] as num?)?.toInt() ?? rank,
     );
   }
 }
@@ -41,7 +43,9 @@ class _LeaderboardEntry {
 const _tierEmojis = ['🌱', '🌿', '🌾', '🍚', '✨'];
 
 class LeaderboardScreen extends ConsumerStatefulWidget {
-  const LeaderboardScreen({super.key});
+  const LeaderboardScreen({super.key, this.embedded = false});
+  final bool embedded;
+
   @override
   ConsumerState<LeaderboardScreen> createState() => _LeaderboardScreenState();
 }
@@ -115,6 +119,54 @@ class _LeaderboardScreenState extends ConsumerState<LeaderboardScreen>
   @override
   Widget build(BuildContext context) {
     final uid = ref.watch(userDataProvider).userId;
+    final content = _loading
+        ? const Center(child: CircularProgressIndicator())
+        : TabBarView(
+            controller: _tabCtrl,
+            children: [
+              _buildList(_global, uid, 'ยังไม่มีข้อมูล leaderboard'),
+              _buildList(_friends, uid,
+                  'ยังไม่มีเพื่อนใน leaderboard — ชวนเพื่อนมาเล่นด้วยกัน!'),
+            ],
+          );
+    final tabs = TabBar(
+      controller: _tabCtrl,
+      labelColor: const Color(0xFF1565C0),
+      unselectedLabelColor: Colors.grey,
+      indicatorColor: const Color(0xFF1565C0),
+      tabs: const [
+        Tab(icon: Text('🌏', style: TextStyle(fontSize: 18)), text: 'Global'),
+        Tab(icon: Text('👥', style: TextStyle(fontSize: 18)), text: 'Friends'),
+      ],
+    );
+
+    if (widget.embedded) {
+      return Container(
+        color: const Color(0xFFF8FAFB),
+        child: Column(children: [
+          Padding(
+            padding: const EdgeInsets.fromLTRB(20, 16, 12, 8),
+            child: Row(children: [
+              const Expanded(
+                child: Text('🏆 ลีดเดอร์บอร์ด',
+                    style: TextStyle(
+                        color: Colors.black87,
+                        fontFamily: 'Inter',
+                        fontWeight: FontWeight.w800,
+                        fontSize: 22)),
+              ),
+              IconButton(
+                icon: const Icon(Icons.refresh_rounded, color: Colors.black87),
+                onPressed: _load,
+              ),
+            ]),
+          ),
+          tabs,
+          Expanded(child: content),
+        ]),
+      );
+    }
+
     return Scaffold(
       backgroundColor: const Color(0xFFF8FAFB),
       appBar: AppBar(
@@ -138,27 +190,9 @@ class _LeaderboardScreenState extends ConsumerState<LeaderboardScreen>
             onPressed: _load,
           ),
         ],
-        bottom: TabBar(
-          controller: _tabCtrl,
-          labelColor: const Color(0xFF1565C0),
-          unselectedLabelColor: Colors.grey,
-          indicatorColor: const Color(0xFF1565C0),
-          tabs: const [
-            Tab(icon: Text('🌏', style: TextStyle(fontSize: 18)), text: 'Global'),
-            Tab(icon: Text('👥', style: TextStyle(fontSize: 18)), text: 'Friends'),
-          ],
-        ),
+        bottom: tabs,
       ),
-      body: _loading
-          ? const Center(child: CircularProgressIndicator())
-          : TabBarView(
-              controller: _tabCtrl,
-              children: [
-                _buildList(_global, uid, 'ยังไม่มีข้อมูล leaderboard'),
-                _buildList(_friends, uid,
-                    'ยังไม่มีเพื่อนใน leaderboard — ชวนเพื่อนมาเล่นด้วยกัน!'),
-              ],
-            ),
+      body: content,
     );
   }
 
@@ -186,8 +220,7 @@ class _LeaderboardScreenState extends ConsumerState<LeaderboardScreen>
 
   Widget _buildRow(_LeaderboardEntry e, int myUid) {
     final isMe = e.userId == myUid;
-    final tierEmoji =
-        _tierEmojis[e.tierIdx.clamp(0, _tierEmojis.length - 1)];
+    final tierEmoji = _tierEmojis[e.tierIdx.clamp(0, _tierEmojis.length - 1)];
     final rankBadge = e.rank == 1
         ? '🥇'
         : e.rank == 2
@@ -226,26 +259,23 @@ class _LeaderboardScreenState extends ConsumerState<LeaderboardScreen>
         ),
         const SizedBox(width: 12),
         Expanded(
-          child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  isMe ? '${e.username} (คุณ)' : e.username,
-                  style: TextStyle(
-                      fontWeight: FontWeight.w700,
-                      fontSize: 14,
-                      color: isMe
-                          ? const Color(0xFF1565C0)
-                          : Colors.black87,
-                      fontFamily: 'Inter'),
-                  overflow: TextOverflow.ellipsis,
-                ),
-                Text('$tierEmoji  ${e.weeklyXp} XP สัปดาห์นี้',
-                    style: TextStyle(
-                        fontSize: 12,
-                        color: Colors.grey.shade600,
-                        fontFamily: 'Inter')),
-              ]),
+          child:
+              Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Text(
+              isMe ? '${e.username} (คุณ)' : e.username,
+              style: TextStyle(
+                  fontWeight: FontWeight.w700,
+                  fontSize: 14,
+                  color: isMe ? const Color(0xFF1565C0) : Colors.black87,
+                  fontFamily: 'Inter'),
+              overflow: TextOverflow.ellipsis,
+            ),
+            Text('$tierEmoji  ${e.weeklyXp} XP สัปดาห์นี้',
+                style: TextStyle(
+                    fontSize: 12,
+                    color: Colors.grey.shade600,
+                    fontFamily: 'Inter')),
+          ]),
         ),
       ]),
     );

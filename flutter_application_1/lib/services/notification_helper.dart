@@ -1,6 +1,12 @@
+import 'dart:convert';
 import 'dart:math' as math;
 import 'package:flutter/foundation.dart'
-    show kIsWeb, defaultTargetPlatform, TargetPlatform, ValueNotifier, debugPrint;
+    show
+        kIsWeb,
+        defaultTargetPlatform,
+        TargetPlatform,
+        ValueNotifier,
+        debugPrint;
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:timezone/timezone.dart' as tz;
@@ -35,11 +41,14 @@ class NotificationHelper {
   static const _prefKeyEnabled = 'notifications_enabled';
   static const _prefKeyWeighInDay = 'weigh_in_weekday';
   static const _prefKeyPermissionDenied = 'notification_permission_denied';
+  static const _prefKeyLocalInbox = 'local_notification_inbox';
 
   // Quiet hours (stored as minutes since midnight, 0–1439)
   static const _prefKeyQuietEnabled = 'quiet_hours_enabled';
-  static const _prefKeyQuietStartMin = 'quiet_hours_start_min'; // default 1320 (22:00)
-  static const _prefKeyQuietEndMin = 'quiet_hours_end_min'; // default 420 (07:00)
+  static const _prefKeyQuietStartMin =
+      'quiet_hours_start_min'; // default 1320 (22:00)
+  static const _prefKeyQuietEndMin =
+      'quiet_hours_end_min'; // default 420 (07:00)
 
   // Custom meal times (stored as hour*100 + minute)
   static const _prefKeyBreakfastHm = 'meal_breakfast_hm'; // default 800
@@ -69,6 +78,76 @@ class NotificationHelper {
 
   // Rate-limiting: last-shown timestamp per notification id
   static String _lastShownKey(int id) => 'notif_last_$id';
+
+  static String _typeForId(int id) {
+    if (id == 201 || id == 202 || id == 203 || id == 204 || id == 602) {
+      return 'warning';
+    }
+    if (id == 801 || id == 9001 || id == 9002) return 'achievement';
+    if (id >= 9900) return 'tip';
+    if (id == 1001) return 'streak';
+    return 'system_alert';
+  }
+
+  static Future<void> _saveToLocalInbox({
+    required int id,
+    required String title,
+    required String body,
+    String? type,
+  }) async {
+    if (kIsWeb) return;
+    final prefs = await SharedPreferences.getInstance();
+    final rows = prefs.getStringList(_prefKeyLocalInbox) ?? [];
+    final now = DateTime.now();
+    final todayKey =
+        '${now.year}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}';
+    final dedupKey = '$id|$title|$todayKey';
+    final decoded = <Map<String, dynamic>>[];
+    for (final raw in rows) {
+      try {
+        final item = jsonDecode(raw);
+        if (item is Map) decoded.add(Map<String, dynamic>.from(item));
+      } catch (_) {}
+    }
+    if (decoded.any((item) => item['dedup_key'] == dedupKey)) return;
+    decoded.insert(0, {
+      'notification_id': -now.microsecondsSinceEpoch,
+      'local_id': id,
+      'title': title,
+      'message': body,
+      'type': type ?? _typeForId(id),
+      'is_read': false,
+      'created_at': now.toIso8601String(),
+      'dedup_key': dedupKey,
+    });
+    final trimmed = decoded.take(50).map(jsonEncode).toList();
+    await prefs.setStringList(_prefKeyLocalInbox, trimmed);
+  }
+
+  static Future<List<Map<String, dynamic>>> getLocalInbox() async {
+    if (kIsWeb) return [];
+    final prefs = await SharedPreferences.getInstance();
+    final rows = prefs.getStringList(_prefKeyLocalInbox) ?? [];
+    final result = <Map<String, dynamic>>[];
+    for (final raw in rows) {
+      try {
+        final item = jsonDecode(raw);
+        if (item is Map) result.add(Map<String, dynamic>.from(item));
+      } catch (_) {}
+    }
+    return result;
+  }
+
+  static Future<void> markLocalInboxRead() async {
+    if (kIsWeb) return;
+    final prefs = await SharedPreferences.getInstance();
+    final rows = await getLocalInbox();
+    final updated = rows.map((item) {
+      item['is_read'] = true;
+      return jsonEncode(item);
+    }).toList();
+    await prefs.setStringList(_prefKeyLocalInbox, updated);
+  }
 
   // ── Category prefs ─────────────────────────────────────────────────────────
 
@@ -432,8 +511,7 @@ class NotificationHelper {
     );
 
     // Handle notification that launched the app from killed state
-    final launchDetails =
-        await _notification.getNotificationAppLaunchDetails();
+    final launchDetails = await _notification.getNotificationAppLaunchDetails();
     if (launchDetails?.didNotificationLaunchApp == true) {
       final payload = launchDetails?.notificationResponse?.payload;
       if (payload != null && payload.isNotEmpty) {
@@ -464,12 +542,10 @@ class NotificationHelper {
           data: {'id': notifId, 'mealType': mealType});
     } else if (actionId == 'log_now') {
       pendingPayload.value = 'record_food';
-      ErrorReporter.event('notification.action.log_now',
-          data: {'id': notifId});
+      ErrorReporter.event('notification.action.log_now', data: {'id': notifId});
     } else if (actionId == 'snooze_30m') {
       _snooze30min(notifId, payload);
-      ErrorReporter.event('notification.action.snooze',
-          data: {'id': notifId});
+      ErrorReporter.event('notification.action.snooze', data: {'id': notifId});
     } else if (actionId == 'water_logged') {
       _notification.cancel(notifId);
       ErrorReporter.event('notification.action.water_logged',
@@ -515,14 +591,12 @@ class NotificationHelper {
     if (kIsWeb) return;
     bool? granted;
     if (defaultTargetPlatform == TargetPlatform.android) {
-      final androidImpl = _notification
-          .resolvePlatformSpecificImplementation<
-              AndroidFlutterLocalNotificationsPlugin>();
+      final androidImpl = _notification.resolvePlatformSpecificImplementation<
+          AndroidFlutterLocalNotificationsPlugin>();
       granted = await androidImpl?.requestNotificationsPermission();
     } else if (defaultTargetPlatform == TargetPlatform.iOS) {
-      final iosImpl = _notification
-          .resolvePlatformSpecificImplementation<
-              IOSFlutterLocalNotificationsPlugin>();
+      final iosImpl = _notification.resolvePlatformSpecificImplementation<
+          IOSFlutterLocalNotificationsPlugin>();
       granted = await iosImpl?.requestPermissions(
         alert: true,
         badge: true,
@@ -612,9 +686,9 @@ class NotificationHelper {
 
   // Deadlines (hhmm format) after which gap-fill fires if meal not logged
   static const _gapDeadlines = {
-    'breakfast': 930,  // 09:30
-    'lunch': 1400,     // 14:00
-    'dinner': 2030,    // 20:30
+    'breakfast': 930, // 09:30
+    'lunch': 1400, // 14:00
+    'dinner': 2030, // 20:30
   };
 
   /// Schedule a one-shot "Urgent" gap-fill notification for [mealType] at the
@@ -646,12 +720,18 @@ class NotificationHelper {
     }
 
     final (String title, String body) = switch (mealType) {
-      'breakfast' => ('🍳 ยังไม่ได้บันทึกมื้อเช้าเลยนะ',
-          'กินเช้าแล้วหรือยัง? บันทึกไว้เพื่อเริ่มนับแคลอรี่วันนี้'),
-      'lunch' => ('🍱 ยังไม่เห็นมื้อเที่ยงเลยนะ',
-          'กินข้าวกลางวันแล้วหรือยัง? บันทึกเร็วๆ นี้เลย'),
-      _ => ('🌙 มื้อเย็นยังไม่มีข้อมูลเลยนะ',
-          'วันนี้ยังขาดมื้อเย็น บันทึกก่อนนอนเพื่อดูสรุปแคลอรี่ทั้งวัน'),
+      'breakfast' => (
+          '🍳 ยังไม่ได้บันทึกมื้อเช้าเลยนะ',
+          'กินเช้าแล้วหรือยัง? บันทึกไว้เพื่อเริ่มนับแคลอรี่วันนี้'
+        ),
+      'lunch' => (
+          '🍱 ยังไม่เห็นมื้อเที่ยงเลยนะ',
+          'กินข้าวกลางวันแล้วหรือยัง? บันทึกเร็วๆ นี้เลย'
+        ),
+      _ => (
+          '🌙 มื้อเย็นยังไม่มีข้อมูลเลยนะ',
+          'วันนี้ยังขาดมื้อเย็น บันทึกก่อนนอนเพื่อดูสรุปแคลอรี่ทั้งวัน'
+        ),
     };
 
     await _notification.zonedSchedule(
@@ -726,6 +806,7 @@ class NotificationHelper {
       _prefKeyEnabled,
       _prefKeyWeighInDay,
       _prefKeyPermissionDenied,
+      _prefKeyLocalInbox,
       _prefKeyQuietEnabled,
       _prefKeyQuietStartMin,
       _prefKeyQuietEndMin,
@@ -818,8 +899,8 @@ class NotificationHelper {
     final minute = hm % 100;
 
     final now = tz.TZDateTime.now(tz.local);
-    var tomorrowTime = tz.TZDateTime(
-        tz.local, now.year, now.month, now.day, hour, minute);
+    var tomorrowTime =
+        tz.TZDateTime(tz.local, now.year, now.month, now.day, hour, minute);
     tomorrowTime = tomorrowTime.add(const Duration(days: 1));
 
     // Shift out of quiet hours if needed
@@ -828,8 +909,7 @@ class NotificationHelper {
       final endMin = await getQuietHoursEndMin();
       if (_isInQuietHours(tomorrowTime.toLocal(), startMin, endMin)) {
         final quietEnd = _nextQuietEnd(endMin);
-        tomorrowTime =
-            quietEnd.isAfter(tomorrowTime) ? quietEnd : tomorrowTime;
+        tomorrowTime = quietEnd.isAfter(tomorrowTime) ? quietEnd : tomorrowTime;
       }
     }
 
@@ -867,17 +947,38 @@ class NotificationHelper {
   static (String, String) _mealCopy(String type) {
     // Empathic, conversational tone; avoids commands like "อย่าลืม"
     const breakfast = [
-      ('☀️ เริ่มวันดีๆ กันเลยนะ', 'กินข้าวเช้าแล้วหรือยัง? จดบันทึกเอาไว้สักหน่อยนะ'),
-      ('🍳 มื้อเช้าเป็นยังไงบ้าง?', 'พลังงานดีๆ เริ่มจากมื้อเช้า บันทึกเดี๋ยวนี้เลย'),
-      ('🥐 ตื่นมาแล้วต้องกิน!', 'มื้อเช้าช่วยให้สมองตื่นตัวตลอดเช้า บันทึกไว้นะครับ'),
+      (
+        '☀️ เริ่มวันดีๆ กันเลยนะ',
+        'กินข้าวเช้าแล้วหรือยัง? จดบันทึกเอาไว้สักหน่อยนะ'
+      ),
+      (
+        '🍳 มื้อเช้าเป็นยังไงบ้าง?',
+        'พลังงานดีๆ เริ่มจากมื้อเช้า บันทึกเดี๋ยวนี้เลย'
+      ),
+      (
+        '🥐 ตื่นมาแล้วต้องกิน!',
+        'มื้อเช้าช่วยให้สมองตื่นตัวตลอดเช้า บันทึกไว้นะครับ'
+      ),
     ];
     const lunch = [
-      ('🍱 มื้อเที่ยงวันนี้เป็นไง?', 'พลังงานเพียงพอสำหรับช่วงบ่ายไหม? จดบันทึกเลยนะ'),
-      ('🌞 กินข้าวกลางวันแล้วหรือยัง?', 'บันทึกมื้อเที่ยงเพื่อเช็กว่าบ่ายนี้ยังเหลือโควตาอีกแค่ไหน'),
-      ('🍜 หิวแล้วใช่ไหม?', 'ทานให้อร่อยนะ แล้วอย่าลืมบันทึกหลังกินเสร็จด้วยล่ะ'),
+      (
+        '🍱 มื้อเที่ยงวันนี้เป็นไง?',
+        'พลังงานเพียงพอสำหรับช่วงบ่ายไหม? จดบันทึกเลยนะ'
+      ),
+      (
+        '🌞 กินข้าวกลางวันแล้วหรือยัง?',
+        'บันทึกมื้อเที่ยงเพื่อเช็กว่าบ่ายนี้ยังเหลือโควตาอีกแค่ไหน'
+      ),
+      (
+        '🍜 หิวแล้วใช่ไหม?',
+        'ทานให้อร่อยนะ แล้วอย่าลืมบันทึกหลังกินเสร็จด้วยล่ะ'
+      ),
     ];
     const dinner = [
-      ('🌙 วันนี้เป็นยังไงบ้าง?', 'มื้อเย็นเบาๆ ก็โอเคนะ จดบันทึกก่อนพักผ่อนสักหน่อย'),
+      (
+        '🌙 วันนี้เป็นยังไงบ้าง?',
+        'มื้อเย็นเบาๆ ก็โอเคนะ จดบันทึกก่อนพักผ่อนสักหน่อย'
+      ),
       ('🥗 จวนจะจบวันแล้ว', 'บันทึกมื้อเย็นเพื่อดูสรุปแคลอรี่ทั้งวันนะ'),
       ('🍽️ มื้อสุดท้ายวันนี้', 'กินเสร็จแล้วแวะมาบันทึกที่นี่ก่อนนอนเลยนะ'),
     ];
@@ -893,18 +994,36 @@ class NotificationHelper {
     // Insight-driven: mix of hydration facts and direct encouragement
     const variants = [
       ('💧 จิบน้ำหน่อยนะ', 'การดื่มน้ำพอช่วยลดความอยากของว่างได้ด้วยนะครับ'),
-      ('🥤 น้ำช่วยได้มากกว่าที่คิด', 'ดื่มน้ำเยอะๆ ช่วยให้เผาผลาญดีและผิวสวยขึ้นด้วย'),
-      ('💦 ร่างกายต้องการน้ำตอนนี้', 'บ่ายนี้ดื่มน้ำให้ครบนะ ช่วยให้ไม่ง่วงและลดความหิวด้วย'),
-      ('🌊 ไม่ต้องรอกระหายก่อนก็ได้', 'ดื่มน้ำสม่ำเสมอดีกว่ารอให้ปากแห้ง ร่างกายขอบคุณนะ'),
+      (
+        '🥤 น้ำช่วยได้มากกว่าที่คิด',
+        'ดื่มน้ำเยอะๆ ช่วยให้เผาผลาญดีและผิวสวยขึ้นด้วย'
+      ),
+      (
+        '💦 ร่างกายต้องการน้ำตอนนี้',
+        'บ่ายนี้ดื่มน้ำให้ครบนะ ช่วยให้ไม่ง่วงและลดความหิวด้วย'
+      ),
+      (
+        '🌊 ไม่ต้องรอกระหายก่อนก็ได้',
+        'ดื่มน้ำสม่ำเสมอดีกว่ารอให้ปากแห้ง ร่างกายขอบคุณนะ'
+      ),
     ];
     return variants[_rng.nextInt(variants.length)];
   }
 
   static (String, String) _motivationCopy() {
     const variants = [
-      ('🔥 วันใหม่ โอกาสใหม่', 'วินัยสร้างได้ทุกวัน เริ่มบันทึกมื้อแรกกันเลยนะ'),
-      ('💪 ทำได้อีกวัน!', 'คุณทำมาต่อเนื่องแล้ว วันนี้รักษาโมเมนตัมนี้ไว้นะครับ'),
-      ('⚡ ตื่นเช้า พร้อมเริ่ม', 'เป้าหมายรอคุณอยู่ เริ่มบันทึกอาหารมื้อแรกกันเลย'),
+      (
+        '🔥 วันใหม่ โอกาสใหม่',
+        'วินัยสร้างได้ทุกวัน เริ่มบันทึกมื้อแรกกันเลยนะ'
+      ),
+      (
+        '💪 ทำได้อีกวัน!',
+        'คุณทำมาต่อเนื่องแล้ว วันนี้รักษาโมเมนตัมนี้ไว้นะครับ'
+      ),
+      (
+        '⚡ ตื่นเช้า พร้อมเริ่ม',
+        'เป้าหมายรอคุณอยู่ เริ่มบันทึกอาหารมื้อแรกกันเลย'
+      ),
     ];
     return variants[_rng.nextInt(variants.length)];
   }
@@ -956,6 +1075,12 @@ class NotificationHelper {
         );
         ErrorReporter.event('notification.suppressed.quietHours',
             data: {'id': id, 'title': title});
+        await _saveToLocalInbox(
+          id: id,
+          title: title,
+          body: body,
+          type: _typeForId(id),
+        );
         return;
       }
     }
@@ -976,8 +1101,8 @@ class NotificationHelper {
       ),
       payload: payload,
     );
-    ErrorReporter.event('notification.shown',
-        data: {'id': id, 'title': title});
+    await _saveToLocalInbox(id: id, title: title, body: body);
+    ErrorReporter.event('notification.shown', data: {'id': id, 'title': title});
   }
 
   // ── Scheduled notification base ────────────────────────────────────────────
@@ -1287,7 +1412,8 @@ class NotificationHelper {
     final String body;
     if (graceStatus == -1) {
       title = '💔 Streak ขาดแล้ว';
-      body = 'กู้คืน streak $currentStreak วันได้ในแอป (ฟรี 1 ครั้ง/เดือน หรือซื้อร้าน 300 🌾)';
+      body =
+          'กู้คืน streak $currentStreak วันได้ในแอป (ฟรี 1 ครั้ง/เดือน หรือซื้อร้าน 700 🌾)';
     } else if (graceStatus == 2) {
       title = '🚨 วันสุดท้าย! Streak $currentStreak วันจะหาย';
       body = 'บันทึกวันนี้เพื่อรักษา streak ไว้ก่อนเที่ยงคืน';
@@ -1336,7 +1462,8 @@ class NotificationHelper {
     await showNotification(
       id: 201,
       title: '🚨 พลังงานเกินเป้าหมายแล้ว!',
-      body: 'คุณทานไป $current / $target KCAL แนะนำให้ขยับร่างกายเพิ่มหน่อยนะครับ',
+      body:
+          'คุณทานไป $current / $target KCAL แนะนำให้ขยับร่างกายเพิ่มหน่อยนะครับ',
       payload: 'home',
       bypassQuiet: true,
       bypassRateLimit: true,
@@ -1357,12 +1484,10 @@ class NotificationHelper {
   static Future<void> showNutritionSafetyWarning(
       String title, String body) async {
     if (kIsWeb) return;
-    await showNotification(
-        id: 203, title: title, body: body, payload: 'home');
+    await showNotification(id: 203, title: title, body: body, payload: 'home');
   }
 
-  static Future<void> showWaterSafetyWarning(
-      String title, String body) async {
+  static Future<void> showWaterSafetyWarning(String title, String body) async {
     if (kIsWeb) return;
     await showNotification(
         id: 204, title: title, body: body, payload: 'record_food');
@@ -1425,11 +1550,21 @@ class NotificationHelper {
     await prefs.setString('goal_celebrated_date', todayStr);
 
     const celebrations = [
-      ('🎉 เป้าหมายวันนี้ครบแล้ว!', 'สุดยอดมาก! วันนี้คุณทำตามแผนโภชนาการได้ดีมากเลยนะ 💪'),
-      ('✅ ทำได้แล้ววันนี้!', 'คุณกินพลังงานตรงตามเป้าหมายวันนี้ รักษาโมเมนตัมนี้ไว้นะ!'),
-      ('🌟 วันดีๆ อีกวัน', 'แคลอรี่วันนี้ครบแล้ว ขอบคุณที่รักษาสุขภาพของตัวเองนะ'),
+      (
+        '🎉 เป้าหมายวันนี้ครบแล้ว!',
+        'สุดยอดมาก! วันนี้คุณทำตามแผนโภชนาการได้ดีมากเลยนะ 💪'
+      ),
+      (
+        '✅ ทำได้แล้ววันนี้!',
+        'คุณกินพลังงานตรงตามเป้าหมายวันนี้ รักษาโมเมนตัมนี้ไว้นะ!'
+      ),
+      (
+        '🌟 วันดีๆ อีกวัน',
+        'แคลอรี่วันนี้ครบแล้ว ขอบคุณที่รักษาสุขภาพของตัวเองนะ'
+      ),
     ];
-    final copy = celebrations[DateTime.now().millisecondsSinceEpoch % celebrations.length];
+    final copy = celebrations[
+        DateTime.now().millisecondsSinceEpoch % celebrations.length];
     await showNotification(
       id: 9001,
       title: copy.$1,
@@ -1447,7 +1582,13 @@ class NotificationHelper {
     if (streak < 3) return;
     if (![3, 7, 14, 30].contains(streak) && streak % 30 != 0) return;
 
-    final emoji = streak >= 30 ? '🏆' : streak >= 14 ? '🥇' : streak >= 7 ? '🥈' : '🎯';
+    final emoji = streak >= 30
+        ? '🏆'
+        : streak >= 14
+            ? '🥇'
+            : streak >= 7
+                ? '🥈'
+                : '🎯';
     await showNotification(
       id: 9002,
       title: '$emoji Streak $streak วัน! ยอดเยี่ยมมาก!',
@@ -1487,8 +1628,7 @@ class NotificationHelper {
   // ── Debug helpers (Tier 4.2) ───────────────────────────────────────────────
 
   /// Returns all currently pending notification requests (for debug screen).
-  static Future<List<PendingNotificationRequest>>
-      getPendingRequests() async {
+  static Future<List<PendingNotificationRequest>> getPendingRequests() async {
     if (kIsWeb) return [];
     return _notification.pendingNotificationRequests();
   }
@@ -1563,8 +1703,8 @@ class NotificationHelper {
 
       case 'gap_fill':
         // Schedule gap-fill 10 seconds from now (for quick testing)
-        final testTime = tz.TZDateTime.now(tz.local)
-            .add(const Duration(seconds: 10));
+        final testTime =
+            tz.TZDateTime.now(tz.local).add(const Duration(seconds: 10));
         await _notification.zonedSchedule(
           9906,
           '🍽️ [Test] ยังไม่เห็นมื้อเย็นเลยนะ',
@@ -1605,7 +1745,8 @@ class NotificationHelper {
         await showNotification(
           id: 9907,
           title: '🥩 ขาดโปรตีนอยู่นะ!',
-          body: 'วันนี้ยังขาดโปรตีนอีก 25g ลองเพิ่มไข่ต้มหรือเนื้อมื้อเย็นด้วยนะ',
+          body:
+              'วันนี้ยังขาดโปรตีนอีก 25g ลองเพิ่มไข่ต้มหรือเนื้อมื้อเย็นด้วยนะ',
           payload: 'record_food',
           bypassRateLimit: true,
           bypassQuiet: true,

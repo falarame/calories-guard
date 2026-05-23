@@ -289,10 +289,23 @@ async def get_me(current_user: dict = Depends(get_current_user)):
             }
             if streak in streak_milestones:
                 cur.execute(
-                    """INSERT INTO cleangoal.notifications (user_id, title, message, type)
-                       VALUES (%s, %s, %s, 'achievement')
-                       ON CONFLICT DO NOTHING""",
-                    (user_id, f"Streak {streak} วัน!", streak_milestones[streak]),
+                    """
+                    INSERT INTO cleangoal.notifications (user_id, title, message, type)
+                    SELECT %s, %s, %s, 'achievement'
+                    WHERE NOT EXISTS (
+                        SELECT 1 FROM cleangoal.notifications
+                        WHERE user_id = %s
+                          AND title = %s
+                          AND DATE(created_at) = CURRENT_DATE
+                    )
+                    """,
+                    (
+                        user_id,
+                        f"Streak {streak} วัน!",
+                        streak_milestones[streak],
+                        user_id,
+                        f"Streak {streak} วัน!",
+                    ),
                 )
             conn.commit()
         else:
@@ -579,9 +592,20 @@ def _login_impl(user, request: Request | None = None):
                 msg = streak_milestones[streak]
                 cur.execute("""
                     INSERT INTO notifications (user_id, title, message, type)
-                    VALUES (%s, %s, %s, 'achievement')
-                    ON CONFLICT DO NOTHING
-                """, (db_user['user_id'], f"Streak {streak} วัน!", msg))
+                    SELECT %s, %s, %s, 'achievement'
+                    WHERE NOT EXISTS (
+                        SELECT 1 FROM notifications
+                        WHERE user_id = %s
+                          AND title = %s
+                          AND DATE(created_at) = CURRENT_DATE
+                    )
+                """, (
+                    db_user['user_id'],
+                    f"Streak {streak} วัน!",
+                    msg,
+                    db_user['user_id'],
+                    f"Streak {streak} วัน!",
+                ))
         conn.commit()
         access_token = _issue_access_token(
             db_user['user_id'], db_user['email'], db_user['role_id']
@@ -649,9 +673,20 @@ def social_login(body: SocialLoginRequest):
             if streak in streak_milestones and last_login != today:
                 cur.execute("""
                     INSERT INTO notifications (user_id, title, message, type)
-                    VALUES (%s, %s, %s, 'achievement')
-                    ON CONFLICT DO NOTHING
-                """, (user['user_id'], f"Streak {streak} วัน!", streak_milestones[streak]))
+                    SELECT %s, %s, %s, 'achievement'
+                    WHERE NOT EXISTS (
+                        SELECT 1 FROM notifications
+                        WHERE user_id = %s
+                          AND title = %s
+                          AND DATE(created_at) = CURRENT_DATE
+                    )
+                """, (
+                    user['user_id'],
+                    f"Streak {streak} วัน!",
+                    streak_milestones[streak],
+                    user['user_id'],
+                    f"Streak {streak} วัน!",
+                ))
             conn.commit()
             role_id = int(user.get('role_id') or 2)
             onboarding_required = _onboarding_required(user)

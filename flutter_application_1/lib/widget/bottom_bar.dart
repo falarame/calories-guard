@@ -10,10 +10,10 @@ import '../providers/user_data_provider.dart';
 // --- Import หน้าต่างๆ ---
 import '../screens/app_home_screen.dart';
 import '../screens/record/record_food_screen.dart';
-import '../screens/recommened_exercise/exercise_recommendation_screen.dart';
 import '../screens/recommend_food/recommend_food_screen.dart';
 import '../screens/profile/profile_screen.dart';
 import '../screens/profile/subprofile_screen/progress_screen.dart';
+import '../screens/tamagotchi/leaderboard_screen.dart';
 import '../screens/weight/weight_chart_screen.dart';
 import '../screens/chat/chat_screen.dart';
 import '../screens/community/conversations_list_screen.dart';
@@ -36,7 +36,7 @@ class _MainScreenState extends ConsumerState<MainScreen> {
     const AppHomeScreen(), // Index 0: หน้าหลัก
     const FoodLogScreen(), // Index 1: หน้าบันทึก
     const RecommendedFoodScreen(), // Index 2: อาหารแนะนำ
-    const ExerciseRecommendationScreen(), // Index 3: ออกกำลังกาย
+    const LeaderboardScreen(embedded: true), // Index 3: ลีดเดอร์บอร์ด
   ];
 
   bool _showWelcome = false;
@@ -49,12 +49,14 @@ class _MainScreenState extends ConsumerState<MainScreen> {
     // P2: listen for notification deep-link payloads
     NotificationHelper.pendingPayload.addListener(_handleNotificationPayload);
     // Handle payload that may have been set before this widget was mounted
-    WidgetsBinding.instance.addPostFrameCallback((_) => _handleNotificationPayload());
+    WidgetsBinding.instance
+        .addPostFrameCallback((_) => _handleNotificationPayload());
   }
 
   @override
   void dispose() {
-    NotificationHelper.pendingPayload.removeListener(_handleNotificationPayload);
+    NotificationHelper.pendingPayload
+        .removeListener(_handleNotificationPayload);
     _welcomeTimer?.cancel();
     super.dispose();
   }
@@ -92,8 +94,8 @@ class _MainScreenState extends ConsumerState<MainScreen> {
         break;
       case 'progress':
         ref.read(navIndexProvider.notifier).state = 0;
-        Navigator.push(context,
-            MaterialPageRoute(builder: (_) => const ProgressScreen()));
+        Navigator.push(
+            context, MaterialPageRoute(builder: (_) => const ProgressScreen()));
         break;
     }
   }
@@ -209,11 +211,11 @@ class _MainScreenState extends ConsumerState<MainScreen> {
             padding: const EdgeInsets.all(8.0),
             decoration: isActive
                 ? BoxDecoration(
-                    color: Colors.white.withOpacity( 0.5),
+                    color: Colors.white.withOpacity(0.5),
                     borderRadius: BorderRadius.circular(12),
                     boxShadow: [
                       BoxShadow(
-                        color: const Color(0xFF4C6414).withOpacity( 0.4),
+                        color: const Color(0xFF4C6414).withOpacity(0.4),
                         blurRadius: 12,
                         spreadRadius: 1,
                         offset: const Offset(0, 3),
@@ -297,7 +299,7 @@ class _MainScreenState extends ConsumerState<MainScreen> {
                 final avatarUrl = ref.watch(userDataProvider).avatarUrl;
                 return CircleAvatar(
                   radius: 18,
-                  backgroundColor: Colors.white.withOpacity( 0.25),
+                  backgroundColor: Colors.white.withOpacity(0.25),
                   backgroundImage: (avatarUrl != null && avatarUrl.isNotEmpty)
                       ? NetworkImage(avatarUrl)
                       : null,
@@ -329,22 +331,29 @@ class _ChatIconButton extends ConsumerWidget {
         child: Stack(
           clipBehavior: Clip.none,
           children: [
-            const Icon(Icons.chat_bubble_outline, color: Colors.white, size: 24),
+            const Icon(Icons.chat_bubble_outline,
+                color: Colors.white, size: 24),
             if (unread > 0)
               Positioned(
                 right: -6,
                 top: -4,
                 child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
-                  constraints: const BoxConstraints(minWidth: 16, minHeight: 16),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
+                  constraints:
+                      const BoxConstraints(minWidth: 16, minHeight: 16),
                   decoration: BoxDecoration(
                     color: Colors.redAccent,
                     borderRadius: BorderRadius.circular(8),
-                    border: Border.all(color: const Color(0xFF628141), width: 1.5),
+                    border:
+                        Border.all(color: const Color(0xFF628141), width: 1.5),
                   ),
                   child: Text(
                     unread > 99 ? '99+' : '$unread',
-                    style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold),
+                    style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 10,
+                        fontWeight: FontWeight.bold),
                     textAlign: TextAlign.center,
                   ),
                 ),
@@ -375,11 +384,11 @@ class _WelcomeSpeechBubble extends StatelessWidget {
                 color: Colors.white,
                 borderRadius: BorderRadius.circular(14),
                 border: Border.all(
-                    color: const Color(0xFF628141).withOpacity( 0.3),
+                    color: const Color(0xFF628141).withOpacity(0.3),
                     width: 1.2),
                 boxShadow: [
                   BoxShadow(
-                      color: Colors.black.withOpacity( 0.12),
+                      color: Colors.black.withOpacity(0.12),
                       blurRadius: 10,
                       offset: const Offset(0, 4)),
                 ],
@@ -415,10 +424,10 @@ class _WelcomeSpeechBubble extends StatelessWidget {
                     color: Colors.white,
                     border: Border(
                       right: BorderSide(
-                          color: const Color(0xFF628141).withOpacity( 0.3),
+                          color: const Color(0xFF628141).withOpacity(0.3),
                           width: 1.2),
                       bottom: BorderSide(
-                          color: const Color(0xFF628141).withOpacity( 0.3),
+                          color: const Color(0xFF628141).withOpacity(0.3),
                           width: 1.2),
                     ),
                   ),

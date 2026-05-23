@@ -239,34 +239,81 @@ def set_user_allergies(user_id: int, body: AllergyUpdate, current_user: dict = D
 
 # --- Leaderboard ---
 
+def _leaderboard_rows(cur, limit: int, user_ids: list[int] | None = None):
+    params: list[object] = []
+    filter_sql = ""
+    if user_ids is not None:
+        if not user_ids:
+            return []
+        filter_sql = "AND u.user_id = ANY(%s)"
+        params.append(user_ids)
+    params.append(limit)
+    cur.execute(f"""
+        SELECT u.user_id,
+               COALESCE(u.username, 'ผู้ใช้') AS username,
+               COALESCE(u.current_streak, 0)   AS current_streak,
+               COALESCE(u.total_login_days, 0) AS total_login_days,
+               u.avatar_url,
+               COALESCE(g.tama_points, 0)      AS tama_points,
+               COALESCE(g.tama_points, 0)      AS weekly_xp,
+               COALESCE(g.tier_level, 0)       AS tier_level,
+               COALESCE(g.claimed_badges, '{{}}') AS claimed_badges
+        FROM cleangoal.users u
+        LEFT JOIN cleangoal.user_gamification g ON g.user_id = u.user_id
+        WHERE u.deleted_at IS NULL
+          AND (u.current_streak > 0 OR u.total_login_days > 0 OR COALESCE(g.tama_points, 0) > 0)
+          {filter_sql}
+        ORDER BY COALESCE(g.tama_points, 0) DESC, u.current_streak DESC, u.total_login_days DESC
+        LIMIT %s
+    """, tuple(params))
+    rows = cur.fetchall()
+    result = []
+    for i, row in enumerate(rows):
+        entry = dict(row)
+        entry['rank'] = i + 1
+        result.append(entry)
+    return result
+
+
 @router.get("/leaderboard")
 def get_leaderboard(limit: int = 50):
+    return get_global_leaderboard(limit)
+
+
+@router.get("/leaderboard/global")
+def get_global_leaderboard(limit: int = 50):
     conn = get_db_connection()
     try:
         cur = conn.cursor(cursor_factory=RealDictCursor)
-        cur.execute("""
-            SELECT u.user_id,
-                   COALESCE(u.username, 'ผู้ใช้') AS username,
-                   COALESCE(u.current_streak, 0)   AS current_streak,
-                   COALESCE(u.total_login_days, 0)  AS total_login_days,
-                   u.avatar_url,
-                   COALESCE(g.tama_points, 0)    AS tama_points,
-                   COALESCE(g.tier_level, 0)     AS tier_level,
-                   COALESCE(g.claimed_badges, '{}') AS claimed_badges
-            FROM cleangoal.users u
-            LEFT JOIN cleangoal.user_gamification g ON g.user_id = u.user_id
-            WHERE u.deleted_at IS NULL
-              AND (u.current_streak > 0 OR u.total_login_days > 0 OR COALESCE(g.tama_points, 0) > 0)
-            ORDER BY u.current_streak DESC, u.total_login_days DESC
-            LIMIT %s
-        """, (limit,))
-        rows = cur.fetchall()
-        result = []
-        for i, row in enumerate(rows):
-            entry = dict(row)
-            entry['rank'] = i + 1
-            result.append(entry)
-        return result
+        return _leaderboard_rows(cur, limit)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+    finally:
+        if conn:
+            conn.close()
+
+
+@router.get("/leaderboard/friends/{user_id}")
+def get_friends_leaderboard(user_id: int, current_user: dict = Depends(get_current_user), limit: int = 50):
+    check_ownership(current_user, user_id)
+    conn = get_db_connection()
+    try:
+        cur = conn.cursor(cursor_factory=RealDictCursor)
+        cur.execute(
+            """
+            SELECT friend_id
+            FROM cleangoal.friendships
+            WHERE user_id = %s AND status = 'accepted'
+            UNION
+            SELECT user_id
+            FROM cleangoal.friendships
+            WHERE friend_id = %s AND status = 'accepted'
+            """,
+            (user_id, user_id),
+        )
+        friend_ids = [int(r["friend_id"]) for r in cur.fetchall()]
+        ids = sorted(set(friend_ids + [user_id]))
+        return _leaderboard_rows(cur, limit, ids)
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
     finally:

@@ -13,7 +13,8 @@ import '../../theme/app_theme.dart';
 import '../../widgets/weight_chart_card.dart';
 
 class WeightChartScreen extends ConsumerStatefulWidget {
-  const WeightChartScreen({super.key});
+  const WeightChartScreen({super.key, this.openRecordOnStart = false});
+  final bool openRecordOnStart;
 
   @override
   ConsumerState<WeightChartScreen> createState() => _WeightChartScreenState();
@@ -27,7 +28,12 @@ class _WeightChartScreenState extends ConsumerState<WeightChartScreen> {
   @override
   void initState() {
     super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) => _fetch());
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      await _fetch();
+      if (mounted && widget.openRecordOnStart) {
+        await _openRecordSheet();
+      }
+    });
   }
 
   Future<void> _fetch() async {

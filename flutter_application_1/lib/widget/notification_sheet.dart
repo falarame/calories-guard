@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../providers/user_data_provider.dart';
 import '../services/api_client.dart';
 import '../services/error_reporter.dart';
+import '../services/notification_helper.dart';
 
 // ── Provider: unread count ────────────────────────────────────────────────────
 final unreadCountProvider = StateProvider<int>((ref) => 0);
@@ -63,8 +64,10 @@ class _NotificationBellState extends ConsumerState<NotificationBell> {
       final res = await ApiClient().get('/notifications/$userId/unread_count');
       if (res.statusCode == 200 && mounted) {
         final data = jsonDecode(res.body);
+        final local = await NotificationHelper.getLocalInbox();
+        final localUnread = local.where((n) => n['is_read'] != true).length;
         ref.read(unreadCountProvider.notifier).state =
-            (data['unread_count'] as int?) ?? 0;
+            ((data['unread_count'] as int?) ?? 0) + localUnread;
       }
     } catch (e, st) {
       ErrorReporter.report('notification_sheet.fetch_unread_count', e, st);
@@ -150,9 +153,15 @@ class _NotificationSheetState extends ConsumerState<NotificationSheet> {
     try {
       final res = await ApiClient().get('/notifications/$userId');
       if (res.statusCode == 200) {
-        final list = (jsonDecode(res.body) as List)
-            .map((j) => AppNotification.fromJson(j as Map<String, dynamic>))
-            .toList();
+        final local = await NotificationHelper.getLocalInbox();
+        final merged = [
+          ...((jsonDecode(res.body) as List).whereType<Map>()),
+          ...local,
+        ];
+        final list = merged
+            .map((j) => AppNotification.fromJson(Map<String, dynamic>.from(j)))
+            .toList()
+          ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
         setState(() => _notifications = list);
       } else {
         setState(() => _error = 'โหลดไม่สำเร็จ');
@@ -167,6 +176,7 @@ class _NotificationSheetState extends ConsumerState<NotificationSheet> {
     final userId = ref.read(userDataProvider).userId;
     try {
       await ApiClient().put('/notifications/$userId/read_all');
+      await NotificationHelper.markLocalInboxRead();
       setState(() {
         for (final n in _notifications) {
           n.isRead = true;
@@ -271,7 +281,7 @@ class _NotificationSheetState extends ConsumerState<NotificationSheet> {
                         Text('ยังไม่ได้อ่าน $unread รายการ',
                             style: TextStyle(
                                 fontSize: 12,
-                                color: Colors.white.withOpacity( 0.75))),
+                                color: Colors.white.withOpacity(0.75))),
                     ]),
               ),
               if (unread > 0)
@@ -359,11 +369,10 @@ class _NotificationSheetState extends ConsumerState<NotificationSheet> {
         border: n.isRead
             ? null
             : Border.all(
-                color: const Color(0xFF628141).withOpacity( 0.3),
-                width: 1),
+                color: const Color(0xFF628141).withOpacity(0.3), width: 1),
         boxShadow: [
           BoxShadow(
-              color: Colors.black.withOpacity( 0.04),
+              color: Colors.black.withOpacity(0.04),
               blurRadius: 8,
               offset: const Offset(0, 3)),
         ],
@@ -374,7 +383,7 @@ class _NotificationSheetState extends ConsumerState<NotificationSheet> {
           width: 44,
           height: 44,
           decoration: BoxDecoration(
-            color: color.withOpacity( 0.12),
+            color: color.withOpacity(0.12),
             shape: BoxShape.circle,
           ),
           child: Icon(icon, color: color, size: 22),

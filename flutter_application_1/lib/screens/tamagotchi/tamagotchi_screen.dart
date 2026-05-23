@@ -5,7 +5,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '/providers/user_data_provider.dart';
 import '/screens/tamagotchi/achievements_screen.dart';
-import '/screens/tamagotchi/leaderboard_screen.dart';
 import '/screens/tamagotchi/reward_shop_screen.dart';
 import '/services/api_client.dart';
 import '/services/error_reporter.dart';
@@ -25,8 +24,10 @@ class _Tier {
   final String name;
   final String emoji;
   final int minXp;
-  final int weeklyReward; // gems awarded at end of week if finishing at this tier
-  final int firstTimeReward; // one-time lifetime bonus when first reaching this tier
+  final int
+      weeklyReward; // gems awarded at end of week if finishing at this tier
+  final int
+      firstTimeReward; // one-time lifetime bonus when first reaching this tier
   final Color color;
   final String perks;
   const _Tier({
@@ -159,22 +160,34 @@ class _TamagotchiScreenState extends ConsumerState<TamagotchiScreen>
       Navigator.pop(context);
       ref.read(navIndexProvider.notifier).state = 1;
     }
+
     void goRecommend() {
       Navigator.pop(context);
       ref.read(navIndexProvider.notifier).state = 2;
     }
+
     if (id.startsWith('log_meal_') ||
         id == 'drink_water_8' ||
         id == 'nutrition_complete' ||
-        id == 'log_exercise') return goRecord;
-    if (id == 'review_food' || id == 'add_menu') return goRecommend;
+        id == 'log_exercise') {
+      return goRecord;
+    }
+    if (id == 'review_food' || id == 'add_menu') {
+      return goRecommend;
+    }
     if (id == 'weight_log') {
-      return () => Navigator.push(context,
-          MaterialPageRoute(builder: (_) => const WeightChartScreen()));
+      return () {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (_) => const WeightChartScreen(openRecordOnStart: true),
+          ),
+        );
+      };
     }
     if (id == 'invite_friend') {
-      return () => Navigator.push(context,
-          MaterialPageRoute(builder: (_) => const FriendsScreen()));
+      return () => Navigator.push(
+          context, MaterialPageRoute(builder: (_) => const FriendsScreen()));
     }
     return null;
   }
@@ -345,8 +358,9 @@ class _TamagotchiScreenState extends ConsumerState<TamagotchiScreen>
   static const _primary = Color(0xFF1565C0);
 
   // Tier derived from current weekly XP (resets every Monday)
-  int get _activeTierIdx =>
-      _tiers.lastIndexWhere((t) => _weeklyXp >= t.minXp).clamp(0, _tiers.length - 1);
+  int get _activeTierIdx => _tiers
+      .lastIndexWhere((t) => _weeklyXp >= t.minXp)
+      .clamp(0, _tiers.length - 1);
 
   // Flat scoring (no tier multiplier) — baseXp/baseGems used directly
   String _gemsKey(int uid) => 'tama_gems_$uid';
@@ -376,10 +390,12 @@ class _TamagotchiScreenState extends ConsumerState<TamagotchiScreen>
     final weekNum = (daysSinceWeek1 ~/ 7) + 1;
     return '${localDate.year}-W${weekNum.toString().padLeft(2, '0')}';
   }
+
   String _claimedKey(int uid) {
     final n = DateTime.now();
     return 'tama_claimed_${uid}_${n.year}-${n.month}-${n.day}';
   }
+
   String _perfectDayKey(int uid) {
     final n = DateTime.now();
     return 'tama_perfect_day_${uid}_${n.year}-${n.month}-${n.day}';
@@ -501,15 +517,12 @@ class _TamagotchiScreenState extends ConsumerState<TamagotchiScreen>
           final weekStart = now.subtract(Duration(days: now.weekday - 1));
           final weekStartStr =
               '${weekStart.year}-${weekStart.month.toString().padLeft(2, '0')}-${weekStart.day.toString().padLeft(2, '0')}';
-          final weekEntries = wList
-              .where((e) {
-                final d = e['date']?.toString() ?? '';
-                return d.compareTo(weekStartStr) >= 0 &&
-                    d.compareTo(today) <= 0;
-              })
-              .toList()
-            ..sort((a, b) =>
-                (a['date'] as String).compareTo(b['date'] as String));
+          final weekEntries = wList.where((e) {
+            final d = e['date']?.toString() ?? '';
+            return d.compareTo(weekStartStr) >= 0 && d.compareTo(today) <= 0;
+          }).toList()
+            ..sort(
+                (a, b) => (a['date'] as String).compareTo(b['date'] as String));
           final wStart = weekEntries.isNotEmpty
               ? (weekEntries.first['weight_kg'] as num?)?.toDouble()
               : null;
@@ -637,123 +650,123 @@ class _TamagotchiScreenState extends ConsumerState<TamagotchiScreen>
     if (_isClaiming || _isMissionClaimed(m.id)) return;
     setState(() => _isClaiming = true);
     try {
-    final uid = ref.read(userDataProvider).userId;
-    final prefs = await SharedPreferences.getInstance();
+      final uid = ref.read(userDataProvider).userId;
+      final prefs = await SharedPreferences.getInstance();
 
-    final int earnedXp;
-    int earnedGems;
-    if (m.id == 'invite_friend') {
-      // Cap invite rewards at 10 per claim to prevent abuse
-      final safeCount = _pendingInviteRewards.clamp(0, 10);
-      earnedXp = 50 * safeCount;
-      earnedGems = 100 * safeCount;
-    } else {
-      earnedXp = m.baseXp;
-      earnedGems = m.baseGems;
-    }
-
-    int newWeeklyXp = (_weeklyXp + earnedXp).clamp(0, 9999999);
-    int newGems = (_gems + earnedGems).clamp(0, 999999);
-    final oldTierIdx = _activeTierIdx;
-
-    Set<String> newClaimed = {..._claimedToday};
-    Set<String> newAchievements = {..._claimedAchievements};
-
-    if (_isStreakMission(m.id)) {
-      // Lifetime achievement
-      newAchievements.add(m.id);
-    } else {
-      newClaimed.add(m.id);
-      await prefs.setStringList(_claimedKey(uid), newClaimed.toList());
-    }
-
-    // Perfect Day: all non-streak/non-invite missions done → +15 XP, +25 🌾 bonus
-    // Guard with daily-scoped key so it can't double-fire when later claims arrive.
-    final perfectDayAlreadyAwarded =
-        prefs.getBool(_perfectDayKey(uid)) ?? false;
-    final allDone = _missions
-        .where((ms) =>
-            !_isStreakMission(ms.id) && ms.id != 'invite_friend')
-        .every((ms) => newClaimed.contains(ms.id));
-    final perfectDayAwarded = allDone && !perfectDayAlreadyAwarded;
-    if (perfectDayAwarded) {
-      newWeeklyXp = (newWeeklyXp + 15).clamp(0, 9999999);
-      newGems = (newGems + 25).clamp(0, 999999);
-      await prefs.setBool(_perfectDayKey(uid), true);
-    }
-
-    final newTierIdx = (_tiers.lastIndexWhere((t) => newWeeklyXp >= t.minXp))
-        .clamp(0, _tiers.length - 1);
-
-    // First-time tier achievement (lifetime, one-time per tier)
-    int firstTimeBonus = 0;
-    int? firstTimeTierIdx;
-    if (newTierIdx > oldTierIdx) {
-      for (int tierIdx = oldTierIdx + 1; tierIdx <= newTierIdx; tierIdx++) {
-        final achKey = 'first_tier_$tierIdx';
-        if (!newAchievements.contains(achKey)) {
-          newAchievements.add(achKey);
-          firstTimeBonus += _tiers[tierIdx].firstTimeReward;
-          firstTimeTierIdx ??= tierIdx;
-        }
+      final int earnedXp;
+      int earnedGems;
+      if (m.id == 'invite_friend') {
+        // Cap invite rewards at 10 per claim to prevent abuse
+        final safeCount = _pendingInviteRewards.clamp(0, 10);
+        earnedXp = 50 * safeCount;
+        earnedGems = 100 * safeCount;
+      } else {
+        earnedXp = m.baseXp;
+        earnedGems = m.baseGems;
       }
-      newGems += firstTimeBonus;
-    }
 
-    // Persist
-    await prefs.setInt(_weeklyXpKey(uid), newWeeklyXp);
-    await prefs.setString(_weeklyXpWeekKey(uid), _weeklyXpWeek);
-    await prefs.setInt(_gemsKey(uid), newGems);
-    await prefs.setStringList(
-        _achievementsKey(uid), newAchievements.toList());
-    if (m.id == 'invite_friend') {
-      await prefs.setInt('tama_invitee_count_$uid', _currentInviteeCount);
-    }
+      int newWeeklyXp = (_weeklyXp + earnedXp).clamp(0, 9999999);
+      int newGems = (_gems + earnedGems).clamp(0, 999999);
+      final oldTierIdx = _activeTierIdx;
 
-    setState(() {
-      _weeklyXp = newWeeklyXp;
-      _gems = newGems;
-      _claimedToday = newClaimed;
-      _claimedAchievements = newAchievements;
-    });
+      Set<String> newClaimed = {..._claimedToday};
+      Set<String> newAchievements = {..._claimedAchievements};
 
-    _syncToBackend(newWeeklyXp, newGems, newTierIdx, newAchievements);
+      if (_isStreakMission(m.id)) {
+        // Lifetime achievement
+        newAchievements.add(m.id);
+      } else {
+        newClaimed.add(m.id);
+        await prefs.setStringList(_claimedKey(uid), newClaimed.toList());
+      }
 
-    if (mounted) {
-      final earnedSummary = earnedXp > 0
-          ? '${m.emoji} +$earnedXp XP  +$earnedGems 🌾'
-          : '${m.emoji} +$earnedGems 🌾';
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-        content: Text(earnedSummary),
-        backgroundColor: _tiers[newTierIdx].color,
-        duration: const Duration(seconds: 2),
-      ));
-
-      // Perfect Day notification
+      // Perfect Day: all non-streak/non-invite missions done → +15 XP, +25 🌾 bonus
+      // Guard with daily-scoped key so it can't double-fire when later claims arrive.
+      final perfectDayAlreadyAwarded =
+          prefs.getBool(_perfectDayKey(uid)) ?? false;
+      final allDone = _missions
+          .where((ms) => !_isStreakMission(ms.id) && ms.id != 'invite_friend')
+          .every((ms) => newClaimed.contains(ms.id));
+      final perfectDayAwarded = allDone && !perfectDayAlreadyAwarded;
       if (perfectDayAwarded) {
-        await Future.delayed(const Duration(milliseconds: 500));
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-            content: Text('🌟 Perfect Day! ทำครบทุกภารกิจ → +15 XP, +25 🌾 โบนัส!'),
-            backgroundColor: Color(0xFFE65100),
-            duration: Duration(seconds: 3),
-          ));
-        }
+        newWeeklyXp = (newWeeklyXp + 15).clamp(0, 9999999);
+        newGems = (newGems + 25).clamp(0, 999999);
+        await prefs.setBool(_perfectDayKey(uid), true);
       }
 
-      // Weekly tier-up animation
+      final newTierIdx = (_tiers.lastIndexWhere((t) => newWeeklyXp >= t.minXp))
+          .clamp(0, _tiers.length - 1);
+
+      // First-time tier achievement (lifetime, one-time per tier)
+      int firstTimeBonus = 0;
+      int? firstTimeTierIdx;
       if (newTierIdx > oldTierIdx) {
-        await Future.delayed(const Duration(milliseconds: 600));
-        if (mounted) _showTierUpDialog(newTierIdx);
-        // First-time lifetime bonus popup
-        if (firstTimeTierIdx != null && firstTimeBonus > 0) {
-          await Future.delayed(const Duration(milliseconds: 800));
+        for (int tierIdx = oldTierIdx + 1; tierIdx <= newTierIdx; tierIdx++) {
+          final achKey = 'first_tier_$tierIdx';
+          if (!newAchievements.contains(achKey)) {
+            newAchievements.add(achKey);
+            firstTimeBonus += _tiers[tierIdx].firstTimeReward;
+            firstTimeTierIdx ??= tierIdx;
+          }
+        }
+        newGems += firstTimeBonus;
+      }
+
+      // Persist
+      await prefs.setInt(_weeklyXpKey(uid), newWeeklyXp);
+      await prefs.setString(_weeklyXpWeekKey(uid), _weeklyXpWeek);
+      await prefs.setInt(_gemsKey(uid), newGems);
+      await prefs.setStringList(
+          _achievementsKey(uid), newAchievements.toList());
+      if (m.id == 'invite_friend') {
+        await prefs.setInt('tama_invitee_count_$uid', _currentInviteeCount);
+      }
+
+      setState(() {
+        _weeklyXp = newWeeklyXp;
+        _gems = newGems;
+        _claimedToday = newClaimed;
+        _claimedAchievements = newAchievements;
+      });
+
+      _syncToBackend(newWeeklyXp, newGems, newTierIdx, newAchievements);
+
+      if (mounted) {
+        final earnedSummary = earnedXp > 0
+            ? '${m.emoji} +$earnedXp XP  +$earnedGems 🌾'
+            : '${m.emoji} +$earnedGems 🌾';
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text(earnedSummary),
+          backgroundColor: _tiers[newTierIdx].color,
+          duration: const Duration(seconds: 2),
+        ));
+
+        // Perfect Day notification
+        if (perfectDayAwarded) {
+          await Future.delayed(const Duration(milliseconds: 500));
           if (mounted) {
-            _showFirstTimeBadgeDialog(firstTimeTierIdx, firstTimeBonus);
+            ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+              content: Text(
+                  '🌟 Perfect Day! ทำครบทุกภารกิจ → +15 XP, +25 🌾 โบนัส!'),
+              backgroundColor: Color(0xFFE65100),
+              duration: Duration(seconds: 3),
+            ));
+          }
+        }
+
+        // Weekly tier-up animation
+        if (newTierIdx > oldTierIdx) {
+          await Future.delayed(const Duration(milliseconds: 600));
+          if (mounted) _showTierUpDialog(newTierIdx);
+          // First-time lifetime bonus popup
+          if (firstTimeTierIdx != null && firstTimeBonus > 0) {
+            await Future.delayed(const Duration(milliseconds: 800));
+            if (mounted) {
+              _showFirstTimeBadgeDialog(firstTimeTierIdx, firstTimeBonus);
+            }
           }
         }
       }
-    }
     } finally {
       if (mounted) setState(() => _isClaiming = false);
     }
@@ -798,15 +811,14 @@ class _TamagotchiScreenState extends ConsumerState<TamagotchiScreen>
     if (!mounted) return;
     final uid = ref.read(userDataProvider).userId;
     if (uid <= 0) return;
-    ApiClient()
-        .patch('/users/$uid/tama-points', body: {
-          'weekly_xp': weeklyXp,
-          'weekly_xp_week': _weeklyXpWeek,
-          'gems': gems,
-          'tier_level': tierIdx,
-          'claimed_achievements': achievements.toList(),
-        })
-        .ignore();
+    ApiClient().patch('/users/$uid/tama-points', body: {
+      'tama_points': weeklyXp,
+      'weekly_xp': weeklyXp,
+      'weekly_xp_week': _weeklyXpWeek,
+      'gems': gems,
+      'tier_level': tierIdx,
+      'claimed_achievements': achievements.toList(),
+    }).ignore();
   }
 
   @override
@@ -841,22 +853,11 @@ class _TamagotchiScreenState extends ConsumerState<TamagotchiScreen>
         centerTitle: true,
         actions: [
           IconButton(
-            tooltip: 'Leaderboard',
-            icon: const Icon(Icons.leaderboard_rounded,
-                color: _primary, size: 24),
-            onPressed: () => Navigator.push(
-                context,
-                MaterialPageRoute(
-                    builder: (_) => const LeaderboardScreen())),
-          ),
-          IconButton(
             tooltip: 'Trophy Room',
             icon: const Icon(Icons.emoji_events_rounded,
                 color: _primary, size: 24),
-            onPressed: () => Navigator.push(
-                context,
-                MaterialPageRoute(
-                    builder: (_) => const AchievementsScreen())),
+            onPressed: () => Navigator.push(context,
+                MaterialPageRoute(builder: (_) => const AchievementsScreen())),
           ),
           IconButton(
             tooltip: 'แลกรางวัล',
@@ -1107,9 +1108,8 @@ class _TamagotchiScreenState extends ConsumerState<TamagotchiScreen>
 
     final hasBothWeights =
         _weekStartWeight != null && _weekLatestWeight != null;
-    final delta = hasBothWeights
-        ? (_weekLatestWeight! - _weekStartWeight!)
-        : null;
+    final delta =
+        hasBothWeights ? (_weekLatestWeight! - _weekStartWeight!) : null;
 
     // Status color logic
     Color statusColor;
@@ -1164,8 +1164,7 @@ class _TamagotchiScreenState extends ConsumerState<TamagotchiScreen>
         statusIcon = Icons.check_circle_outline_rounded;
       } else {
         statusColor = Colors.orange.shade700;
-        statusText =
-            delta > 0 ? 'น้ำหนักขึ้นเล็กน้อย' : 'น้ำหนักลดเล็กน้อย';
+        statusText = delta > 0 ? 'น้ำหนักขึ้นเล็กน้อย' : 'น้ำหนักลดเล็กน้อย';
         statusIcon = Icons.swap_vert_rounded;
       }
     }
@@ -1217,7 +1216,8 @@ class _TamagotchiScreenState extends ConsumerState<TamagotchiScreen>
                 fontWeight: FontWeight.w600)),
         if (isLoss) ...[
           const SizedBox(height: 4),
-          Text('มาตรฐาน WHO: การลดน้ำหนักเกิน 1 กก./สัปดาห์อาจสูญเสียกล้ามเนื้อ',
+          Text(
+              'มาตรฐาน WHO: การลดน้ำหนักเกิน 1 กก./สัปดาห์อาจสูญเสียกล้ามเนื้อ',
               style: TextStyle(
                   color: Colors.grey.shade500,
                   fontSize: 10,
@@ -1257,6 +1257,32 @@ class _TamagotchiScreenState extends ConsumerState<TamagotchiScreen>
                   ]),
             ),
           ]),
+        ),
+        const SizedBox(height: 10),
+        SizedBox(
+          width: double.infinity,
+          child: OutlinedButton.icon(
+            onPressed: () => Navigator.push(
+              context,
+              MaterialPageRoute(
+                  builder: (_) =>
+                      const WeightChartScreen(openRecordOnStart: true)),
+            ).then((_) => _load()),
+            icon: const Icon(Icons.monitor_weight_outlined, size: 18),
+            label: const Text('บันทึกน้ำหนักเพื่อดูความคืบหน้า'),
+            style: OutlinedButton.styleFrom(
+              foregroundColor: statusColor,
+              side: BorderSide(color: statusColor.withOpacity(0.35)),
+              padding: const EdgeInsets.symmetric(vertical: 12),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+              textStyle: const TextStyle(
+                fontFamily: 'Inter',
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+          ),
         ),
       ]),
     );
@@ -1335,8 +1361,7 @@ class _TamagotchiScreenState extends ConsumerState<TamagotchiScreen>
   // ── Missions ──────────────────────────────────────────────
   Widget _buildMissionsSection(UserData userData) {
     final dailyMissions = _missions
-        .where((m) =>
-            m.id.startsWith('log_meal_') || m.id == 'drink_water_8')
+        .where((m) => m.id.startsWith('log_meal_') || m.id == 'drink_water_8')
         .toList();
     // Use lifetime streak progress (UserData.currentStreak)
     final lifetimeStreak = userData.currentStreak;
@@ -1353,7 +1378,10 @@ class _TamagotchiScreenState extends ConsumerState<TamagotchiScreen>
       _buildStreakBanner(),
       _buildProgressGroupCard(
         groupId: 'daily',
-        onGo: () { Navigator.pop(context); ref.read(navIndexProvider.notifier).state = 1; },
+        onGo: () {
+          Navigator.pop(context);
+          ref.read(navIndexProvider.notifier).state = 1;
+        },
         title: 'บันทึกรายวัน',
         current: _todayMealCount,
         total: 3,
@@ -1378,7 +1406,8 @@ class _TamagotchiScreenState extends ConsumerState<TamagotchiScreen>
               !m.id.startsWith('log_meal_') &&
               m.id != 'drink_water_8' &&
               !m.id.startsWith('streak_'))
-          .map((m) => _buildMissionCard(m, userData, onGo: _missionGoAction(m.id))),
+          .map((m) =>
+              _buildMissionCard(m, userData, onGo: _missionGoAction(m.id))),
     ]);
   }
 
@@ -1495,28 +1524,37 @@ class _TamagotchiScreenState extends ConsumerState<TamagotchiScreen>
                       color: Colors.black87,
                       fontFamily: 'Inter')),
             ),
-            if (onGo != null && !allClaimed) ...[ 
+            if (onGo != null && !allClaimed) ...[
               const SizedBox(width: 8),
               GestureDetector(
                 onTap: onGo,
                 child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                   decoration: BoxDecoration(
                     color: color.withOpacity(0.1),
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: Row(mainAxisSize: MainAxisSize.min, children: [
                     Text('$current / $total $unit',
-                        style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: color, fontFamily: 'Inter')),
+                        style: TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w600,
+                            color: color,
+                            fontFamily: 'Inter')),
                     const SizedBox(width: 4),
-                    Icon(Icons.arrow_forward_ios_rounded, size: 11, color: color),
+                    Icon(Icons.arrow_forward_ios_rounded,
+                        size: 11, color: color),
                   ]),
                 ),
               ),
-            ]
-            else
+            ] else
               Text('$current / $total $unit',
-                  style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: color, fontFamily: 'Inter')),
+                  style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                      color: color,
+                      fontFamily: 'Inter')),
           ]),
           const SizedBox(height: 8),
           ClipRRect(
@@ -1570,20 +1608,28 @@ class _TamagotchiScreenState extends ConsumerState<TamagotchiScreen>
                               : canDo
                                   ? Colors.black87
                                   : Colors.grey.shade400,
-                          decoration: claimed ? TextDecoration.lineThrough : null)),
+                          decoration:
+                              claimed ? TextDecoration.lineThrough : null)),
                 ),
                 if (claimed)
                   Text('+$gems 🌾',
-                      style: TextStyle(fontSize: 11, color: Colors.grey.shade400, fontFamily: 'Inter'))
+                      style: TextStyle(
+                          fontSize: 11,
+                          color: Colors.grey.shade400,
+                          fontFamily: 'Inter'))
                 else if (canDo)
                   GestureDetector(
                     onTap: () => _claimMission(m),
                     child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 10, vertical: 5),
                       decoration: BoxDecoration(
                         color: color,
                         borderRadius: BorderRadius.circular(8),
-                        boxShadow: [BoxShadow(color: color.withOpacity(0.35), blurRadius: 6)],
+                        boxShadow: [
+                          BoxShadow(
+                              color: color.withOpacity(0.35), blurRadius: 6)
+                        ],
                       ),
                       child: Text('+$xp XP  +$gems 🌾',
                           style: const TextStyle(
@@ -1595,7 +1641,10 @@ class _TamagotchiScreenState extends ConsumerState<TamagotchiScreen>
                   )
                 else
                   Text('+$gems 🌾',
-                      style: TextStyle(fontSize: 11, color: Colors.grey.shade300, fontFamily: 'Inter')),
+                      style: TextStyle(
+                          fontSize: 11,
+                          color: Colors.grey.shade300,
+                          fontFamily: 'Inter')),
               ]),
             );
           }),
@@ -1604,7 +1653,8 @@ class _TamagotchiScreenState extends ConsumerState<TamagotchiScreen>
     );
   }
 
-  Widget _buildMissionCard(_Mission m, UserData userData, {VoidCallback? onGo}) {
+  Widget _buildMissionCard(_Mission m, UserData userData,
+      {VoidCallback? onGo}) {
     final claimed = _isMissionClaimed(m.id);
     final canDo = m.autoCheck(userData);
     final xp = m.baseXp;
@@ -1659,7 +1709,7 @@ class _TamagotchiScreenState extends ConsumerState<TamagotchiScreen>
                     decoration: claimed ? TextDecoration.lineThrough : null)),
             Text(m.desc,
                 style: TextStyle(color: Colors.grey.shade500, fontSize: 11)),
-            if (onGo != null && !claimed) ...[ 
+            if (onGo != null && !claimed) ...[
               const SizedBox(height: 4),
               GestureDetector(
                 onTap: onGo,
@@ -1969,8 +2019,8 @@ class _TierUpDialogState extends State<_TierUpDialog>
                       ],
                     ),
                     child: Center(
-                        child:
-                            Text(t.emoji, style: const TextStyle(fontSize: 52))),
+                        child: Text(t.emoji,
+                            style: const TextStyle(fontSize: 52))),
                   ),
                 ),
               ),
@@ -1993,8 +2043,7 @@ class _FirstTimeBadgeDialog extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Dialog(
-      shape:
-          RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
       child: Padding(
         padding: const EdgeInsets.fromLTRB(24, 28, 24, 24),
         child: Column(mainAxisSize: MainAxisSize.min, children: [
@@ -2019,8 +2068,7 @@ class _FirstTimeBadgeDialog extends StatelessWidget {
                   fontFamily: 'Inter')),
           const SizedBox(height: 14),
           Container(
-            padding:
-                const EdgeInsets.symmetric(horizontal: 18, vertical: 10),
+            padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 10),
             decoration: BoxDecoration(
               color: const Color(0xFF2E7D32).withOpacity(0.1),
               borderRadius: BorderRadius.circular(14),
@@ -2090,8 +2138,7 @@ class _WeeklyRewardDialogState extends State<_WeeklyRewardDialog> {
     final rankText =
         widget.rank != null ? 'อันดับ #${widget.rank}' : 'ยังไม่จัดอันดับ';
     return Dialog(
-      shape:
-          RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
       child: Padding(
         padding: const EdgeInsets.fromLTRB(24, 28, 24, 24),
         child: Column(mainAxisSize: MainAxisSize.min, children: [
@@ -2118,8 +2165,7 @@ class _WeeklyRewardDialogState extends State<_WeeklyRewardDialog> {
                   fontFamily: 'Inter')),
           const SizedBox(height: 18),
           Container(
-            padding:
-                const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
             decoration: BoxDecoration(
               color: const Color(0xFF2E7D32).withOpacity(0.1),
               borderRadius: BorderRadius.circular(14),

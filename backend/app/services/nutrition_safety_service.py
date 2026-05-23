@@ -43,7 +43,7 @@ class NutritionSafetyFinding:
     severity: str
     title: str
     message: str
-    notification_type: str = "warning"
+    notification_type: str = "system_alert"
 
     def as_dict(self) -> dict[str, str]:
         return {

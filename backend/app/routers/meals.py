@@ -127,29 +127,35 @@ def _add_meal_impl(user_id: int, log: DailyLogUpdate):
                     over = int(total_intake - target)
                     cur2.execute("""
                         INSERT INTO notifications (user_id, title, message, type)
-                        SELECT %s, %s, %s, 'warning'
+                        SELECT %s, %s, %s, 'system_alert'
                         WHERE NOT EXISTS (
                             SELECT 1 FROM notifications
-                            WHERE user_id = %s AND type = 'warning'
+                            WHERE user_id = %s AND title = %s
                               AND DATE(created_at) = CURRENT_DATE
                         )
-                    """, (user_id,
-                          'แคลอรี่เกินเป้าหมายแล้ว!',
-                          f'วันนี้คุณรับแคลอรี่ไปแล้ว {int(total_intake)} kcal เกินเป้าหมายมา {over} kcal',
-                          user_id))
+                    """, (
+                        user_id,
+                        'แคลอรี่เกินเป้าหมายแล้ว!',
+                        f'วันนี้คุณรับแคลอรี่ไปแล้ว {int(total_intake)} kcal เกินเป้าหมายมา {over} kcal',
+                        user_id,
+                        'แคลอรี่เกินเป้าหมายแล้ว!',
+                    ))
                 elif target > 0 and total_intake >= target * 0.9:
                     cur2.execute("""
                         INSERT INTO notifications (user_id, title, message, type)
-                        SELECT %s, %s, %s, 'tip'
+                        SELECT %s, %s, %s, 'content_update'
                         WHERE NOT EXISTS (
                             SELECT 1 FROM notifications
-                            WHERE user_id = %s AND type = 'tip'
+                            WHERE user_id = %s AND title = %s
                               AND DATE(created_at) = CURRENT_DATE
                         )
-                    """, (user_id,
-                          'ใกล้ถึงเป้าหมายแล้ว',
-                          f'วันนี้คุณรับแคลอรี่ {int(total_intake)} kcal ใกล้ถึงเป้าแล้ว มื้อหน้าเลือกเบาๆ นะ',
-                          user_id))
+                    """, (
+                        user_id,
+                        'ใกล้ถึงเป้าหมายแล้ว',
+                        f'วันนี้คุณรับแคลอรี่ {int(total_intake)} kcal ใกล้ถึงเป้าแล้ว มื้อหน้าเลือกเบาๆ นะ',
+                        user_id,
+                        'ใกล้ถึงเป้าหมายแล้ว',
+                    ))
             nutrition_safety = evaluate_and_persist_calorie_safety(
                 conn,
                 user_id,

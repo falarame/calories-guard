@@ -705,13 +705,15 @@ def get_tama_points(user_id: int):
             )
             row = cur.fetchone()
         if row:
+            points = int(row.get("tama_points") or 0)
             return {
-                "tama_points": int(row.get("tama_points") or 0),
+                "tama_points": points,
+                "weekly_xp": points,
                 "tier_level": int(row.get("tier_level") or 0),
                 "claimed_badges": row.get("claimed_badges") or [],
                 "gems": int(row.get("gems") or 0),
             }
-        return {"tama_points": 0, "tier_level": 0, "claimed_badges": [], "gems": 0}
+        return {"tama_points": 0, "weekly_xp": 0, "tier_level": 0, "claimed_badges": [], "gems": 0}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
     finally:
@@ -722,7 +724,7 @@ def get_tama_points(user_id: int):
 @router.patch("/users/{user_id}/tama-points")
 def sync_tama_points(user_id: int, payload: dict):
     """Upsert tama_points + tier_level + claimed_badges into user_gamification."""
-    points  = int(payload.get("tama_points", 0))
+    points  = int(payload.get("tama_points", payload.get("weekly_xp", 0)))
     tier    = int(payload.get("tier_level", 0))
     badges  = payload.get("claimed_badges")  # list[str] or None
     gems    = payload.get("gems")            # int or None
