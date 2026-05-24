@@ -20,6 +20,7 @@ class _ReferralScreenState extends ConsumerState<ReferralScreen> {
   int _buffMultiplier = 1;
   String? _buffExpiresAt;
   bool _loading = true;
+  String? _loadError;
 
   final _codeCtrl = TextEditingController();
   bool _redeeming = false;
@@ -39,7 +40,10 @@ class _ReferralScreenState extends ConsumerState<ReferralScreen> {
   }
 
   Future<void> _loadStatus() async {
-    setState(() => _loading = true);
+    setState(() {
+      _loading = true;
+      _loadError = null;
+    });
     try {
       final res = await ApiClient().get('/referral/status');
       if (res.statusCode == 200) {
@@ -50,15 +54,22 @@ class _ReferralScreenState extends ConsumerState<ReferralScreen> {
           _buffMultiplier = (data['gem_buff_multiplier'] as num?)?.toInt() ?? 1;
           _buffExpiresAt = data['buff_expires_at']?.toString();
         });
+      } else {
+        setState(() => _loadError = 'status ${res.statusCode}: ${res.body}');
       }
-      if (_myCode == null) {
+      if (_myCode == null && _loadError == null) {
         final genRes = await ApiClient().post('/referral/generate', body: {});
         if (genRes.statusCode == 200) {
           final d = jsonDecode(genRes.body) as Map<String, dynamic>;
           setState(() => _myCode = d['code']?.toString());
+        } else {
+          setState(() =>
+              _loadError = 'generate ${genRes.statusCode}: ${genRes.body}');
         }
       }
-    } catch (_) {}
+    } catch (e) {
+      setState(() => _loadError = e.toString());
+    }
     if (mounted) setState(() => _loading = false);
   }
 
@@ -126,21 +137,46 @@ class _ReferralScreenState extends ConsumerState<ReferralScreen> {
       ),
       body: _loading
           ? const Center(child: CircularProgressIndicator())
-          : SingleChildScrollView(
-              padding: const EdgeInsets.all(20),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  _buildMyCodeCard(),
-                  const SizedBox(height: 20),
-                  if (_buffActive) _buildBuffCard(),
-                  if (_buffActive) const SizedBox(height: 20),
-                  _buildRedeemCard(),
-                  const SizedBox(height: 24),
-                  _buildHowItWorksCard(),
-                ],
-              ),
-            ),
+          : _loadError != null && _myCode == null
+              ? Center(
+                  child: Padding(
+                    padding: const EdgeInsets.all(24),
+                    child: Column(mainAxisSize: MainAxisSize.min, children: [
+                      const Icon(Icons.wifi_off_rounded,
+                          size: 48, color: Colors.grey),
+                      const SizedBox(height: 12),
+                      const Text('โหลดข้อมูลไม่ได้',
+                          style: TextStyle(
+                              fontWeight: FontWeight.bold, fontSize: 16)),
+                      const SizedBox(height: 8),
+                      Text(_loadError!,
+                          textAlign: TextAlign.center,
+                          style:
+                              const TextStyle(fontSize: 12, color: Colors.red)),
+                      const SizedBox(height: 16),
+                      ElevatedButton.icon(
+                        onPressed: _loadStatus,
+                        icon: const Icon(Icons.refresh),
+                        label: const Text('ลองใหม่'),
+                      ),
+                    ]),
+                  ),
+                )
+              : SingleChildScrollView(
+                  padding: const EdgeInsets.all(20),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      _buildMyCodeCard(),
+                      const SizedBox(height: 20),
+                      if (_buffActive) _buildBuffCard(),
+                      if (_buffActive) const SizedBox(height: 20),
+                      _buildRedeemCard(),
+                      const SizedBox(height: 24),
+                      _buildHowItWorksCard(),
+                    ],
+                  ),
+                ),
     );
   }
 
