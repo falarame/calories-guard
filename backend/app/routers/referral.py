@@ -7,7 +7,6 @@ from psycopg2.extras import RealDictCursor
 
 from database import get_db_connection
 from auth.dependencies import get_current_user
-from app.core.dependencies import check_ownership
 
 router = APIRouter()
 
