@@ -324,7 +324,7 @@ def _init_missing_tables():
         cur.execute("""
             CREATE TABLE IF NOT EXISTS cleangoal.referral_codes (
                 code        TEXT PRIMARY KEY,
-                owner_id    INT  NOT NULL REFERENCES cleangoal.users(user_id) ON DELETE CASCADE,
+                user_id     INT  NOT NULL REFERENCES cleangoal.users(user_id) ON DELETE CASCADE,
                 created_at  TIMESTAMPTZ DEFAULT NOW()
             )
         """)

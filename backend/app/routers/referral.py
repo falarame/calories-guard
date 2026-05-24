@@ -31,7 +31,7 @@ def generate_referral_code(current_user: dict = Depends(get_current_user)):
         conn = get_db_connection()
         with conn.cursor(cursor_factory=RealDictCursor) as cur:
             cur.execute(
-                "SELECT code FROM cleangoal.referral_codes WHERE owner_id = %s",
+                "SELECT code FROM cleangoal.referral_codes WHERE user_id = %s",
                 (user_id,),
             )
             row = cur.fetchone()
@@ -50,7 +50,7 @@ def generate_referral_code(current_user: dict = Depends(get_current_user)):
                 raise HTTPException(status_code=500, detail="Could not generate unique code")
 
             cur.execute(
-                "INSERT INTO cleangoal.referral_codes (code, owner_id) VALUES (%s, %s)",
+                "INSERT INTO cleangoal.referral_codes (code, user_id) VALUES (%s, %s)",
                 (code, user_id),
             )
             conn.commit()
@@ -107,12 +107,12 @@ def redeem_referral_code(payload: dict, current_user: dict = Depends(get_current
 
             # 2. Validate code + owner
             cur.execute(
-                "SELECT owner_id FROM cleangoal.referral_codes WHERE code = %s", (code,)
+                "SELECT user_id FROM cleangoal.referral_codes WHERE code = %s", (code,)
             )
             code_row = cur.fetchone()
             if not code_row:
                 raise HTTPException(status_code=404, detail="Invalid referral code")
-            owner_id = int(code_row["owner_id"])
+            owner_id = int(code_row["user_id"])
             if owner_id == redeemer_id:
                 raise HTTPException(status_code=400, detail="Cannot use your own referral code")
 
@@ -194,7 +194,7 @@ def get_referral_invitees(current_user: dict = Depends(get_current_user)):
                 SELECT rr.redeemed_by AS user_id, rr.redeemed_at
                 FROM cleangoal.referral_redemptions rr
                 JOIN cleangoal.referral_codes rc ON rc.code = rr.code
-                WHERE rc.owner_id = %s
+                WHERE rc.user_id = %s
                 ORDER BY rr.redeemed_at DESC
                 """,
                 (user_id,),
@@ -217,7 +217,7 @@ def get_referral_status(current_user: dict = Depends(get_current_user)):
         conn = get_db_connection()
         with conn.cursor(cursor_factory=RealDictCursor) as cur:
             cur.execute(
-                "SELECT code FROM cleangoal.referral_codes WHERE owner_id = %s",
+                "SELECT code FROM cleangoal.referral_codes WHERE user_id = %s",
                 (user_id,),
             )
             code_row = cur.fetchone()

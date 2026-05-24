@@ -84,7 +84,7 @@ class TestRedeemReferralCode:
         conn, cur = _mock_conn()
         cur.fetchone.side_effect = [
             self._base_user_row(days_old=0),    # users.created_at
-            {"owner_id": 99},                   # referral_codes
+            {"user_id": 99},                    # referral_codes
             None,                               # no existing redemption
         ]
 
@@ -124,11 +124,11 @@ class TestRedeemReferralCode:
         assert res.status_code == 404
 
     def test_self_redeem_returns_400(self, app_client):
-        """user ID 42 พยายาม redeem โค้ดของตัวเอง (owner_id=42) → 400"""
+        """user ID 42 พยายาม redeem โค้ดของตัวเอง (user_id=42) → 400"""
         conn, cur = _mock_conn()
         cur.fetchone.side_effect = [
             self._base_user_row(days_old=1),
-            {"owner_id": 42},  # same as test user (user_id=42 in conftest)
+            {"user_id": 42},   # same as test user (user_id=42 in conftest)
         ]
 
         with patch("app.routers.referral.get_db_connection", return_value=conn):
@@ -142,7 +142,7 @@ class TestRedeemReferralCode:
         conn, cur = _mock_conn()
         cur.fetchone.side_effect = [
             self._base_user_row(days_old=1),
-            {"owner_id": 99},
+            {"user_id": 99},
             {"redemption_id": 5},  # already redeemed
         ]
 
