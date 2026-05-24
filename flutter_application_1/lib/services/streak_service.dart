@@ -11,6 +11,8 @@ import 'notification_helper.dart';
 class StreakService {
   static const _keyCount = 'streak_count';
   static const _keyLastDate = 'streak_last_date'; // format: yyyy-MM-dd
+  static const _keyOutcomes = 'daily_outcomes'; // List<String> "YYYY-MM-DD:1" or ":0"
+  static const _outcomesKeepDays = 60;
 
   static String _dateKey(DateTime d) =>
       '${d.year}-${d.month.toString().padLeft(2, '0')}-${d.day.toString().padLeft(2, '0')}';
@@ -119,12 +121,80 @@ class StreakService {
     }
   }
 
+  /// บันทึกผลลัพธ์วันนี้ (hitTarget = ทานครบเป้า ±10%)
+  /// idempotent: เรียกซ้ำในวันเดียวกัน → แทนที่ค่าเดิม (latest wins)
+  static Future<void> recordDailyOutcome(DateTime date, bool hitTarget) async {
+    if (kIsWeb) return;
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final dayKey = _dateKey(date);
+      final outcomes = prefs.getStringList(_keyOutcomes) ?? [];
+      // remove existing entry for this day
+      outcomes.removeWhere((e) => e.startsWith('$dayKey:'));
+      outcomes.add('$dayKey:${hitTarget ? 1 : 0}');
+      // prune older than _outcomesKeepDays
+      final cutoff = DateTime.now()
+          .subtract(const Duration(days: _outcomesKeepDays));
+      final kept = outcomes.where((e) {
+        final parts = e.split(':');
+        if (parts.length != 2) return false;
+        try {
+          final d = DateTime.parse(parts[0]);
+          return !d.isBefore(DateTime(cutoff.year, cutoff.month, cutoff.day));
+        } catch (_) {
+          return false;
+        }
+      }).toList()
+        ..sort();
+      await prefs.setStringList(_keyOutcomes, kept);
+    } catch (e, st) {
+      ErrorReporter.report('streak.record_outcome', e, st);
+    }
+  }
+
+  /// คืนอัตราความสำเร็จ N วันย้อนหลัง (default 30)
+  /// - hit: จำนวนวันที่ถึงเป้า
+  /// - total: จำนวนวันที่บันทึก (max = days)
+  /// - percent: hit/total × 100 (0 ถ้า total = 0)
+  static Future<({int hit, int total, double percent})> getSuccessRate(
+      {int days = 30}) async {
+    if (kIsWeb) return (hit: 0, total: 0, percent: 0.0);
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final outcomes = prefs.getStringList(_keyOutcomes) ?? [];
+      final cutoff =
+          DateTime.now().subtract(Duration(days: days));
+      int hit = 0;
+      int total = 0;
+      for (final e in outcomes) {
+        final parts = e.split(':');
+        if (parts.length != 2) continue;
+        try {
+          final d = DateTime.parse(parts[0]);
+          if (d.isBefore(DateTime(cutoff.year, cutoff.month, cutoff.day))) {
+            continue;
+          }
+          total++;
+          if (parts[1] == '1') hit++;
+        } catch (_) {
+          continue;
+        }
+      }
+      final percent = total == 0 ? 0.0 : (hit / total) * 100;
+      return (hit: hit, total: total, percent: percent);
+    } catch (e, st) {
+      ErrorReporter.report('streak.success_rate', e, st);
+      return (hit: 0, total: 0, percent: 0.0);
+    }
+  }
+
   /// เรียกตอน logout — ลบ streak data ทั้งหมด
   static Future<void> clear() async {
     if (kIsWeb) return;
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove(_keyCount);
     await prefs.remove(_keyLastDate);
+    await prefs.remove(_keyOutcomes);
     await NotificationHelper.cancelStreakWarning();
   }
 

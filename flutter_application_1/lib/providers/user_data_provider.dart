@@ -290,6 +290,9 @@ class UserData {
   int get netCaloriesIntake =>
       max(0, consumedCalories - dailyCaloriesBurned);
 
+  /// แคลสุทธิ signed: กิน − เผา (อนุญาตค่าติดลบ — สำหรับแสดงผล)
+  int get netCaloriesSigned => consumedCalories - dailyCaloriesBurned;
+
   // --- CopyWith ---
   UserData copyWith({
     int? userId,

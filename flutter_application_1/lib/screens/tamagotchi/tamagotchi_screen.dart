@@ -138,14 +138,10 @@ class _TamagotchiScreenState extends ConsumerState<TamagotchiScreen>
   int _currentInviteeCount = 0;
   bool _isClaiming = false;
   // weekly weight progress (for weekly goal card)
-  double? _weekStartWeight;
-  double? _weekLatestWeight;
   // Streak grace: 0 = ok, 1/2 = days missed (grace), -1 = expired
   int _streakGrace = 0;
   // ป้องกัน load ซ้ำถี่เกิน (throttle 30 วินาที)
   DateTime? _lastLoadTime;
-
-  static const _streakMilestones = [3, 7, 15, 30, 60, 90, 365];
 
   bool _isStreakMission(String id) => id.startsWith('streak_');
 
@@ -250,7 +246,9 @@ class _TamagotchiScreenState extends ConsumerState<TamagotchiScreen>
               if (u.targetCalories <= 0 ||
                   u.targetProtein <= 0 ||
                   u.targetCarbs <= 0 ||
-                  u.targetFat <= 0) return false;
+                  u.targetFat <= 0) {
+                return false;
+              }
               bool inRange(num consumed, num target) {
                 final r = consumed / target;
                 return r >= 0.8 && r <= 1.1;
@@ -553,32 +551,9 @@ class _TamagotchiScreenState extends ConsumerState<TamagotchiScreen>
           final wList = jsonDecode(wlogRes.body) as List;
           final loggedToday = wList.any((e) => e['date'] == today) ||
               prefs.getBool(_localWeightLoggedKey(uid)) == true;
-          // Compute this week's weight range (Mon → today)
-          final now = DateTime.now();
-          final weekStart = now.subtract(Duration(days: now.weekday - 1));
-          final weekStartStr =
-              '${weekStart.year}-${weekStart.month.toString().padLeft(2, '0')}-${weekStart.day.toString().padLeft(2, '0')}';
-          final weekEntries = wList.where((e) {
-            final d = e['date']?.toString() ?? '';
-            return d.compareTo(weekStartStr) >= 0 && d.compareTo(today) <= 0;
-          }).toList()
-            ..sort(
-                (a, b) => (a['date'] as String).compareTo(b['date'] as String));
-          double? weightOf(dynamic entry) {
-            if (entry is! Map) return null;
-            return ((entry['weight_kg'] ?? entry['weight']) as num?)
-                ?.toDouble();
-          }
-
-          final wStart =
-              weekEntries.isNotEmpty ? weightOf(weekEntries.first) : null;
-          final wLatest =
-              weekEntries.isNotEmpty ? weightOf(weekEntries.last) : null;
           if (mounted) {
             setState(() {
               _loggedWeightToday = loggedToday;
-              _weekStartWeight = wStart;
-              _weekLatestWeight = wLatest;
             });
           }
         }
@@ -955,7 +930,6 @@ class _TamagotchiScreenState extends ConsumerState<TamagotchiScreen>
           const SizedBox(height: 16),
           _buildCurrencyRow(streak),
           const SizedBox(height: 16),
-          _buildWeeklyGoalCard(userData),
           const SizedBox(height: 20),
           _buildTierRoadmap(),
           const SizedBox(height: 24),
@@ -1138,221 +1112,6 @@ class _TamagotchiScreenState extends ConsumerState<TamagotchiScreen>
     );
   }
 
-  // ── Weekly Goal Card ──────────────────────────────────────
-  Widget _buildWeeklyGoalCard(UserData userData) {
-    final goal = userData.goal;
-    if (goal == null) return const SizedBox.shrink();
-
-    // Safe targets per program (WHO / ACSM guidelines)
-    final String programLabel;
-    final String safeTarget;
-    final double safeMin; // kg change/week (negative = loss)
-    final double safeMax;
-    final bool isLoss;
-
-    switch (goal) {
-      case GoalOption.loseWeight:
-        programLabel = '🏃 ลดน้ำหนัก';
-        safeTarget = 'ลด 0.25–0.5 กก./สัปดาห์ (สูงสุด 1 กก.)';
-        safeMin = -1.0;
-        safeMax = -0.25;
-        isLoss = true;
-      case GoalOption.buildMuscle:
-        programLabel = '💪 เพิ่มกล้ามเนื้อ';
-        safeTarget = 'เพิ่ม 0.1–0.25 กก./สัปดาห์';
-        safeMin = 0.1;
-        safeMax = 0.5;
-        isLoss = false;
-      case GoalOption.maintainWeight:
-        programLabel = '⚖️ รักษาน้ำหนัก';
-        safeTarget = 'คงน้ำหนัก ±0.2 กก./สัปดาห์';
-        safeMin = -0.2;
-        safeMax = 0.2;
-        isLoss = false;
-    }
-
-    final hasBothWeights =
-        _weekStartWeight != null && _weekLatestWeight != null;
-    final delta =
-        hasBothWeights ? (_weekLatestWeight! - _weekStartWeight!) : null;
-
-    // Status color logic
-    Color statusColor;
-    String statusText;
-    IconData statusIcon;
-
-    if (delta == null) {
-      statusColor = const Color(0xFF78909C);
-      statusText = 'บันทึกน้ำหนักเพื่อดูความคืบหน้า';
-      statusIcon = Icons.monitor_weight_outlined;
-    } else if (goal == GoalOption.loseWeight) {
-      if (delta <= safeMin) {
-        // Lost more than 1 kg — too fast
-        statusColor = Colors.orange.shade700;
-        statusText = 'ลดเร็วเกินไป — อาจเสียกล้ามเนื้อ';
-        statusIcon = Icons.warning_amber_rounded;
-      } else if (delta <= safeMax) {
-        // -0.5 to -0.25 → on track
-        statusColor = const Color(0xFF2E7D32);
-        statusText = 'อยู่ในเกณฑ์ปลอดภัย ✅';
-        statusIcon = Icons.check_circle_outline_rounded;
-      } else if (delta < 0) {
-        // -0.25 to 0 → losing but slow
-        statusColor = Colors.blue.shade700;
-        statusText = 'กำลังลดช้า — ปรับการกินหรือออกกำลังกาย';
-        statusIcon = Icons.trending_down_rounded;
-      } else {
-        // Gained weight
-        statusColor = Colors.red.shade600;
-        statusText = 'น้ำหนักเพิ่มสัปดาห์นี้ — ทบทวนแผน';
-        statusIcon = Icons.trending_up_rounded;
-      }
-    } else if (goal == GoalOption.buildMuscle) {
-      if (delta >= safeMin && delta <= safeMax) {
-        statusColor = const Color(0xFF2E7D32);
-        statusText = 'อยู่ในเกณฑ์การเพิ่มกล้ามเนื้อที่ดี ✅';
-        statusIcon = Icons.check_circle_outline_rounded;
-      } else if (delta > safeMax) {
-        statusColor = Colors.orange.shade700;
-        statusText = 'เพิ่มเร็วเกินไป — อาจมีไขมันเกิน';
-        statusIcon = Icons.warning_amber_rounded;
-      } else {
-        statusColor = Colors.blue.shade700;
-        statusText = 'เพิ่มช้า — อาจต้องกินโปรตีนเพิ่ม';
-        statusIcon = Icons.info_outline_rounded;
-      }
-    } else {
-      // maintainWeight
-      if (delta.abs() <= 0.2) {
-        statusColor = const Color(0xFF2E7D32);
-        statusText = 'รักษาน้ำหนักได้ดี ✅';
-        statusIcon = Icons.check_circle_outline_rounded;
-      } else {
-        statusColor = Colors.orange.shade700;
-        statusText = delta > 0 ? 'น้ำหนักขึ้นเล็กน้อย' : 'น้ำหนักลดเล็กน้อย';
-        statusIcon = Icons.swap_vert_rounded;
-      }
-    }
-
-    final String deltaText = delta == null
-        ? '—'
-        : '${delta >= 0 ? '+' : ''}${delta.toStringAsFixed(2)} กก.';
-
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(20),
-        boxShadow: [
-          BoxShadow(
-              color: Colors.black.withOpacity(0.05),
-              blurRadius: 10,
-              offset: const Offset(0, 3))
-        ],
-      ),
-      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        Row(children: [
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-            decoration: BoxDecoration(
-              color: statusColor.withOpacity(0.1),
-              borderRadius: BorderRadius.circular(10),
-            ),
-            child: Text(programLabel,
-                style: TextStyle(
-                    color: statusColor,
-                    fontFamily: 'Inter',
-                    fontWeight: FontWeight.w700,
-                    fontSize: 13)),
-          ),
-          const Spacer(),
-          Text('เป้าสัปดาห์',
-              style: TextStyle(
-                  color: Colors.grey.shade500,
-                  fontSize: 11,
-                  fontFamily: 'Inter')),
-        ]),
-        const SizedBox(height: 10),
-        Text(safeTarget,
-            style: const TextStyle(
-                color: Colors.black87,
-                fontSize: 13,
-                fontFamily: 'Inter',
-                fontWeight: FontWeight.w600)),
-        if (isLoss) ...[
-          const SizedBox(height: 4),
-          Text(
-              'มาตรฐาน WHO: การลดน้ำหนักเกิน 1 กก./สัปดาห์อาจสูญเสียกล้ามเนื้อ',
-              style: TextStyle(
-                  color: Colors.grey.shade500,
-                  fontSize: 10,
-                  fontFamily: 'Inter')),
-        ],
-        const SizedBox(height: 12),
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-          decoration: BoxDecoration(
-            color: statusColor.withOpacity(0.07),
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: statusColor.withOpacity(0.25)),
-          ),
-          child: Row(children: [
-            Icon(statusIcon, color: statusColor, size: 20),
-            const SizedBox(width: 10),
-            Expanded(
-              child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(statusText,
-                        style: TextStyle(
-                            color: statusColor,
-                            fontSize: 12,
-                            fontFamily: 'Inter',
-                            fontWeight: FontWeight.w600)),
-                    if (delta != null) ...[
-                      const SizedBox(height: 2),
-                      Text(
-                          'สัปดาห์นี้: ${_weekStartWeight!.toStringAsFixed(1)} → '
-                          '${_weekLatestWeight!.toStringAsFixed(1)} กก. ($deltaText)',
-                          style: TextStyle(
-                              color: Colors.grey.shade600,
-                              fontSize: 11,
-                              fontFamily: 'Inter')),
-                    ],
-                  ]),
-            ),
-          ]),
-        ),
-        const SizedBox(height: 10),
-        SizedBox(
-          width: double.infinity,
-          child: OutlinedButton.icon(
-            onPressed: () => Navigator.push(
-              context,
-              MaterialPageRoute(
-                  builder: (_) =>
-                      const WeightChartScreen(openRecordOnStart: true)),
-            ).then((_) => _load()),
-            icon: const Icon(Icons.monitor_weight_outlined, size: 18),
-            label: const Text('บันทึกน้ำหนักเพื่อดูความคืบหน้า'),
-            style: OutlinedButton.styleFrom(
-              foregroundColor: statusColor,
-              side: BorderSide(color: statusColor.withOpacity(0.35)),
-              padding: const EdgeInsets.symmetric(vertical: 12),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
-              ),
-              textStyle: const TextStyle(
-                fontFamily: 'Inter',
-                fontWeight: FontWeight.w700,
-              ),
-            ),
-          ),
-        ),
-      ]),
-    );
-  }
-
   // ── Tier Roadmap ──────────────────────────────────────────
   Widget _buildTierRoadmap() {
     return Container(
@@ -1428,10 +1187,6 @@ class _TamagotchiScreenState extends ConsumerState<TamagotchiScreen>
     final dailyMissions = _missions
         .where((m) => m.id.startsWith('log_meal_') || m.id == 'drink_water_8')
         .toList();
-    // Use lifetime streak progress (UserData.currentStreak)
-    final lifetimeStreak = userData.currentStreak;
-    final nextMilestone = _streakMilestones
-        .firstWhere((m) => m > lifetimeStreak, orElse: () => 365);
     return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
       const Text('ภารกิจประจำวัน',
           style: TextStyle(
@@ -1451,20 +1206,9 @@ class _TamagotchiScreenState extends ConsumerState<TamagotchiScreen>
         current: _todayMealCount,
         total: 3,
         unit: 'มื้อ',
-        extraInfo: '💧 ${_waterGlasses.clamp(0, 8)}/8 แก้ว',
         milestones: dailyMissions,
         userData: userData,
         color: _primary,
-      ),
-      _buildProgressGroupCard(
-        groupId: 'streak',
-        title: 'บันทึกต่อเนื่อง (สะสมตลอดชีพ)',
-        current: lifetimeStreak.clamp(0, nextMilestone),
-        total: nextMilestone,
-        unit: 'วัน',
-        milestones: _missions.where((m) => m.id.startsWith('streak_')).toList(),
-        userData: userData,
-        color: const Color(0xFFE65100),
       ),
       ..._missions
           .where((m) =>

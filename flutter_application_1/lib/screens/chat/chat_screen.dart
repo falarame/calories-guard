@@ -1,8 +1,10 @@
 import 'dart:convert';
+import 'dart:io';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:geolocator/geolocator.dart';
+import 'package:image_picker/image_picker.dart';
 import '../../providers/user_data_provider.dart';
 import '../../services/api_client.dart';
 import '../../services/error_reporter.dart';
@@ -12,9 +14,14 @@ class ChatMessage {
   final String text;
   final bool isUser;
   final DateTime time;
+  final String? imageUrl;
 
-  ChatMessage({required this.text, required this.isUser, DateTime? time})
-      : time = time ?? DateTime.now();
+  ChatMessage({
+    required this.text,
+    required this.isUser,
+    DateTime? time,
+    this.imageUrl,
+  }) : time = time ?? DateTime.now();
 }
 
 // ─── Quick Prompt suggestions ─────────────────────────────────────────────────
@@ -42,9 +49,12 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
 
   final _controller = TextEditingController();
   final _scrollController = ScrollController();
+  final _imagePicker = ImagePicker();
   final List<ChatMessage> _messages = [];
   bool _isTyping = false;
   Position? _lastPosition;
+  XFile? _pendingImage;
+  bool _isUploadingImage = false;
 
   @override
   void initState() {
@@ -65,6 +75,44 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
     _controller.dispose();
     _scrollController.dispose();
     super.dispose();
+  }
+
+  // ─── Image Picker ──────────────────────────────────────────────────────────
+
+  Future<void> _pickImage() async {
+    try {
+      final picked = await _imagePicker.pickImage(
+        source: ImageSource.gallery,
+        imageQuality: 80,
+        maxWidth: 1280,
+      );
+      if (picked != null && mounted) setState(() => _pendingImage = picked);
+    } catch (e, st) {
+      ErrorReporter.report('chat.pick_image', e, st);
+    }
+  }
+
+  Future<String?> _uploadImage(XFile file) async {
+    try {
+      setState(() => _isUploadingImage = true);
+      final bytes = await file.readAsBytes();
+      final streamed = await ApiClient().uploadBytes(
+        '/upload_image',
+        fieldName: 'file',
+        bytes: bytes,
+        fileName: file.name,
+      );
+      if (streamed.statusCode == 200) {
+        final body = await streamed.stream.bytesToString();
+        final data = jsonDecode(body);
+        return data['url'] as String? ?? data['image_url'] as String?;
+      }
+    } catch (e, st) {
+      ErrorReporter.report('chat.upload_image', e, st);
+    } finally {
+      if (mounted) setState(() => _isUploadingImage = false);
+    }
+    return null;
   }
 
   // ─── Send Message ──────────────────────────────────────────────────────────
@@ -91,11 +139,25 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
 
   Future<void> _send(String text) async {
     final msg = text.trim();
-    if (msg.isEmpty || _isTyping) return;
+    final imageFile = _pendingImage;
+    if (msg.isEmpty && imageFile == null) return;
+    if (_isTyping) return;
 
     _controller.clear();
+    setState(() => _pendingImage = null);
+
+    // Upload image first (before showing message)
+    String? uploadedUrl;
+    if (imageFile != null) {
+      uploadedUrl = await _uploadImage(imageFile);
+    }
+
     setState(() {
-      _messages.add(ChatMessage(text: msg, isUser: true));
+      _messages.add(ChatMessage(
+        text: msg,
+        isUser: true,
+        imageUrl: uploadedUrl,
+      ));
       _isTyping = true;
     });
     _scrollToBottom();
@@ -116,6 +178,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
       body['lat'] = _lastPosition!.latitude;
       body['lng'] = _lastPosition!.longitude;
     }
+    if (uploadedUrl != null) body['image_url'] = uploadedUrl;
 
     try {
       final res = await ApiClient().post('/api/chat/multi', body: body);
@@ -361,14 +424,27 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
-                    msg.text,
-                    style: TextStyle(
-                      fontSize: 14,
-                      color: isUser ? Colors.white : Colors.black87,
-                      height: 1.45,
+                  if (msg.imageUrl != null) ...[
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(10),
+                      child: Image.network(
+                        msg.imageUrl!,
+                        width: 200,
+                        fit: BoxFit.cover,
+                        errorBuilder: (_, __, ___) => const SizedBox.shrink(),
+                      ),
                     ),
-                  ),
+                    if (msg.text.isNotEmpty) const SizedBox(height: 6),
+                  ],
+                  if (msg.text.isNotEmpty)
+                    Text(
+                      msg.text,
+                      style: TextStyle(
+                        fontSize: 14,
+                        color: isUser ? Colors.white : Colors.black87,
+                        height: 1.45,
+                      ),
+                    ),
                   const SizedBox(height: 4),
                   Text(
                     '${msg.time.hour.toString().padLeft(2, '0')}:${msg.time.minute.toString().padLeft(2, '0')}',
@@ -517,57 +593,113 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
               offset: const Offset(0, -3))
         ],
       ),
-      child: Row(children: [
-        Expanded(
-          child: Container(
-            decoration: BoxDecoration(
-              color: _bg,
-              borderRadius: BorderRadius.circular(26),
-              border: Border.all(color: _greenLight),
-            ),
-            child: TextField(
-              controller: _controller,
-              minLines: 1,
-              maxLines: 4,
-              textCapitalization: TextCapitalization.sentences,
-              style: const TextStyle(fontSize: 14),
-              decoration: InputDecoration(
-                hintText: 'ถามน้องซีการ์ด...',
-                hintStyle: TextStyle(fontSize: 14, color: Colors.grey.shade400),
-                border: InputBorder.none,
-                contentPadding:
-                    const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+      child: Column(mainAxisSize: MainAxisSize.min, children: [
+        // ── Pending image preview ──
+        if (_pendingImage != null)
+          Padding(
+            padding: const EdgeInsets.only(bottom: 8),
+            child: Row(children: [
+              ClipRRect(
+                borderRadius: BorderRadius.circular(10),
+                child: Image.file(
+                  File(_pendingImage!.path),
+                  width: 72,
+                  height: 72,
+                  fit: BoxFit.cover,
+                ),
               ),
-              onSubmitted: _send,
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text('รูปภาพพร้อมส่ง',
+                    style:
+                        TextStyle(fontSize: 12, color: Colors.grey.shade600)),
+              ),
+              GestureDetector(
+                onTap: () => setState(() => _pendingImage = null),
+                child: Icon(Icons.close_rounded,
+                    size: 20, color: Colors.grey.shade500),
+              ),
+            ]),
+          ),
+        Row(children: [
+          // Image picker button
+          GestureDetector(
+            onTap: _isTyping || _isUploadingImage ? null : _pickImage,
+            child: Container(
+              width: 40,
+              height: 40,
+              margin: const EdgeInsets.only(right: 8),
+              decoration: BoxDecoration(
+                color: _pendingImage != null
+                    ? _green.withValues(alpha: 0.15)
+                    : _bg,
+                shape: BoxShape.circle,
+                border: Border.all(color: _greenLight),
+              ),
+              child: _isUploadingImage
+                  ? const Padding(
+                      padding: EdgeInsets.all(10),
+                      child: CircularProgressIndicator(
+                          strokeWidth: 2, color: _green))
+                  : Icon(Icons.image_rounded,
+                      size: 20,
+                      color: _pendingImage != null ? _green : Colors.grey),
             ),
           ),
-        ),
-        const SizedBox(width: 10),
-        GestureDetector(
-          onTap: () => _send(_controller.text),
-          child: AnimatedContainer(
-            duration: const Duration(milliseconds: 200),
-            width: 46,
-            height: 46,
-            decoration: BoxDecoration(
-              color: _isTyping ? Colors.grey.shade300 : _green,
-              shape: BoxShape.circle,
-              boxShadow: _isTyping
-                  ? []
-                  : [
-                      BoxShadow(
-                          color: _green.withOpacity(0.4),
-                          blurRadius: 10,
-                          offset: const Offset(0, 4))
-                    ],
-            ),
-            child: Icon(
-              _isTyping ? Icons.hourglass_top_rounded : Icons.send_rounded,
-              color: Colors.white,
-              size: 20,
+          Expanded(
+            child: Container(
+              decoration: BoxDecoration(
+                color: _bg,
+                borderRadius: BorderRadius.circular(26),
+                border: Border.all(color: _greenLight),
+              ),
+              child: TextField(
+                controller: _controller,
+                minLines: 1,
+                maxLines: 4,
+                textCapitalization: TextCapitalization.sentences,
+                style: const TextStyle(fontSize: 14),
+                decoration: InputDecoration(
+                  hintText: _pendingImage != null
+                      ? 'เพิ่มข้อความ (ไม่บังคับ)...'
+                      : 'ถามน้องซีการ์ด...',
+                  hintStyle:
+                      TextStyle(fontSize: 14, color: Colors.grey.shade400),
+                  border: InputBorder.none,
+                  contentPadding:
+                      const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                ),
+                onSubmitted: _send,
+              ),
             ),
           ),
-        ),
+          const SizedBox(width: 10),
+          GestureDetector(
+            onTap: () => _send(_controller.text),
+            child: AnimatedContainer(
+              duration: const Duration(milliseconds: 200),
+              width: 46,
+              height: 46,
+              decoration: BoxDecoration(
+                color: _isTyping ? Colors.grey.shade300 : _green,
+                shape: BoxShape.circle,
+                boxShadow: _isTyping
+                    ? []
+                    : [
+                        BoxShadow(
+                            color: _green.withValues(alpha: 0.4),
+                            blurRadius: 10,
+                            offset: const Offset(0, 4))
+                      ],
+              ),
+              child: Icon(
+                _isTyping ? Icons.hourglass_top_rounded : Icons.send_rounded,
+                color: Colors.white,
+                size: 20,
+              ),
+            ),
+          ),
+        ]),
       ]),
     );
   }

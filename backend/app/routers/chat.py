@@ -120,13 +120,18 @@ def chat_multi_agent(request: Request, payload: ChatMessage):
     """
     _require_ai_enabled()
     msg = _sanitize_message(payload.message)
-    if not msg:
+    if not msg and not payload.image_url:
         raise HTTPException(status_code=400, detail="ข้อความว่างเปล่า")
+    # Append image URL as context so the coach knows an image was shared
+    full_msg = msg
+    if payload.image_url:
+        img_note = f"\n[ผู้ใช้แนบรูปภาพ: {payload.image_url}]"
+        full_msg = (msg + img_note) if msg else img_note.strip()
     with track("chat.multi", "POST /api/chat/multi",
-               user_id=payload.user_id, msg_len=len(msg)):
+               user_id=payload.user_id, msg_len=len(full_msg)):
         try:
             response_text = _run_with_timeout(
-                coach_agent.generate_response, payload.user_id, msg
+                coach_agent.generate_response, payload.user_id, full_msg
             )
             return {"response": response_text, "agent": "coach"}
         except HTTPException:

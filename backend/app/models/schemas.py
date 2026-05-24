@@ -1,7 +1,7 @@
 from datetime import date
 from typing import List, Optional
 from enum import Enum
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 
 class GoalType(str, Enum):
@@ -46,10 +46,10 @@ class UserUpdate(BaseModel):
     username: str | None = None
     gender: str | None = None
     birth_date: date | None = None
-    height_cm: float | None = None
-    current_weight_kg: float | None = None
+    height_cm: float | None = Field(default=None, gt=49.9, lt=300.1)
+    current_weight_kg: float | None = Field(default=None, gt=24.9, lt=300.1)
     goal_type: GoalType | None = None
-    target_weight_kg: float | None = None
+    target_weight_kg: float | None = Field(default=None, gt=24.9, lt=300.1)
     target_calories: int | None = None
     target_protein: int | None = None
     target_carbs: int | None = None
@@ -199,7 +199,7 @@ class SocialLoginRequest(BaseModel):
 
 
 class WeightLogEntry(BaseModel):
-    weight_kg: float
+    weight_kg: float = Field(gt=24.9, lt=300.1)
     recorded_date: date | None = None
 
 
@@ -208,6 +208,7 @@ class ChatMessage(BaseModel):
     message: str
     lat: float | None = None
     lng: float | None = None
+    image_url: str | None = None
 
 
 class UserRegionUpdate(BaseModel):

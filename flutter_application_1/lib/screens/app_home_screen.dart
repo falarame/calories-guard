@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../../providers/user_data_provider.dart';
 import 'dart:convert';
 import 'dart:async';
@@ -40,9 +41,12 @@ class _AppHomeScreenState extends ConsumerState<AppHomeScreen> {
   bool _isLoading = true;
   bool _hasError = false;
   bool _hasWarnedCalories = false;
+  bool _hasAlertedEatNow = false;
   bool _permissionDenied = false;
   late DateTime _viewDate;
   int _streak = 0;
+  ({int hit, int total, double percent}) _successRate =
+      (hit: 0, total: 0, percent: 0.0);
 
   // Feature 2: copy-yesterday notification action listener
   VoidCallback? _payloadListener;
@@ -174,10 +178,12 @@ class _AppHomeScreenState extends ConsumerState<AppHomeScreen> {
       unawaited(NotificationHelper.showStreakCelebration(streak));
       // Tier 2.5: check permission denied flag
       final permDenied = await NotificationHelper.isPermissionDenied();
+      final successRate = await StreakService.getSuccessRate();
       if (mounted) {
         setState(() {
           _streak = streak;
           _permissionDenied = permDenied;
+          _successRate = successRate;
         });
       }
     } catch (_) {
@@ -267,10 +273,17 @@ class _AppHomeScreenState extends ConsumerState<AppHomeScreen> {
           final userData = ref.read(userDataProvider);
           final target = userData.targetCalories.toInt();
           final eaten = userData.consumedCalories;
-          if (target > 0 &&
+          final hitTarget = target > 0 &&
               eaten >= (target * 0.9).toInt() &&
-              eaten <= (target * 1.1).toInt()) {
+              eaten <= (target * 1.1).toInt();
+          if (hitTarget) {
             unawaited(NotificationHelper.showGoalAchievedNotification(eaten));
+          }
+          // Record daily outcome only when user has logged something (eaten > 0)
+          // → ไม่ mark วันที่ยังไม่กินอะไรว่า "ไม่ผ่าน"
+          if (target > 0 && eaten > 0) {
+            unawaited(
+                StreakService.recordDailyOutcome(DateTime.now(), hitTarget));
           }
         }
       }
@@ -410,6 +423,131 @@ class _AppHomeScreenState extends ConsumerState<AppHomeScreen> {
     return "วันนี้ยังเหลืออีกเยอะ ทานให้ครบนะ";
   }
 
+  // ── Color-level bar (signed net) ───────────────────────────
+  // 0=Danger Low, 1=Caution Low, 2=On Track, 3=Near Target, 4=Over
+  int _calorieLevelIndex(int signedNet, int targetCal) {
+    if (signedNet < -300) return 0;
+    if (signedNet < 0) return 1;
+    if (signedNet <= targetCal) return 2;
+    if (signedNet <= (targetCal * 1.1).round()) return 3;
+    return 4;
+  }
+
+  static const _levelColors = [
+    Color(0xFFD32F2F), // 🟥 danger low
+    Color(0xFFF57C00), // 🟧 caution low
+    Color(0xFF43A047), // 🟩 on track
+    Color(0xFFFBC02D), // 🟨 near target
+    Color(0xFFE53935), // 🟥 over target
+  ];
+
+  static const _levelLabels = [
+    'ขาดพลังงานมาก — กินด่วน',
+    'กินน้อยไป',
+    'อยู่ในเกณฑ์',
+    'ใกล้ครบ',
+    'เกินเป้า',
+  ];
+
+  Color _calorieLevelColor(int idx) =>
+      _levelColors[idx.clamp(0, _levelColors.length - 1)];
+  String _calorieLevelLabel(int idx) =>
+      _levelLabels[idx.clamp(0, _levelLabels.length - 1)];
+
+  Widget _buildColorLevelBar(int activeIdx) {
+    return Row(
+      children: List.generate(_levelColors.length, (i) {
+        final isActive = i == activeIdx;
+        return Expanded(
+          child: Container(
+            margin: EdgeInsets.only(right: i < _levelColors.length - 1 ? 3 : 0),
+            height: 10,
+            decoration: BoxDecoration(
+              color: isActive
+                  ? _levelColors[i]
+                  : _levelColors[i].withValues(alpha: 0.22),
+              borderRadius: BorderRadius.circular(4),
+            ),
+          ),
+        );
+      }),
+    );
+  }
+
+  // ── Success rate card (30-day rolling) ────────────────────
+  Widget _buildSuccessRateCard() {
+    final hit = _successRate.hit;
+    final total = _successRate.total;
+    final percent = _successRate.percent;
+    final barColor = percent >= 70
+        ? const Color(0xFF43A047)
+        : percent >= 40
+            ? const Color(0xFFFBC02D)
+            : const Color(0xFFEF5350);
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      child: Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(20),
+          boxShadow: [
+            BoxShadow(
+                color: Colors.black.withValues(alpha: 0.05),
+                blurRadius: 10,
+                offset: const Offset(0, 3)),
+          ],
+        ),
+        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Row(children: [
+            const Text('📊',
+                style: TextStyle(fontSize: 18)),
+            const SizedBox(width: 8),
+            const Expanded(
+              child: Text('อัตราความสำเร็จ 30 วันย้อนหลัง',
+                  style: TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w700,
+                      color: Colors.black87)),
+            ),
+            Text('${percent.toStringAsFixed(1)}%',
+                style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w800,
+                    color: barColor)),
+          ]),
+          const SizedBox(height: 10),
+          ClipRRect(
+            borderRadius: BorderRadius.circular(6),
+            child: LinearProgressIndicator(
+              value: percent / 100,
+              minHeight: 10,
+              backgroundColor: const Color(0xFFEEEEEE),
+              valueColor: AlwaysStoppedAnimation(barColor),
+            ),
+          ),
+          const SizedBox(height: 6),
+          Text(
+            'ทานครบเป้า $hit/$total วัน',
+            style:
+                TextStyle(fontSize: 11, color: Colors.grey.shade600),
+          ),
+        ]),
+      ),
+    );
+  }
+
+  // ── Eat-now alert idempotency (1 ครั้ง/วัน) ───────────────────────────
+  Future<bool> _eatNowPrefsKey(int uid, String dayKey) async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getBool('eat_now_alerted_${uid}_$dayKey') ?? false;
+  }
+
+  Future<void> _markEatNowAlerted(int uid, String dayKey) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool('eat_now_alerted_${uid}_$dayKey', true);
+  }
+
   // ─── Build ────────────────────────────────────────────────────────────────
 
   @override
@@ -422,6 +560,7 @@ class _AppHomeScreenState extends ConsumerState<AppHomeScreen> {
     final int grossIntake = userData.consumedCalories;
     final int burned = userData.dailyCaloriesBurned;
     final int ringCal = userData.netCaloriesIntake;
+    final int signedNet = userData.netCaloriesSigned;
     final double progress =
         (targetCal > 0) ? (ringCal / targetCal).clamp(0.0, 1.0) : 0.0;
     final bool isOver = ringCal > targetCal;
@@ -433,6 +572,31 @@ class _AppHomeScreenState extends ConsumerState<AppHomeScreen> {
             backgroundColor: Colors.redAccent));
         NotificationHelper.showCalorieAlert(ringCal, targetCal);
         setState(() => _hasWarnedCalories = true);
+      });
+    }
+
+    // Eat-now alert: net ≤ -300 และเวลา > 18:00 → กระตุ้นให้กิน (1 ครั้ง/วัน)
+    if (signedNet <= -300 &&
+        DateTime.now().hour >= 18 &&
+        !_hasAlertedEatNow) {
+      WidgetsBinding.instance.addPostFrameCallback((_) async {
+        if (!mounted) return;
+        final deficit = -signedNet;
+        final today = DateTime.now();
+        final dayKey =
+            '${today.year}-${today.month.toString().padLeft(2, '0')}-${today.day.toString().padLeft(2, '0')}';
+        final prefs = await _eatNowPrefsKey(userData.userId, dayKey);
+        if (!prefs) {
+          NotificationHelper.showEatNowAlert(grossIntake, burned, deficit);
+          if (context.mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                content: Text(
+                    '🍱 คุณเผามากกว่ากิน $deficit kcal — แนะนำให้กินมื้อเย็น'),
+                backgroundColor: Colors.orange.shade700));
+          }
+          await _markEatNowAlerted(userData.userId, dayKey);
+        }
+        if (mounted) setState(() => _hasAlertedEatNow = true);
       });
     }
 
@@ -477,8 +641,12 @@ class _AppHomeScreenState extends ConsumerState<AppHomeScreen> {
                         if (_permissionDenied) _buildPermissionBanner(),
                         _buildDateHeader(),
                         const SizedBox(height: 16),
-                        _buildCalorieCard(ringCal, grossIntake, burned,
-                            targetCal, progress, isOver, userData),
+                        _buildCalorieCard(ringCal, signedNet, grossIntake,
+                            burned, targetCal, progress, isOver, userData),
+                        if (_successRate.total > 0) ...[
+                          const SizedBox(height: 12),
+                          _buildSuccessRateCard(),
+                        ],
                         const SizedBox(height: 12),
                         _buildMacroRow(userData),
                         const SizedBox(height: 12),
@@ -677,10 +845,11 @@ class _AppHomeScreenState extends ConsumerState<AppHomeScreen> {
 
   // ─── Calorie Card ─────────────────────────────────────────────────────────
 
-  Widget _buildCalorieCard(int ringCal, int grossIntake, int burned,
-      int targetCal, double progress, bool isOver, dynamic userData) {
+  Widget _buildCalorieCard(int ringCal, int signedNet, int grossIntake,
+      int burned, int targetCal, double progress, bool isOver, dynamic userData) {
     final ringColor = isOver ? Colors.red : _green;
     final advice = _getAdvice(ringCal, targetCal, isOver);
+    final levelIdx = _calorieLevelIndex(signedNet, targetCal);
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -792,11 +961,13 @@ class _AppHomeScreenState extends ConsumerState<AppHomeScreen> {
                 ),
                 Column(mainAxisSize: MainAxisSize.min, children: [
                   Text(
-                    '${ringCal.round()}',
+                    signedNet < 0 ? '$signedNet' : '${ringCal.round()}',
                     style: TextStyle(
                         fontSize: 26,
                         fontWeight: FontWeight.bold,
-                        color: isOver ? Colors.red : Colors.black87,
+                        color: signedNet < 0
+                            ? Colors.red.shade700
+                            : (isOver ? Colors.red : Colors.black87),
                         height: 1),
                   ),
                   Text('kcal สุทธิ',
@@ -824,23 +995,15 @@ class _AppHomeScreenState extends ConsumerState<AppHomeScreen> {
                     const SizedBox(height: 12),
                     // Removed extra stat item based on user request
                     const SizedBox(height: 8),
-                    // Progress bar
-                    ClipRRect(
-                      borderRadius: BorderRadius.circular(6),
-                      child: LinearProgressIndicator(
-                        value: progress,
-                        minHeight: 8,
-                        backgroundColor: const Color(0xFFE8EFCF),
-                        valueColor: AlwaysStoppedAnimation(ringColor),
-                      ),
-                    ),
+                    // 5-segment color-level bar
+                    _buildColorLevelBar(levelIdx),
                     const SizedBox(height: 6),
                     Text(
-                      '${(progress * 100).toInt()}% ของเป้าหมาย',
+                      _calorieLevelLabel(levelIdx),
                       style: TextStyle(
                           fontSize: 11,
-                          color: Colors.grey.shade500,
-                          fontWeight: FontWeight.w500),
+                          color: _calorieLevelColor(levelIdx),
+                          fontWeight: FontWeight.w600),
                     ),
                   ]),
             ),

@@ -142,9 +142,9 @@ class _WeightChartScreenState extends ConsumerState<WeightChartScreen> {
                         if (parsed == null ||
                             parsed.isNaN ||
                             parsed.isInfinite ||
-                            parsed < 20 ||
-                            parsed > 400) {
-                          return l10n.tr('weight.dialog.error.invalid');
+                            parsed < 25 ||
+                            parsed > 300) {
+                          return 'กรุณากรอกน้ำหนักระหว่าง 25-300 กก.';
                         }
                         return null;
                       },

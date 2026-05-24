@@ -252,8 +252,8 @@ def _badge_score(badges: list) -> int:
 
 def _fetch_leaderboard(cur, limit: int, sort_by: str = "xp") -> list:
     """Fetch and rank leaderboard rows.
-    sort_by='xp'     → tama_points → tier_level → badge_score → created_at ASC → user_id
-    sort_by='streak' → current_streak → total_login_days → tama_points → badge_score → user_id
+    sort_by='xp'     -> weekly_xp -> tier_level -> badge_score -> created_at ASC -> user_id
+    sort_by='streak' -> current_streak -> total_login_days -> weekly_xp -> badge_score -> user_id
     """
     cur.execute("""
         SELECT u.user_id,
@@ -263,7 +263,7 @@ def _fetch_leaderboard(cur, limit: int, sort_by: str = "xp") -> list:
                u.avatar_url,
                u.created_at,
                COALESCE(g.tama_points, 0)       AS tama_points,
-               COALESCE(g.tama_points, 0)       AS weekly_xp,
+               COALESCE(NULLIF(g.weekly_xp, 0), g.tama_points, 0) AS weekly_xp,
                COALESCE(g.tier_level, 0)        AS tier_level,
                COALESCE(g.claimed_badges, '{}') AS claimed_badges
         FROM cleangoal.users u
@@ -274,24 +274,24 @@ def _fetch_leaderboard(cur, limit: int, sort_by: str = "xp") -> list:
 
     for row in rows:
         row["badge_score"] = _badge_score(row.get("claimed_badges") or [])
+        row["leaderboard_xp"] = int(row.get("weekly_xp") or row.get("tama_points") or 0)
 
     if sort_by == "streak":
         rows.sort(key=lambda r: (
             -r["current_streak"],
             -r["total_login_days"],
-            -r["tama_points"],
+            -r["leaderboard_xp"],
             -r["badge_score"],
             r["user_id"],
         ))
     else:  # xp
         rows.sort(key=lambda r: (
-            -r["tama_points"],
+            -r["leaderboard_xp"],
             -r["tier_level"],
             -r["badge_score"],
             (r["created_at"] or r["user_id"]),  # older account = smaller datetime = higher rank
             r["user_id"],
         ))
-
     result = []
     for i, row in enumerate(rows[:limit]):
         row["rank"] = i + 1

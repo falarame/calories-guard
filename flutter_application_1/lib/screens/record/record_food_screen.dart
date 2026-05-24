@@ -154,6 +154,8 @@ class _FoodLogScreenState extends ConsumerState<FoodLogScreen>
   late AnimationController _waterAnim;
   bool _isSaving = false;
   bool _isLoadingData = false;
+  bool _shownOverExerciseSoft = false;
+  bool _shownOverExerciseSevere = false;
   Timer? _waterDebounce;
   final Set<String> _shownWaterSafetyKeys = {};
 
@@ -375,6 +377,7 @@ class _FoodLogScreenState extends ConsumerState<FoodLogScreen>
       }
       ref.read(dailyFoodRevisionProvider.notifier).state++;
       await _fetchDailyLog();
+      _checkOverExercise();
     } catch (e, st) {
       ErrorReporter.report('record.persist_exercise', e, st);
       if (mounted) {
@@ -383,6 +386,55 @@ class _FoodLogScreenState extends ConsumerState<FoodLogScreen>
           backgroundColor: Colors.red,
         ));
       }
+    }
+  }
+
+  /// เตือนเมื่อ user ออกกำลังกายเยอะเกินไป (soft warning — ไม่บล็อก)
+  /// - 120+ นาที หรือ 1000+ kcal → snackbar
+  /// - 180+ นาที หรือ 1500+ kcal → modal dialog + push notification
+  void _checkOverExercise() {
+    if (!mounted) return;
+    final totalMin = _activities.fold<int>(0, (s, a) => s + a.durationMin);
+    final totalBurn = _totalCalBurned.round();
+    final severe = totalMin >= 180 || totalBurn >= 1500;
+    final soft = totalMin >= 120 || totalBurn >= 1000;
+
+    if (severe && !_shownOverExerciseSevere) {
+      _shownOverExerciseSevere = true;
+      NotificationHelper.showOverExerciseAlert(totalMin, totalBurn);
+      showDialog(
+        context: context,
+        builder: (ctx) => AlertDialog(
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          title: const Row(children: [
+            Icon(Icons.warning_amber_rounded, color: Colors.red, size: 28),
+            SizedBox(width: 10),
+            Expanded(child: Text('หยุดพัก!')),
+          ]),
+          content: Text(
+            'วันนี้คุณออกกำลังกายไปแล้ว $totalMin นาที '
+            '(เผา $totalBurn kcal) — เกินเกณฑ์ที่แนะนำมาก '
+            'การฝืนต่ออาจเสี่ยงต่อภาวะ overtraining หรือบาดเจ็บ '
+            'แนะนำให้พักผ่อนและดื่มน้ำให้เพียงพอครับ',
+            style: const TextStyle(height: 1.4),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx),
+              child: const Text('รับทราบ'),
+            ),
+          ],
+        ),
+      );
+    } else if (soft && !_shownOverExerciseSoft) {
+      _shownOverExerciseSoft = true;
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        content: Text(
+            '⚠️ ออกกำลังกายเกินเกณฑ์ทั่วไป ($totalMin นาที / $totalBurn kcal) — ควรพักให้ร่างกายฟื้นตัว'),
+        backgroundColor: Colors.orange.shade700,
+        duration: const Duration(seconds: 5),
+      ));
     }
   }
 

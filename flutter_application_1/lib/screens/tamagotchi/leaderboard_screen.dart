@@ -14,6 +14,7 @@ class _LeaderboardEntry {
   final int rank;
   final int streak;
   final int totalLoginDays;
+
   const _LeaderboardEntry({
     required this.userId,
     required this.username,
@@ -46,6 +47,11 @@ class _LeaderboardEntry {
 }
 
 const _tierEmojis = ['🌱', '🌿', '🌾', '🍚', '✨'];
+const _podiumColors = [
+  Color(0xFFFFD700),
+  Color(0xFFB0BEC5),
+  Color(0xFFBF8970),
+];
 
 class LeaderboardScreen extends ConsumerStatefulWidget {
   const LeaderboardScreen({super.key, this.embedded = false});
@@ -125,6 +131,7 @@ class _LeaderboardScreenState extends ConsumerState<LeaderboardScreen>
               _buildList(_streakBoard, uid, isStreak: true),
             ],
           );
+
     final tabs = TabBar(
       controller: _tabCtrl,
       labelColor: const Color(0xFF1565C0),
@@ -132,7 +139,7 @@ class _LeaderboardScreenState extends ConsumerState<LeaderboardScreen>
       indicatorColor: const Color(0xFF1565C0),
       tabs: const [
         Tab(icon: Text('⭐', style: TextStyle(fontSize: 18)), text: 'XP'),
-        Tab(icon: Text('�', style: TextStyle(fontSize: 18)), text: 'Streak'),
+        Tab(icon: Text('🔥', style: TextStyle(fontSize: 18)), text: 'Streak'),
       ],
     );
 
@@ -186,7 +193,10 @@ class _LeaderboardScreenState extends ConsumerState<LeaderboardScreen>
             onPressed: _load,
           ),
         ],
-        bottom: tabs,
+        bottom: PreferredSize(
+          preferredSize: const Size.fromHeight(48),
+          child: tabs,
+        ),
       ),
       body: content,
     );
@@ -204,50 +214,227 @@ class _LeaderboardScreenState extends ConsumerState<LeaderboardScreen>
         ),
       );
     }
+
+    final top3 = entries.take(3).toList();
+    final rest = entries.length > 3 ? entries.sublist(3) : <_LeaderboardEntry>[];
+
     return RefreshIndicator(
       onRefresh: _load,
-      child: ListView.separated(
-        padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
-        itemCount: entries.length,
-        separatorBuilder: (_, __) => const SizedBox(height: 8),
-        itemBuilder: (_, i) => _buildRow(entries[i], myUid, isStreak: isStreak),
+      child: CustomScrollView(
+        slivers: [
+          SliverToBoxAdapter(
+            child: _buildPodium(top3, myUid, isStreak: isStreak),
+          ),
+          if (rest.isNotEmpty) ...[
+            SliverToBoxAdapter(
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(20, 20, 20, 8),
+                child: Text('อันดับอื่น ๆ',
+                    style: TextStyle(
+                        color: Colors.grey.shade500,
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                        fontFamily: 'Inter')),
+              ),
+            ),
+            SliverPadding(
+              padding: const EdgeInsets.fromLTRB(16, 0, 16, 32),
+              sliver: SliverList.separated(
+                itemCount: rest.length,
+                separatorBuilder: (_, __) => const SizedBox(height: 8),
+                itemBuilder: (_, i) =>
+                    _buildRow(rest[i], myUid, isStreak: isStreak),
+              ),
+            ),
+          ] else
+            const SliverToBoxAdapter(child: SizedBox(height: 32)),
+        ],
       ),
+    );
+  }
+
+  Widget _buildPodium(List<_LeaderboardEntry> top3, int myUid,
+      {required bool isStreak}) {
+    final first = top3.isNotEmpty ? top3[0] : null;
+    final second = top3.length > 1 ? top3[1] : null;
+    final third = top3.length > 2 ? top3[2] : null;
+
+    return Container(
+      margin: const EdgeInsets.fromLTRB(16, 20, 16, 0),
+      padding: const EdgeInsets.fromLTRB(8, 20, 8, 0),
+      decoration: BoxDecoration(
+        gradient: const LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          colors: [Color(0xFF1A237E), Color(0xFF283593)],
+        ),
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+        boxShadow: [
+          BoxShadow(
+              color: const Color(0xFF1A237E).withValues(alpha: 0.3),
+              blurRadius: 16,
+              offset: const Offset(0, 6)),
+        ],
+      ),
+      child: Column(children: [
+        Text(isStreak ? '🔥 ต่อเนื่องที่สุด 🔥' : '⭐ สัปดาห์นี้ ⭐',
+            style: const TextStyle(
+                color: Colors.white70,
+                fontSize: 12,
+                fontFamily: 'Inter',
+                letterSpacing: 1.5)),
+        const SizedBox(height: 20),
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.end,
+          children: [
+            Expanded(
+                child: _podiumItem(second, 2, 60,
+                    myUid: myUid, isStreak: isStreak)),
+            Expanded(
+                child: _podiumItem(first, 1, 90,
+                    myUid: myUid, isStreak: isStreak)),
+            Expanded(
+                child: _podiumItem(third, 3, 44,
+                    myUid: myUid, isStreak: isStreak)),
+          ],
+        ),
+      ]),
+    );
+  }
+
+  Widget _podiumItem(_LeaderboardEntry? e, int rank, double platformH,
+      {required int myUid, required bool isStreak}) {
+    if (e == null) {
+      return Column(mainAxisAlignment: MainAxisAlignment.end, children: [
+        Container(
+          height: platformH,
+          margin: const EdgeInsets.symmetric(horizontal: 4),
+          decoration: BoxDecoration(
+            color: _podiumColors[rank - 1].withValues(alpha: 0.3),
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(8)),
+          ),
+        ),
+      ]);
+    }
+
+    final isMe = e.userId == myUid;
+    final tierEmoji = _tierEmojis[e.tierIdx.clamp(0, _tierEmojis.length - 1)];
+    final color = _podiumColors[rank - 1];
+    final avatarRadius = rank == 1 ? 30.0 : 22.0;
+    final medals = ['🥇', '🥈', '🥉'];
+
+    return Column(
+      mainAxisAlignment: MainAxisAlignment.end,
+      children: [
+        if (rank == 1)
+          const Padding(
+            padding: EdgeInsets.only(bottom: 4),
+            child: Text('👑', style: TextStyle(fontSize: 22)),
+          ),
+        Container(
+          decoration: isMe
+              ? BoxDecoration(
+                  shape: BoxShape.circle,
+                  border: Border.all(color: Colors.yellowAccent, width: 2.5),
+                )
+              : null,
+          child: CircleAvatar(
+            radius: avatarRadius,
+            backgroundColor: Colors.grey.shade300,
+            backgroundImage: e.avatarUrl != null && e.avatarUrl!.isNotEmpty
+                ? NetworkImage(e.avatarUrl!)
+                : null,
+            child: e.avatarUrl == null || e.avatarUrl!.isEmpty
+                ? Icon(Icons.person,
+                    size: rank == 1 ? 26 : 20, color: Colors.grey.shade600)
+                : null,
+          ),
+        ),
+        const SizedBox(height: 6),
+        Text(medals[rank - 1], style: const TextStyle(fontSize: 18)),
+        const SizedBox(height: 2),
+        SizedBox(
+          width: 85,
+          child: Text(
+            isMe ? '${e.username}\n(คุณ)' : e.username,
+            textAlign: TextAlign.center,
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+            style: TextStyle(
+              fontSize: 11,
+              fontWeight: FontWeight.w700,
+              color: isMe ? Colors.yellowAccent : Colors.white,
+              fontFamily: 'Inter',
+            ),
+          ),
+        ),
+        const SizedBox(height: 4),
+        Row(mainAxisAlignment: MainAxisAlignment.center, children: [
+          if (!isStreak) Text(tierEmoji, style: const TextStyle(fontSize: 12)),
+          if (!isStreak && e.streak > 0) const SizedBox(width: 3),
+          if (e.streak > 0) ...[
+            const Text('🔥', style: TextStyle(fontSize: 12)),
+            Text('${e.streak}',
+                style: TextStyle(
+                    fontSize: 11,
+                    color: Colors.orange.shade300,
+                    fontFamily: 'Inter',
+                    fontWeight: FontWeight.w700)),
+          ],
+        ]),
+        Text(
+          isStreak ? '${e.totalLoginDays} วันทั้งหมด' : '${e.weeklyXp} XP',
+          style: TextStyle(
+              fontSize: 10,
+              color: Colors.white.withValues(alpha: 0.7),
+              fontFamily: 'Inter'),
+        ),
+        const SizedBox(height: 8),
+        Container(
+          height: platformH,
+          margin: const EdgeInsets.symmetric(horizontal: 4),
+          decoration: BoxDecoration(
+            color: color.withValues(alpha: 0.85),
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(8)),
+          ),
+          child: Center(
+            child: Text('#$rank',
+                style: const TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.w900,
+                    fontSize: 16,
+                    fontFamily: 'Inter')),
+          ),
+        ),
+      ],
     );
   }
 
   Widget _buildRow(_LeaderboardEntry e, int myUid, {required bool isStreak}) {
     final isMe = e.userId == myUid;
     final tierEmoji = _tierEmojis[e.tierIdx.clamp(0, _tierEmojis.length - 1)];
-    final rankBadge = e.rank == 1
-        ? '🥇'
-        : e.rank == 2
-            ? '🥈'
-            : e.rank == 3
-                ? '🥉'
-                : '#${e.rank}';
-
-    final subtitle = isStreak
-        ? '🔥 ${e.streak} วันติดต่อกัน  •  ${e.totalLoginDays} วันทั้งหมด'
-        : '$tierEmoji  ${e.weeklyXp} XP สัปดาห์นี้';
 
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 11),
       decoration: BoxDecoration(
-        color: isMe ? const Color(0xFF1565C0).withOpacity(0.08) : Colors.white,
+        color: isMe
+            ? const Color(0xFF1565C0).withValues(alpha: 0.07)
+            : Colors.white,
         borderRadius: BorderRadius.circular(14),
         border: Border.all(
             color: isMe
-                ? const Color(0xFF1565C0).withOpacity(0.5)
+                ? const Color(0xFF1565C0).withValues(alpha: 0.45)
                 : Colors.grey.shade200),
       ),
       child: Row(children: [
         SizedBox(
-          width: 40,
-          child: Text(rankBadge,
+          width: 36,
+          child: Text('#${e.rank}',
               style: TextStyle(
-                  fontSize: e.rank <= 3 ? 22 : 14,
+                  fontSize: 13,
                   fontWeight: FontWeight.w700,
-                  color: Colors.grey.shade700)),
+                  color: Colors.grey.shade500,
+                  fontFamily: 'Inter')),
         ),
         CircleAvatar(
           radius: 18,
@@ -261,23 +448,46 @@ class _LeaderboardScreenState extends ConsumerState<LeaderboardScreen>
         ),
         const SizedBox(width: 12),
         Expanded(
-          child:
-              Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            Text(
-              isMe ? '${e.username} (คุณ)' : e.username,
-              style: TextStyle(
-                  fontWeight: FontWeight.w700,
-                  fontSize: 14,
-                  color: isMe ? const Color(0xFF1565C0) : Colors.black87,
-                  fontFamily: 'Inter'),
-              overflow: TextOverflow.ellipsis,
-            ),
-            Text(subtitle,
-                style: TextStyle(
-                    fontSize: 12,
-                    color: Colors.grey.shade600,
-                    fontFamily: 'Inter')),
-          ]),
+          child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  isMe ? '${e.username} (คุณ)' : e.username,
+                  style: TextStyle(
+                      fontWeight: FontWeight.w700,
+                      fontSize: 14,
+                      color:
+                          isMe ? const Color(0xFF1565C0) : Colors.black87,
+                      fontFamily: 'Inter'),
+                  overflow: TextOverflow.ellipsis,
+                ),
+                const SizedBox(height: 2),
+                Row(children: [
+                  if (!isStreak) ...[
+                    Text(tierEmoji, style: const TextStyle(fontSize: 13)),
+                    const SizedBox(width: 6),
+                  ],
+                  if (e.streak > 0) ...[
+                    const Text('🔥', style: TextStyle(fontSize: 12)),
+                    Text(' ${e.streak}',
+                        style: TextStyle(
+                            fontSize: 12,
+                            color: Colors.orange.shade700,
+                            fontFamily: 'Inter',
+                            fontWeight: FontWeight.w700)),
+                    const SizedBox(width: 6),
+                  ],
+                  Text(
+                    isStreak
+                        ? '${e.totalLoginDays} วันทั้งหมด'
+                        : '${e.weeklyXp} XP',
+                    style: TextStyle(
+                        fontSize: 12,
+                        color: Colors.grey.shade600,
+                        fontFamily: 'Inter'),
+                  ),
+                ]),
+              ]),
         ),
       ]),
     );

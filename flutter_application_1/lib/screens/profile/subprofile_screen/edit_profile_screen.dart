@@ -186,9 +186,9 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
                   return;
                 }
                 if ((key == 'current_weight_kg' || key == 'target_weight_kg') &&
-                    (value < 20 || value > 500)) {
+                    (value < 25 || value > 300)) {
                   ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-                      content: Text('น้ำหนักต้องอยู่ระหว่าง 20–500 กก.'),
+                      content: Text('น้ำหนักต้องอยู่ระหว่าง 25–300 กก.'),
                       backgroundColor: Colors.orange));
                   return;
                 }

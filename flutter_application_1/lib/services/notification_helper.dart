@@ -1493,6 +1493,41 @@ class NotificationHelper {
         id: 204, title: title, body: body, payload: 'record_food');
   }
 
+  /// แจ้งเตือนเมื่อออกกำลังกายเยอะเกิน (>120/180 นาที หรือ >1500 kcal เผา)
+  /// Soft warning — ไม่บล็อก ใช้กระตุ้นให้พัก
+  static Future<void> showOverExerciseAlert(int totalMin, int totalBurn) async {
+    if (kIsWeb) return;
+    final severe = totalMin >= 180 || totalBurn >= 1500;
+    final title = severe
+        ? '🚨 หยุดพัก! ออกกำลังกายมากเกินไป'
+        : '⚠️ ออกกำลังกายเกินเกณฑ์ทั่วไป';
+    final body = severe
+        ? 'วันนี้คุณออกกำลังกาย $totalMin นาที / เผา $totalBurn kcal — เสี่ยงบาดเจ็บ ควรพักให้ร่างกายฟื้นตัว'
+        : 'วันนี้คุณออกกำลังกาย $totalMin นาที / เผา $totalBurn kcal — แนะนำให้พักให้ร่างกายฟื้นตัว';
+    await showNotification(
+      id: 205,
+      title: title,
+      body: body,
+      payload: 'home',
+      bypassQuiet: severe,
+      bypassRateLimit: severe,
+    );
+  }
+
+  /// แจ้งเตือนเมื่อ net calorie ติดลบมาก (เผามากกว่ากิน ≥ 300 kcal) — กระตุ้นให้กิน
+  static Future<void> showEatNowAlert(
+      int consumed, int burned, int deficit) async {
+    if (kIsWeb) return;
+    await showNotification(
+      id: 206,
+      title: '🍱 อย่าลืมกินมื้อเย็น',
+      body:
+          'วันนี้คุณเผาผลาญไป $burned แต่กินแค่ $consumed kcal — ขาดอยู่ $deficit kcal',
+      payload: 'record_food',
+      bypassRateLimit: true,
+    );
+  }
+
   // ── Lifecycle notifications ────────────────────────────────────────────────
 
   static Future<void> showWeightReminderIfOverdue({

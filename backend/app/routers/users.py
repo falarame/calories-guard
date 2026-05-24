@@ -697,7 +697,9 @@ def get_tama_points(user_id: int):
             cur.execute(
                 """
                 SELECT tama_points, tier_level, claimed_badges,
-                       COALESCE(gems, 0) AS gems
+                       COALESCE(gems, 0)           AS gems,
+                       COALESCE(weekly_xp, 0)      AS weekly_xp,
+                       COALESCE(weekly_xp_week, '') AS weekly_xp_week
                 FROM cleangoal.user_gamification
                 WHERE user_id = %s
                 """,
@@ -705,15 +707,15 @@ def get_tama_points(user_id: int):
             )
             row = cur.fetchone()
         if row:
-            points = int(row.get("tama_points") or 0)
             return {
-                "tama_points": points,
-                "weekly_xp": points,
+                "tama_points": int(row.get("tama_points") or 0),
+                "weekly_xp": int(row.get("weekly_xp") or 0),
+                "weekly_xp_week": row.get("weekly_xp_week") or "",
                 "tier_level": int(row.get("tier_level") or 0),
                 "claimed_badges": row.get("claimed_badges") or [],
                 "gems": int(row.get("gems") or 0),
             }
-        return {"tama_points": 0, "weekly_xp": 0, "tier_level": 0, "claimed_badges": [], "gems": 0}
+        return {"tama_points": 0, "weekly_xp": 0, "weekly_xp_week": "", "tier_level": 0, "claimed_badges": [], "gems": 0}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
     finally:
@@ -723,70 +725,54 @@ def get_tama_points(user_id: int):
 
 @router.patch("/users/{user_id}/tama-points")
 def sync_tama_points(user_id: int, payload: dict):
-    """Upsert tama_points + tier_level + claimed_badges into user_gamification."""
-    points  = int(payload.get("tama_points", payload.get("weekly_xp", 0)))
-    tier    = int(payload.get("tier_level", 0))
-    badges  = payload.get("claimed_badges")  # list[str] or None
-    gems    = payload.get("gems")            # int or None
+    """Upsert tama_points + tier_level + optional claimed_badges/gems/weekly_xp."""
+    points   = int(payload.get("tama_points", payload.get("weekly_xp", 0)))
+    tier     = int(payload.get("tier_level", 0))
+    badges   = payload.get("claimed_badges")   # list[str] or None
+    gems_raw = payload.get("gems")             # int or None
+    wxp_raw  = payload.get("weekly_xp")        # int or None → store in weekly_xp column
+    wxp_week = payload.get("weekly_xp_week") or ""
+
+    has_badges = badges is not None
+    has_gems   = gems_raw is not None
+    has_wxp    = wxp_raw is not None
+    badges_v   = badges or []
+    gems_v     = int(gems_raw) if has_gems else 0
+    wxp_v      = int(wxp_raw)  if has_wxp  else 0
+
     conn = None
     try:
         conn = get_db_connection()
         with conn.cursor() as cur:
-            if badges is not None and gems is not None:
-                cur.execute(
-                    """
-                    INSERT INTO cleangoal.user_gamification
-                        (user_id, tama_points, tier_level, claimed_badges, gems, gems_updated_at, updated_at)
-                    VALUES (%s, %s, %s, %s, %s, NOW(), NOW())
-                    ON CONFLICT (user_id) DO UPDATE
-                      SET tama_points    = EXCLUDED.tama_points,
-                          tier_level     = EXCLUDED.tier_level,
-                          claimed_badges = EXCLUDED.claimed_badges,
-                          gems           = EXCLUDED.gems,
-                          gems_updated_at = NOW(),
-                          updated_at     = NOW()
-                    """,
-                    (user_id, points, tier, badges, int(gems)),
-                )
-            elif badges is not None:
-                cur.execute(
-                    """
-                    INSERT INTO cleangoal.user_gamification (user_id, tama_points, tier_level, claimed_badges, updated_at)
-                    VALUES (%s, %s, %s, %s, NOW())
-                    ON CONFLICT (user_id) DO UPDATE
-                      SET tama_points    = EXCLUDED.tama_points,
-                          tier_level     = EXCLUDED.tier_level,
-                          claimed_badges = EXCLUDED.claimed_badges,
-                          updated_at     = NOW()
-                    """,
-                    (user_id, points, tier, badges),
-                )
-            elif gems is not None:
-                cur.execute(
-                    """
-                    INSERT INTO cleangoal.user_gamification (user_id, tama_points, tier_level, gems, gems_updated_at, updated_at)
-                    VALUES (%s, %s, %s, %s, NOW(), NOW())
-                    ON CONFLICT (user_id) DO UPDATE
-                      SET tama_points     = EXCLUDED.tama_points,
-                          tier_level      = EXCLUDED.tier_level,
-                          gems            = EXCLUDED.gems,
-                          gems_updated_at = NOW(),
-                          updated_at      = NOW()
-                    """,
-                    (user_id, points, tier, int(gems)),
-                )
-            else:
-                cur.execute(
-                    """
-                    INSERT INTO cleangoal.user_gamification (user_id, tama_points, tier_level, updated_at)
-                    VALUES (%s, %s, %s, NOW())
-                    ON CONFLICT (user_id) DO UPDATE
-                      SET tama_points = EXCLUDED.tama_points,
-                          tier_level  = EXCLUDED.tier_level,
-                          updated_at  = NOW()
-                    """,
-                    (user_id, points, tier),
-                )
+            cur.execute(
+                """
+                INSERT INTO cleangoal.user_gamification
+                    (user_id, tama_points, tier_level, updated_at)
+                VALUES (%s, %s, %s, NOW())
+                ON CONFLICT (user_id) DO UPDATE SET
+                    tama_points     = EXCLUDED.tama_points,
+                    tier_level      = EXCLUDED.tier_level,
+                    claimed_badges  = CASE WHEN %s THEN %s
+                                          ELSE cleangoal.user_gamification.claimed_badges END,
+                    gems            = CASE WHEN %s THEN %s
+                                          ELSE cleangoal.user_gamification.gems END,
+                    gems_updated_at = CASE WHEN %s THEN NOW()
+                                          ELSE cleangoal.user_gamification.gems_updated_at END,
+                    weekly_xp       = CASE WHEN %s THEN %s
+                                          ELSE cleangoal.user_gamification.weekly_xp END,
+                    weekly_xp_week  = CASE WHEN %s THEN %s
+                                          ELSE cleangoal.user_gamification.weekly_xp_week END,
+                    updated_at      = NOW()
+                """,
+                (
+                    user_id, points, tier,
+                    has_badges, badges_v,
+                    has_gems,   gems_v,
+                    has_gems,
+                    has_wxp,    wxp_v,
+                    has_wxp,    wxp_week,
+                ),
+            )
         conn.commit()
         return {"ok": True}
     except Exception as e:
@@ -800,68 +786,98 @@ def sync_tama_points(user_id: int, payload: dict):
 
 @router.post("/users/{user_id}/weekly-reset-claim")
 def weekly_reset_claim(user_id: int, payload: dict, current_user: dict = Depends(get_current_user)):
-    """Idempotent: reset tama_points to 0 for new week and award tier gems for the finished week."""
-    check_ownership(current_user, user_id)
-    week    = payload.get("week", "")
-    week_xp = int(payload.get("weekly_xp", 0))
+    """
+    Claim end-of-week tier + rank reward. Idempotent for the same week.
 
-    # Tier thresholds → weekly gem rewards (must mirror Flutter _tiers)
-    tier_rewards = [
-        (700, 200),  # ✨ ข้าวทอง
-        (500, 100),  # 🍚 ข้าวสุก
-        (300,  50),  # 🌾 ออกรวง
-        (100,  15),  # 🌿 ต้นกล้า
-        (0,     0),  # 🌱 เมล็ดพันธุ์
-    ]
-    gems_for_week = next(reward for (threshold, reward) in tier_rewards if week_xp >= threshold)
+    Body:  {week: "2026-W21", weekly_xp: 450}
+    Returns: {claimed, tier_idx, tier_reward_gems, rank, rank_bonus_gems,
+              total_reward_gems, new_gems}
+    """
+    check_ownership(current_user, user_id)
+    week = (payload.get("week") or "").strip()
+    weekly_xp = int(payload.get("weekly_xp") or 0)
+    if not week:
+        raise HTTPException(status_code=400, detail="week required")
+
+    # Tier thresholds - keep in sync with Flutter _tiers.
+    _TIER_THRESHOLDS = [0, 100, 300, 500, 700]
+    _TIER_REWARDS    = [0,  15,  50, 100, 200]
+    tier_idx = sum(1 for t in _TIER_THRESHOLDS if weekly_xp >= t) - 1
+
+    tier_reward = _TIER_REWARDS[tier_idx]
 
     conn = None
     try:
         conn = get_db_connection()
         with conn.cursor(cursor_factory=RealDictCursor) as cur:
-            # Idempotency check
             cur.execute(
-                "SELECT last_weekly_reward_week, COALESCE(gems, 0) AS gems FROM cleangoal.user_gamification WHERE user_id = %s",
+                """
+                SELECT gems, last_weekly_reward_week
+                FROM cleangoal.user_gamification
+                WHERE user_id = %s
+                """,
                 (user_id,),
             )
             row = cur.fetchone()
-            if row and row.get("last_weekly_reward_week") == week:
-                return {"ok": True, "gems_awarded": 0, "already_claimed": True}
 
-            current_gems = int(row["gems"]) if row else 0
-            new_gems = current_gems + gems_for_week
+            if row and row.get("last_weekly_reward_week") == week:
+                return {"claimed": False}
+
+            current_gems = int(row["gems"] or 0) if row else 0
+
+            # Rank: count users whose weekly_xp exceeds the submitted value
+            rank = None
+            try:
+                cur.execute(
+                    "SELECT COUNT(*) + 1 AS rank FROM cleangoal.user_gamification WHERE weekly_xp > %s",
+                    (weekly_xp,),
+                )
+                r = cur.fetchone()
+                rank = int(r["rank"]) if r else None
+            except Exception:
+                pass
+
+            rank_bonus = (
+                100 if rank == 1 else
+                50  if rank == 2 else
+                25  if rank == 3 else
+                10  if rank is not None and rank <= 10 else
+                0
+            )
+            total_reward = tier_reward + rank_bonus
 
             cur.execute(
                 """
                 INSERT INTO cleangoal.user_gamification
-                    (user_id, tama_points, gems, gems_updated_at, last_weekly_reward_week, updated_at)
-                VALUES (%s, 0, %s, NOW(), %s, NOW())
-                ON CONFLICT (user_id) DO UPDATE
-                  SET tama_points              = 0,
-                      gems                     = %s,
-                      gems_updated_at          = NOW(),
-                      last_weekly_reward_week  = %s,
-                      updated_at               = NOW()
+                    (user_id, gems, gems_updated_at, last_weekly_reward_week, updated_at)
+                VALUES (%s, %s, NOW(), %s, NOW())
+                ON CONFLICT (user_id) DO UPDATE SET
+                    gems                    = cleangoal.user_gamification.gems + %s,
+                    gems_updated_at         = NOW(),
+                    last_weekly_reward_week = %s,
+                    updated_at              = NOW()
                 """,
-                (user_id, new_gems, week, new_gems, week),
+                (user_id, total_reward, week, total_reward, week),
             )
-
-            # Compute rank from leaderboard (best effort)
-            try:
-                cur.execute(
-                    """
-                    SELECT user_id,
-                           ROW_NUMBER() OVER (ORDER BY COALESCE(tama_points, 0) DESC) AS rank
-                    FROM cleangoal.user_gamification
-                    """,
-                )
-                rank_row = next((r for r in cur.fetchall() if r["user_id"] == user_id), None)
-                rank = int(rank_row["rank"]) if rank_row else None
-            except Exception:
-                rank = None
+            cur.execute(
+                "SELECT gems FROM cleangoal.user_gamification WHERE user_id = %s",
+                (user_id,),
+            )
+            updated = cur.fetchone()
+            new_gems = int(updated["gems"]) if updated else current_gems + total_reward
 
         conn.commit()
-        return {"ok": True, "gems_awarded": gems_for_week, "new_gems": new_gems, "rank": rank}
+        return {
+            "claimed": True,
+            "tier_idx": tier_idx,
+            "tier_reward_gems": tier_reward,
+            "rank": rank,
+            "rank_bonus_gems": rank_bonus,
+            "total_reward_gems": total_reward,
+            "new_gems": new_gems,
+        }
+    except HTTPException:
+        raise
     except Exception as e:
         if conn:
             conn.rollback()

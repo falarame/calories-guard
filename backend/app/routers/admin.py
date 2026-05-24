@@ -424,15 +424,31 @@ def admin_approve_temp_food(tf_id: int, req: TempFoodApprove, current_user: dict
                 (new_food_id, tf["user_id"], tf["food_name"]),
             )
 
+        # Award +20 gems to the user who submitted this food
+        _FOOD_APPROVAL_GEMS = 20
+        submitter_uid = tf.get("user_id")
+        if submitter_uid:
+            cur.execute(
+                """
+                INSERT INTO cleangoal.user_gamification (user_id, gems, gems_updated_at, updated_at)
+                VALUES (%s, %s, NOW(), NOW())
+                ON CONFLICT (user_id) DO UPDATE SET
+                    gems             = cleangoal.user_gamification.gems + EXCLUDED.gems,
+                    gems_updated_at  = NOW(),
+                    updated_at       = NOW()
+                """,
+                (submitter_uid, _FOOD_APPROVAL_GEMS),
+            )
+
         _insert_temp_food_notification(
             cur,
-            tf.get("user_id"),
+            submitter_uid,
             "เมนูของคุณได้รับการอนุมัติแล้ว",
-            f"เมนู {tf['food_name']} ถูกเพิ่มเข้าสู่ฐานข้อมูลอาหารแล้ว",
+            f"เมนู {tf['food_name']} ถูกเพิ่มเข้าสู่ฐานข้อมูลอาหารแล้ว และคุณได้รับ +{_FOOD_APPROVAL_GEMS} 🌾",
         )
 
         conn.commit()
-        return {"message": "Approved and added to foods", "food_id": new_food_id}
+        return {"message": "Approved and added to foods", "food_id": new_food_id, "gems_awarded": _FOOD_APPROVAL_GEMS}
     except HTTPException:
         raise
     except Exception as e:
