@@ -278,9 +278,9 @@ class _ReferralScreenState extends ConsumerState<ReferralScreen> {
                 style: const TextStyle(color: Colors.red, fontSize: 13)),
           ),
         if (_redeemSuccess)
-          Padding(
-            padding: const EdgeInsets.only(bottom: 10),
-            child: Row(children: const [
+          const Padding(
+            padding: EdgeInsets.only(bottom: 10),
+            child: Row(children: [
               Icon(Icons.check_circle_rounded, color: Colors.green, size: 18),
               SizedBox(width: 6),
               Text('รับโบนัสสำเร็จ! 🎉 +30 🌾 + บัฟ ×2 เป็นเวลา 7 วัน',
