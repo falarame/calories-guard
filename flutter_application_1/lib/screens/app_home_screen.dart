@@ -424,8 +424,9 @@ class _AppHomeScreenState extends ConsumerState<AppHomeScreen> {
   }
 
   // ── Color-level bar (signed net) ───────────────────────────
-  // 0=Danger Low, 1=Caution Low, 2=On Track, 3=Near Target, 4=Over
-  int _calorieLevelIndex(int signedNet, int targetCal) {
+  // -1=No data, 0=Danger Low, 1=Caution Low, 2=On Track, 3=Near Target, 4=Over
+  int _calorieLevelIndex(int signedNet, int targetCal, int consumed) {
+    if (consumed == 0) return -1; // ยังไม่ได้บันทึกอาหารวันนี้
     if (signedNet < -300) return 0;
     if (signedNet < 0) return 1;
     if (signedNet <= targetCal) return 2;
@@ -457,15 +458,13 @@ class _AppHomeScreenState extends ConsumerState<AppHomeScreen> {
   Widget _buildColorLevelBar(int activeIdx) {
     return Row(
       children: List.generate(_levelColors.length, (i) {
-        final isActive = i == activeIdx;
+        final isActive = activeIdx >= 0 && i == activeIdx;
         return Expanded(
           child: Container(
             margin: EdgeInsets.only(right: i < _levelColors.length - 1 ? 3 : 0),
             height: 10,
             decoration: BoxDecoration(
-              color: isActive
-                  ? _levelColors[i]
-                  : _levelColors[i].withValues(alpha: 0.22),
+              color: _levelColors[i].withValues(alpha: isActive ? 1.0 : 0.22),
               borderRadius: BorderRadius.circular(4),
             ),
           ),
@@ -849,7 +848,7 @@ class _AppHomeScreenState extends ConsumerState<AppHomeScreen> {
       int burned, int targetCal, double progress, bool isOver, dynamic userData) {
     final ringColor = isOver ? Colors.red : _green;
     final advice = _getAdvice(ringCal, targetCal, isOver);
-    final levelIdx = _calorieLevelIndex(signedNet, targetCal);
+    final levelIdx = _calorieLevelIndex(signedNet, targetCal, grossIntake);
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -921,9 +920,17 @@ class _AppHomeScreenState extends ConsumerState<AppHomeScreen> {
             ),
           ]),
 
+          Padding(
+            padding: const EdgeInsets.only(top: 4),
+            child: Text(
+              'แคลอรี่สุทธิ = แคลอรี่ที่กิน − แคลอรี่ที่เผาผลาญจากการออกกำลังกาย',
+              style: TextStyle(fontSize: 11, color: Colors.grey.shade500),
+            ),
+          ),
+
           if (burned > 0)
             Padding(
-              padding: const EdgeInsets.only(top: 6),
+              padding: const EdgeInsets.only(top: 4),
               child: Text(
                 'กิน ${NutritionApprox.kcalExact(grossIntake.toDouble())} · เผา ${NutritionApprox.kcalExact(burned.toDouble())}',
                 style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
@@ -997,14 +1004,16 @@ class _AppHomeScreenState extends ConsumerState<AppHomeScreen> {
                     const SizedBox(height: 8),
                     // 5-segment color-level bar
                     _buildColorLevelBar(levelIdx),
-                    const SizedBox(height: 6),
-                    Text(
-                      _calorieLevelLabel(levelIdx),
-                      style: TextStyle(
-                          fontSize: 11,
-                          color: _calorieLevelColor(levelIdx),
-                          fontWeight: FontWeight.w600),
-                    ),
+                    if (levelIdx >= 0) ...[
+                      const SizedBox(height: 6),
+                      Text(
+                        _calorieLevelLabel(levelIdx),
+                        style: TextStyle(
+                            fontSize: 11,
+                            color: _calorieLevelColor(levelIdx),
+                            fontWeight: FontWeight.w600),
+                      ),
+                    ],
                   ]),
             ),
           ]),
@@ -1299,7 +1308,7 @@ class _AppHomeScreenState extends ConsumerState<AppHomeScreen> {
             ),
             const SizedBox(width: 10),
             const Text(
-              'ก้าวเดินวันนี้',
+              'จำนวนก้าวที่ทำได้วันนี้',
               style: TextStyle(
                   fontSize: 15,
                   fontWeight: FontWeight.bold,

@@ -238,7 +238,7 @@ class _TamagotchiScreenState extends ConsumerState<TamagotchiScreen>
         _Mission(
             id: 'nutrition_complete',
             emoji: '🌿',
-            title: 'โภชนาการครบ',
+            title: 'ทานโภชนาการครบตามเป้า',
             desc: 'แคลอรี่ โปรตีน คาร์บ ไขมัน ทุกตัวอยู่ในช่วง 80–110% ของเป้า',
             baseXp: 20,
             baseGems: 15,
