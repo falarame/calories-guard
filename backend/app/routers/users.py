@@ -1,4 +1,4 @@
-from datetime import date, datetime, timezone
+from datetime import date, datetime, timezone, timedelta
 import json
 
 from fastapi import APIRouter, HTTPException, Depends
@@ -848,7 +848,6 @@ def weekly_reset_claim(user_id: int, payload: dict, current_user: dict = Depends
 
             # Reset weekly_xp = 0 และ stamp weekly_xp_week เป็นสัปดาห์ปัจจุบัน
             # (Asia/Bangkok) — กัน leaderboard เห็นค่าค้างของสัปดาห์ก่อน
-            from datetime import datetime, timezone, timedelta
             _bkk = timezone(timedelta(hours=7))
             _now_bkk = datetime.now(_bkk)
             _iso_year, _iso_week, _ = _now_bkk.isocalendar()

@@ -6,8 +6,8 @@ Tests for the updated leaderboard system:
   _fetch_leaderboard       — sort ordering logic (unit test)
 
 หลักการทดสอบ:
-  - Tiebreaker XP:     tama_points → tier_level → badge_score → created_at ASC → user_id
-  - Tiebreaker Streak: current_streak → total_login_days → tama_points → badge_score → user_id
+  - Tiebreaker XP:     weekly_xp → tier_level → badge_score → created_at ASC → user_id
+  - Tiebreaker Streak: current_streak → total_login_days → weekly_xp → badge_score → user_id
 """
 from datetime import datetime, timezone
 from unittest.mock import MagicMock, patch
@@ -72,10 +72,10 @@ class TestFetchLeaderboardXP:
         cur.fetchall.return_value = rows
         return _fetch_leaderboard(cur, limit=50, sort_by="xp")
 
-    def test_higher_tama_points_ranks_first(self):
+    def test_higher_weekly_xp_ranks_first(self):
         rows = [
-            _make_row(user_id=1, tama_points=100),
-            _make_row(user_id=2, tama_points=500),
+            _make_row(user_id=1, weekly_xp=100),
+            _make_row(user_id=2, weekly_xp=500),
         ]
         result = self._run(rows)
         assert result[0]["user_id"] == 2
@@ -115,9 +115,9 @@ class TestFetchLeaderboardXP:
 
     def test_rank_field_assigned_correctly(self):
         rows = [
-            _make_row(user_id=1, tama_points=300),
-            _make_row(user_id=2, tama_points=200),
-            _make_row(user_id=3, tama_points=100),
+            _make_row(user_id=1, weekly_xp=300),
+            _make_row(user_id=2, weekly_xp=200),
+            _make_row(user_id=3, weekly_xp=100),
         ]
         result = self._run(rows)
         assert result[0]["rank"] == 1
@@ -156,10 +156,10 @@ class TestFetchLeaderboardStreak:
         result = self._run(rows)
         assert result[0]["user_id"] == 2
 
-    def test_tiebreak_by_tama_points(self):
+    def test_tiebreak_by_weekly_xp(self):
         rows = [
-            _make_row(user_id=1, current_streak=10, total_login_days=50, tama_points=100),
-            _make_row(user_id=2, current_streak=10, total_login_days=50, tama_points=500),
+            _make_row(user_id=1, current_streak=10, total_login_days=50, weekly_xp=100),
+            _make_row(user_id=2, current_streak=10, total_login_days=50, weekly_xp=500),
         ]
         result = self._run(rows)
         assert result[0]["user_id"] == 2
@@ -212,8 +212,8 @@ class TestLeaderboardEndpoints:
 
     def test_global_returns_ranked_users(self, app_client):
         rows = [
-            _make_row(user_id=1, username="alice", tama_points=500),
-            _make_row(user_id=2, username="bob", tama_points=100),
+            _make_row(user_id=1, username="alice", weekly_xp=500),
+            _make_row(user_id=2, username="bob", weekly_xp=100),
         ]
         conn = _mock_conn_with_rows(rows)
         with patch("app.routers.social.get_db_connection", return_value=conn):
