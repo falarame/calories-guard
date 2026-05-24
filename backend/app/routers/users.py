@@ -846,18 +846,30 @@ def weekly_reset_claim(user_id: int, payload: dict, current_user: dict = Depends
             )
             total_reward = tier_reward + rank_bonus
 
+            # Reset weekly_xp = 0 และ stamp weekly_xp_week เป็นสัปดาห์ปัจจุบัน
+            # (Asia/Bangkok) — กัน leaderboard เห็นค่าค้างของสัปดาห์ก่อน
+            from datetime import datetime, timezone, timedelta
+            _bkk = timezone(timedelta(hours=7))
+            _now_bkk = datetime.now(_bkk)
+            _iso_year, _iso_week, _ = _now_bkk.isocalendar()
+            current_week_key = f"{_iso_year}-W{_iso_week:02d}"
+
             cur.execute(
                 """
                 INSERT INTO cleangoal.user_gamification
-                    (user_id, gems, gems_updated_at, last_weekly_reward_week, updated_at)
-                VALUES (%s, %s, NOW(), %s, NOW())
+                    (user_id, gems, gems_updated_at, last_weekly_reward_week,
+                     weekly_xp, weekly_xp_week, updated_at)
+                VALUES (%s, %s, NOW(), %s, 0, %s, NOW())
                 ON CONFLICT (user_id) DO UPDATE SET
                     gems                    = cleangoal.user_gamification.gems + %s,
                     gems_updated_at         = NOW(),
                     last_weekly_reward_week = %s,
+                    weekly_xp               = 0,
+                    weekly_xp_week          = %s,
                     updated_at              = NOW()
                 """,
-                (user_id, total_reward, week, total_reward, week),
+                (user_id, total_reward, week, current_week_key,
+                 total_reward, week, current_week_key),
             )
             cur.execute(
                 "SELECT gems FROM cleangoal.user_gamification WHERE user_id = %s",

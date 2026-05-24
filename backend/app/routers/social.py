@@ -252,9 +252,18 @@ def _badge_score(badges: list) -> int:
 
 def _fetch_leaderboard(cur, limit: int, sort_by: str = "xp") -> list:
     """Fetch and rank leaderboard rows.
-    sort_by='xp'     -> weekly_xp -> tier_level -> badge_score -> created_at ASC -> user_id
+    sort_by='xp'     -> weekly_xp (current week only) -> tier_level -> badge_score -> created_at ASC -> user_id
     sort_by='streak' -> current_streak -> total_login_days -> weekly_xp -> badge_score -> user_id
+
+    Lazy weekly reset: เฉพาะแถวที่ weekly_xp_week == สัปดาห์ปัจจุบัน (Asia/Bangkok)
+    ถึงนับเป็น weekly_xp ที่แสดง — กันค่าค้างของสัปดาห์ก่อนโผล่ขึ้น leaderboard
     """
+    from datetime import datetime, timezone, timedelta
+    _bkk = timezone(timedelta(hours=7))
+    _now_bkk = datetime.now(_bkk)
+    _iso_year, _iso_week, _ = _now_bkk.isocalendar()
+    current_week = f"{_iso_year}-W{_iso_week:02d}"
+
     cur.execute("""
         SELECT u.user_id,
                COALESCE(u.username, 'ผู้ใช้')  AS username,
@@ -263,18 +272,22 @@ def _fetch_leaderboard(cur, limit: int, sort_by: str = "xp") -> list:
                u.avatar_url,
                u.created_at,
                COALESCE(g.tama_points, 0)       AS tama_points,
-               COALESCE(NULLIF(g.weekly_xp, 0), g.tama_points, 0) AS weekly_xp,
+               CASE
+                   WHEN g.weekly_xp_week = %s THEN COALESCE(g.weekly_xp, 0)
+                   ELSE 0
+               END                              AS weekly_xp,
                COALESCE(g.tier_level, 0)        AS tier_level,
                COALESCE(g.claimed_badges, '{}') AS claimed_badges
         FROM cleangoal.users u
         LEFT JOIN cleangoal.user_gamification g ON g.user_id = u.user_id
         WHERE u.deleted_at IS NULL
-    """)
+    """, (current_week,))
     rows = [dict(r) for r in cur.fetchall()]
 
     for row in rows:
         row["badge_score"] = _badge_score(row.get("claimed_badges") or [])
-        row["leaderboard_xp"] = int(row.get("weekly_xp") or row.get("tama_points") or 0)
+        # weekly_xp ตอนนี้เป็น 0 ถ้าไม่ใช่สัปดาห์ปัจจุบัน — ไม่ fallback ไป tama_points
+        row["leaderboard_xp"] = int(row.get("weekly_xp") or 0)
 
     if sort_by == "streak":
         rows.sort(key=lambda r: (
