@@ -239,39 +239,63 @@ def set_user_allergies(user_id: int, body: AllergyUpdate, current_user: dict = D
 
 # --- Leaderboard ---
 
-def _leaderboard_rows(cur, limit: int, user_ids: list[int] | None = None):
-    params: list[object] = []
-    filter_sql = ""
-    if user_ids is not None:
-        if not user_ids:
-            return []
-        filter_sql = "AND u.user_id = ANY(%s)"
-        params.append(user_ids)
-    params.append(limit)
-    cur.execute(f"""
+_BADGE_WEIGHTS: dict[str, int] = {
+    "streak_3": 1, "streak_7": 3, "streak_14": 5,
+    "streak_30": 10, "streak_60": 20, "streak_90": 30, "streak_365": 100,
+    "first_tier_1": 2, "first_tier_2": 5, "first_tier_3": 10, "first_tier_4": 20,
+}
+
+
+def _badge_score(badges: list) -> int:
+    return sum(_BADGE_WEIGHTS.get(b, 0) for b in (badges or []))
+
+
+def _fetch_leaderboard(cur, limit: int, sort_by: str = "xp") -> list:
+    """Fetch and rank leaderboard rows.
+    sort_by='xp'     → tama_points → tier_level → badge_score → created_at ASC → user_id
+    sort_by='streak' → current_streak → total_login_days → tama_points → badge_score → user_id
+    """
+    cur.execute("""
         SELECT u.user_id,
-               COALESCE(u.username, 'ผู้ใช้') AS username,
-               COALESCE(u.current_streak, 0)   AS current_streak,
-               COALESCE(u.total_login_days, 0) AS total_login_days,
+               COALESCE(u.username, 'ผู้ใช้')  AS username,
+               COALESCE(u.current_streak, 0)    AS current_streak,
+               COALESCE(u.total_login_days, 0)  AS total_login_days,
                u.avatar_url,
-               COALESCE(g.tama_points, 0)      AS tama_points,
-               COALESCE(g.tama_points, 0)      AS weekly_xp,
-               COALESCE(g.tier_level, 0)       AS tier_level,
-               COALESCE(g.claimed_badges, '{{}}') AS claimed_badges
+               u.created_at,
+               COALESCE(g.tama_points, 0)       AS tama_points,
+               COALESCE(g.tama_points, 0)       AS weekly_xp,
+               COALESCE(g.tier_level, 0)        AS tier_level,
+               COALESCE(g.claimed_badges, '{}') AS claimed_badges
         FROM cleangoal.users u
         LEFT JOIN cleangoal.user_gamification g ON g.user_id = u.user_id
         WHERE u.deleted_at IS NULL
-          AND (u.current_streak > 0 OR u.total_login_days > 0 OR COALESCE(g.tama_points, 0) > 0)
-          {filter_sql}
-        ORDER BY COALESCE(g.tama_points, 0) DESC, u.current_streak DESC, u.total_login_days DESC
-        LIMIT %s
-    """, tuple(params))
-    rows = cur.fetchall()
+    """)
+    rows = [dict(r) for r in cur.fetchall()]
+
+    for row in rows:
+        row["badge_score"] = _badge_score(row.get("claimed_badges") or [])
+
+    if sort_by == "streak":
+        rows.sort(key=lambda r: (
+            -r["current_streak"],
+            -r["total_login_days"],
+            -r["tama_points"],
+            -r["badge_score"],
+            r["user_id"],
+        ))
+    else:  # xp
+        rows.sort(key=lambda r: (
+            -r["tama_points"],
+            -r["tier_level"],
+            -r["badge_score"],
+            (r["created_at"] or r["user_id"]),  # older account = smaller datetime = higher rank
+            r["user_id"],
+        ))
+
     result = []
-    for i, row in enumerate(rows):
-        entry = dict(row)
-        entry['rank'] = i + 1
-        result.append(entry)
+    for i, row in enumerate(rows[:limit]):
+        row["rank"] = i + 1
+        result.append(row)
     return result
 
 
@@ -285,7 +309,7 @@ def get_global_leaderboard(limit: int = 50):
     conn = get_db_connection()
     try:
         cur = conn.cursor(cursor_factory=RealDictCursor)
-        return _leaderboard_rows(cur, limit)
+        return _fetch_leaderboard(cur, limit, sort_by="xp")
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
     finally:
@@ -293,27 +317,12 @@ def get_global_leaderboard(limit: int = 50):
             conn.close()
 
 
-@router.get("/leaderboard/friends/{user_id}")
-def get_friends_leaderboard(user_id: int, current_user: dict = Depends(get_current_user), limit: int = 50):
-    check_ownership(current_user, user_id)
+@router.get("/leaderboard/streak")
+def get_streak_leaderboard(limit: int = 50):
     conn = get_db_connection()
     try:
         cur = conn.cursor(cursor_factory=RealDictCursor)
-        cur.execute(
-            """
-            SELECT friend_id
-            FROM cleangoal.friendships
-            WHERE user_id = %s AND status = 'accepted'
-            UNION
-            SELECT user_id
-            FROM cleangoal.friendships
-            WHERE friend_id = %s AND status = 'accepted'
-            """,
-            (user_id, user_id),
-        )
-        friend_ids = [int(r["friend_id"]) for r in cur.fetchall()]
-        ids = sorted(set(friend_ids + [user_id]))
-        return _leaderboard_rows(cur, limit, ids)
+        return _fetch_leaderboard(cur, limit, sort_by="streak")
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
     finally:

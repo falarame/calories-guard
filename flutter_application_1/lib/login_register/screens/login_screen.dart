@@ -259,7 +259,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
                                 shape: BoxShape.circle,
                                 boxShadow: [
                                   BoxShadow(
-                                      color: _green.withValues(alpha: 0.2),
+                                      color: _green.withOpacity(0.2),
                                       blurRadius: 20,
                                       offset: const Offset(0, 6))
                                 ],
@@ -430,7 +430,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
                               icon: const FaIcon(FontAwesomeIcons.google,
                                   size: 18, color: Color(0xFFEA4335)),
                               borderColor: const Color(0xFFEA4335)
-                                  .withValues(alpha: 0.3),
+                                  .withOpacity(0.3),
                               isLoading: _isGoogleLoading,
                               onTap: (_isLoading || _isGoogleLoading)
                                   ? null
@@ -568,7 +568,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
           border: Border.all(color: borderColor, width: 1.5),
           boxShadow: [
             BoxShadow(
-                color: Colors.black.withValues(alpha: 0.04),
+                color: Colors.black.withOpacity(0.04),
                 blurRadius: 8,
                 offset: const Offset(0, 3))
           ],

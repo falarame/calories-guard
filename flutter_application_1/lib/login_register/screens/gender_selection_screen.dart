@@ -163,7 +163,7 @@ class _GenderSelectionScreenState extends ConsumerState<GenderSelectionScreen> {
         padding: const EdgeInsets.all(15),
         decoration: BoxDecoration(
           color:
-              isSelected ? Colors.white : Colors.white.withValues(alpha: 0.5),
+              isSelected ? Colors.white : Colors.white.withOpacity(0.5),
           borderRadius: BorderRadius.circular(20),
           border: isSelected
               ? Border.all(color: const Color(0xFF4C6414), width: 3)
@@ -171,7 +171,7 @@ class _GenderSelectionScreenState extends ConsumerState<GenderSelectionScreen> {
           boxShadow: isSelected
               ? [
                   BoxShadow(
-                      color: Colors.black.withValues(alpha: 0.1),
+                      color: Colors.black.withOpacity(0.1),
                       blurRadius: 10)
                 ]
               : [],

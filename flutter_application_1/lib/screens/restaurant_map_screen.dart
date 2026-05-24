@@ -464,7 +464,7 @@ class _RestaurantMapScreenState extends State<RestaurantMapScreen> {
           color: Colors.white,
           boxShadow: [
             BoxShadow(
-              color: _green.withValues(alpha: 0.1),
+              color: _green.withOpacity(0.1),
               blurRadius: 8,
               offset: const Offset(0, 2),
             ),
@@ -557,7 +557,7 @@ class _RestaurantMapScreenState extends State<RestaurantMapScreen> {
                 _fetchNearbyRestaurants();
               },
               backgroundColor: Colors.white,
-              selectedColor: _orange.withValues(alpha: 0.2),
+              selectedColor: _orange.withOpacity(0.2),
               labelStyle: TextStyle(
                 color: isSelected ? _orange : Colors.black54,
                 fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
@@ -593,7 +593,7 @@ class _RestaurantMapScreenState extends State<RestaurantMapScreen> {
             borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
             boxShadow: [
               BoxShadow(
-                color: _green.withValues(alpha: 0.15),
+                color: _green.withOpacity(0.15),
                 blurRadius: 16,
                 offset: const Offset(0, -4),
               ),
@@ -675,7 +675,7 @@ class _RestaurantMapScreenState extends State<RestaurantMapScreen> {
           border: Border.all(color: Colors.grey.shade200),
           boxShadow: [
             BoxShadow(
-              color: _green.withValues(alpha: 0.08),
+              color: _green.withOpacity(0.08),
               blurRadius: 8,
               offset: const Offset(0, 2),
             ),
@@ -783,7 +783,7 @@ class _RestaurantMapScreenState extends State<RestaurantMapScreen> {
           borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
           boxShadow: [
             BoxShadow(
-              color: _green.withValues(alpha: 0.2),
+              color: _green.withOpacity(0.2),
               blurRadius: 20,
               offset: const Offset(0, -4),
             ),
@@ -874,7 +874,7 @@ class _RestaurantMapScreenState extends State<RestaurantMapScreen> {
                         color: _orangeL,
                         borderRadius: BorderRadius.circular(16),
                         border:
-                            Border.all(color: _orange.withValues(alpha: 0.3)),
+                            Border.all(color: _orange.withOpacity(0.3)),
                       ),
                       child: Row(
                         children: [
@@ -948,7 +948,7 @@ class _RestaurantMapScreenState extends State<RestaurantMapScreen> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
       decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.1),
+        color: color.withOpacity(0.1),
         borderRadius: BorderRadius.circular(12),
       ),
       child: Row(

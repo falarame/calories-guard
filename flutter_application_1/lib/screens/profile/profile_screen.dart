@@ -247,7 +247,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
             child: Container(
               padding: const EdgeInsets.all(8),
               decoration: BoxDecoration(
-                  color: Colors.white.withValues(alpha: 0.15),
+                  color: Colors.white.withOpacity(0.15),
                   shape: BoxShape.circle),
               child: const Icon(Icons.arrow_back_ios_new_rounded,
                   color: Colors.white, size: 18),
@@ -279,7 +279,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                   height: 80,
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
-                    color: Colors.white.withValues(alpha: 0.2),
+                    color: Colors.white.withOpacity(0.2),
                     border: Border.all(color: Colors.white, width: 2.5),
                     image: DecorationImage(
                         image: (userData.avatarUrl != null &&
@@ -327,16 +327,16 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                   'อายุ ${userData.age} ปี  •  สูง ${userData.height.toInt()} ซม.',
                   style: TextStyle(
                       fontSize: 13,
-                      color: Colors.white.withValues(alpha: 0.8))),
+                      color: Colors.white.withOpacity(0.8))),
               const SizedBox(height: 10),
               Container(
                 padding:
                     const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
                 decoration: BoxDecoration(
-                  color: Colors.white.withValues(alpha: 0.15),
+                  color: Colors.white.withOpacity(0.15),
                   borderRadius: BorderRadius.circular(20),
                   border:
-                      Border.all(color: Colors.white.withValues(alpha: 0.3)),
+                      Border.all(color: Colors.white.withOpacity(0.3)),
                 ),
                 child: Row(mainAxisSize: MainAxisSize.min, children: [
                   Icon(goalIcon, size: 14, color: Colors.white),
@@ -374,7 +374,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
         borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
-              color: Colors.black.withValues(alpha: 0.06),
+              color: Colors.black.withOpacity(0.06),
               blurRadius: 16,
               offset: const Offset(0, 4))
         ],
@@ -436,7 +436,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
         borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
-              color: Colors.black.withValues(alpha: 0.05),
+              color: Colors.black.withOpacity(0.05),
               blurRadius: 14,
               offset: const Offset(0, 4))
         ],
@@ -554,10 +554,10 @@ class _BadgesSectionState extends State<_BadgesSection> {
                 padding:
                     const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                 decoration: BoxDecoration(
-                  color: const Color(0xFF6A1B9A).withValues(alpha: 0.08),
+                  color: const Color(0xFF6A1B9A).withOpacity(0.08),
                   borderRadius: BorderRadius.circular(12),
                   border: Border.all(
-                      color: const Color(0xFF6A1B9A).withValues(alpha: 0.35)),
+                      color: const Color(0xFF6A1B9A).withOpacity(0.35)),
                 ),
                 child: Row(mainAxisSize: MainAxisSize.min, children: [
                   Text(emoji, style: const TextStyle(fontSize: 18)),

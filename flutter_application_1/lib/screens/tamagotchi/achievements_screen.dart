@@ -210,12 +210,12 @@ class _AchievementsScreenState extends ConsumerState<AchievementsScreen> {
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
             color: earned
-                ? const Color(0xFF1565C0).withValues(alpha: 0.4)
+                ? const Color(0xFF1565C0).withOpacity(0.4)
                 : Colors.grey.shade300),
         boxShadow: earned
             ? [
                 BoxShadow(
-                    color: const Color(0xFF1565C0).withValues(alpha: 0.1),
+                    color: const Color(0xFF1565C0).withOpacity(0.1),
                     blurRadius: 8,
                     offset: const Offset(0, 2))
               ]
@@ -248,7 +248,7 @@ class _AchievementsScreenState extends ConsumerState<AchievementsScreen> {
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
             decoration: BoxDecoration(
-              color: const Color(0xFF2E7D32).withValues(alpha: 0.12),
+              color: const Color(0xFF2E7D32).withOpacity(0.12),
               borderRadius: BorderRadius.circular(8),
             ),
             child: Text('+${a.rewardGems} 🌾',

@@ -61,7 +61,7 @@ def get_weight_logs(user_id: int, current_user: dict = Depends(get_current_user)
         cur.execute("""
             SELECT recorded_date::text AS date, weight_kg AS weight
             FROM weight_logs WHERE user_id = %s
-            ORDER BY recorded_date ASC LIMIT 30
+            ORDER BY recorded_date DESC LIMIT 30
         """, (user_id,))
         return [dict(r) for r in cur.fetchall()]
     finally:

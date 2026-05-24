@@ -321,6 +321,23 @@ def _init_missing_tables():
                 EXCEPTION WHEN duplicate_column THEN NULL;
                 END $$;
             """)
+        cur.execute("""
+            CREATE TABLE IF NOT EXISTS cleangoal.referral_codes (
+                code        TEXT PRIMARY KEY,
+                owner_id    INT  NOT NULL REFERENCES cleangoal.users(user_id) ON DELETE CASCADE,
+                created_at  TIMESTAMPTZ DEFAULT NOW()
+            )
+        """)
+        cur.execute("""
+            CREATE TABLE IF NOT EXISTS cleangoal.referral_redemptions (
+                redemption_id  SERIAL PRIMARY KEY,
+                code           TEXT NOT NULL REFERENCES cleangoal.referral_codes(code) ON DELETE CASCADE,
+                redeemed_by    INT  NOT NULL UNIQUE REFERENCES cleangoal.users(user_id) ON DELETE CASCADE,
+                redeemed_at    TIMESTAMPTZ DEFAULT NOW()
+            )
+        """)
+        cur.execute("ALTER TABLE cleangoal.user_gamification ADD COLUMN IF NOT EXISTS gem_buff_multiplier INT NOT NULL DEFAULT 1")
+        cur.execute("ALTER TABLE cleangoal.user_gamification ADD COLUMN IF NOT EXISTS gem_buff_expires_at TIMESTAMPTZ")
         conn.commit()
     except Exception as e:
         print(f"[init] Could not ensure helper tables: {e}")
@@ -335,7 +352,7 @@ from app.routers import (
     health, auth, users, foods, admin,
     meals, weight, water, exercise,
     insights, social, chat, notifications, feedback, places,
-    community,
+    community, referral,
 )
 
 app.include_router(health.router)
@@ -354,3 +371,4 @@ app.include_router(notifications.router)
 app.include_router(feedback.router)
 app.include_router(places.router)
 app.include_router(community.router)
+app.include_router(referral.router)

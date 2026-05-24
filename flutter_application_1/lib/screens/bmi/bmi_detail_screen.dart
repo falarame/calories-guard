@@ -126,7 +126,7 @@ class _BmiDetailScreenState extends State<BmiDetailScreen>
             child: Container(
               padding: const EdgeInsets.all(8),
               decoration: BoxDecoration(
-                  color: Colors.white.withValues(alpha: 0.2),
+                  color: Colors.white.withOpacity(0.2),
                   shape: BoxShape.circle),
               child: const Icon(Icons.arrow_back_ios_new_rounded,
                   color: Colors.white, size: 18),
@@ -162,7 +162,7 @@ class _BmiDetailScreenState extends State<BmiDetailScreen>
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
               decoration: BoxDecoration(
-                color: Colors.white.withValues(alpha: 0.25),
+                color: Colors.white.withOpacity(0.25),
                 borderRadius: BorderRadius.circular(20),
               ),
               child: Text(catData.label,
@@ -198,7 +198,7 @@ class _BmiDetailScreenState extends State<BmiDetailScreen>
           borderRadius: BorderRadius.circular(20),
           boxShadow: [
             BoxShadow(
-                color: Colors.black.withValues(alpha: 0.05),
+                color: Colors.black.withOpacity(0.05),
                 blurRadius: 12,
                 offset: const Offset(0, 3))
           ],
@@ -209,7 +209,7 @@ class _BmiDetailScreenState extends State<BmiDetailScreen>
               width: 36,
               height: 36,
               decoration: BoxDecoration(
-                  color: _green.withValues(alpha: 0.1), shape: BoxShape.circle),
+                  color: _green.withOpacity(0.1), shape: BoxShape.circle),
               child:
                   const Icon(Icons.calculate_outlined, size: 18, color: _green),
             ),
@@ -225,7 +225,7 @@ class _BmiDetailScreenState extends State<BmiDetailScreen>
             decoration: BoxDecoration(
               color: const Color(0xFFF0F7E8),
               borderRadius: BorderRadius.circular(14),
-              border: Border.all(color: _green.withValues(alpha: 0.3)),
+              border: Border.all(color: _green.withOpacity(0.3)),
             ),
             child: Column(children: [
               const Text(
@@ -292,7 +292,7 @@ class _BmiDetailScreenState extends State<BmiDetailScreen>
           borderRadius: BorderRadius.circular(20),
           boxShadow: [
             BoxShadow(
-                color: Colors.black.withValues(alpha: 0.05),
+                color: Colors.black.withOpacity(0.05),
                 blurRadius: 12,
                 offset: const Offset(0, 3))
           ],
@@ -374,7 +374,7 @@ class _BmiDetailScreenState extends State<BmiDetailScreen>
           borderRadius: BorderRadius.circular(20),
           boxShadow: [
             BoxShadow(
-                color: Colors.black.withValues(alpha: 0.05),
+                color: Colors.black.withOpacity(0.05),
                 blurRadius: 12,
                 offset: const Offset(0, 3))
           ],
@@ -387,7 +387,7 @@ class _BmiDetailScreenState extends State<BmiDetailScreen>
                 width: 36,
                 height: 36,
                 decoration: BoxDecoration(
-                    color: _green.withValues(alpha: 0.1),
+                    color: _green.withOpacity(0.1),
                     shape: BoxShape.circle),
                 child: const Icon(Icons.table_chart_outlined,
                     size: 18, color: _green),
@@ -433,7 +433,7 @@ class _BmiDetailScreenState extends State<BmiDetailScreen>
               padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 12),
               decoration: BoxDecoration(
                 color: isUser
-                    ? r.color.withValues(alpha: 0.12)
+                    ? r.color.withOpacity(0.12)
                     : Colors.grey.shade50,
                 borderRadius: BorderRadius.circular(10),
                 border: isUser ? Border.all(color: r.color, width: 1.5) : null,
@@ -520,7 +520,7 @@ class _BmiDetailScreenState extends State<BmiDetailScreen>
           borderRadius: BorderRadius.circular(20),
           boxShadow: [
             BoxShadow(
-                color: Colors.black.withValues(alpha: 0.05),
+                color: Colors.black.withOpacity(0.05),
                 blurRadius: 12,
                 offset: const Offset(0, 3))
           ],
@@ -531,7 +531,7 @@ class _BmiDetailScreenState extends State<BmiDetailScreen>
               width: 36,
               height: 36,
               decoration: BoxDecoration(
-                  color: _green.withValues(alpha: 0.1), shape: BoxShape.circle),
+                  color: _green.withOpacity(0.1), shape: BoxShape.circle),
               child:
                   const Icon(Icons.edit_note_rounded, size: 18, color: _green),
             ),
@@ -570,10 +570,10 @@ class _BmiDetailScreenState extends State<BmiDetailScreen>
               width: double.infinity,
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
-                color: _bmiColor(_calcBmi!).withValues(alpha: 0.08),
+                color: _bmiColor(_calcBmi!).withOpacity(0.08),
                 borderRadius: BorderRadius.circular(14),
                 border: Border.all(
-                    color: _bmiColor(_calcBmi!).withValues(alpha: 0.4)),
+                    color: _bmiColor(_calcBmi!).withOpacity(0.4)),
               ),
               child: Column(children: [
                 Text(
@@ -661,7 +661,7 @@ class _BmiGaugePainter extends CustomPainter {
       final startAngle = math.pi + math.pi * (zone.min - 10) / 30;
       final sweepAngle = math.pi * (zone.max - zone.min) / 30;
       final paint = Paint()
-        ..color = zone.color.withValues(alpha: 0.3)
+        ..color = zone.color.withOpacity(0.3)
         ..strokeWidth = strokeW
         ..style = PaintingStyle.stroke
         ..strokeCap = StrokeCap.butt;

@@ -187,11 +187,11 @@ class _WelcomeScreenState extends State<WelcomeScreen>
                       padding: const EdgeInsets.symmetric(
                           horizontal: 14, vertical: 5),
                       decoration: BoxDecoration(
-                        color: const Color(0xFF628141).withValues(alpha: 0.12),
+                        color: const Color(0xFF628141).withOpacity(0.12),
                         borderRadius: BorderRadius.circular(20),
                         border: Border.all(
                             color:
-                                const Color(0xFF628141).withValues(alpha: 0.3)),
+                                const Color(0xFF628141).withOpacity(0.3)),
                       ),
                       child: const Text(
                         '🌿  ติดตามแคลอรี่ • ใส่ใจสุขภาพ',
@@ -227,7 +227,7 @@ class _WelcomeScreenState extends State<WelcomeScreen>
                             boxShadow: [
                               BoxShadow(
                                 color: const Color(0xFF628141)
-                                    .withValues(alpha: 0.15),
+                                    .withOpacity(0.15),
                                 blurRadius: 30,
                                 offset: const Offset(0, 16),
                                 spreadRadius: 4,
@@ -261,7 +261,7 @@ class _WelcomeScreenState extends State<WelcomeScreen>
                               boxShadow: [
                                 BoxShadow(
                                   color: const Color(0xFF628141)
-                                      .withValues(alpha: 0.35 * _pulse.value),
+                                      .withOpacity(0.35 * _pulse.value),
                                   blurRadius: 20 * _pulse.value,
                                   spreadRadius: 2 * _pulse.value,
                                   offset: const Offset(0, 6),
@@ -313,7 +313,7 @@ class _WelcomeScreenState extends State<WelcomeScreen>
                                     height: 28,
                                     decoration: BoxDecoration(
                                       color:
-                                          Colors.white.withValues(alpha: 0.2),
+                                          Colors.white.withOpacity(0.2),
                                       shape: BoxShape.circle,
                                     ),
                                     child: const Icon(

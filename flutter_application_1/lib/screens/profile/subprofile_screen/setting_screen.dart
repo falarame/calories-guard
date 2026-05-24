@@ -284,7 +284,7 @@ class _SettingScreenState extends ConsumerState<SettingScreen> {
               style: ElevatedButton.styleFrom(
                   backgroundColor: Colors.red,
                   foregroundColor: Colors.white,
-                  disabledBackgroundColor: Colors.red.withValues(alpha: 0.3),
+                  disabledBackgroundColor: Colors.red.withOpacity(0.3),
                   shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(12))),
               child: Text(l10n.tr('settings.delete_account.confirm_cta'),
@@ -356,7 +356,7 @@ class _SettingScreenState extends ConsumerState<SettingScreen> {
                 child: Container(
                   padding: const EdgeInsets.all(8),
                   decoration: BoxDecoration(
-                      color: Colors.white.withValues(alpha: 0.15),
+                      color: Colors.white.withOpacity(0.15),
                       shape: BoxShape.circle),
                   child: const Icon(Icons.arrow_back_ios_new_rounded,
                       color: Colors.white, size: 18),
@@ -530,7 +530,7 @@ class _SettingScreenState extends ConsumerState<SettingScreen> {
           borderRadius: BorderRadius.circular(20),
           boxShadow: [
             BoxShadow(
-                color: Colors.black.withValues(alpha: 0.05),
+                color: Colors.black.withOpacity(0.05),
                 blurRadius: 14,
                 offset: const Offset(0, 4))
           ],
@@ -599,7 +599,7 @@ class _SettingScreenState extends ConsumerState<SettingScreen> {
                 color: palette.textPrimary)),
         trailing: Switch(
           value: _isNotificationOn,
-          activeThumbColor: palette.brand,
+          activeColor: palette.brand,
           onChanged: _onToggleNotification,
         ),
       ),
@@ -951,7 +951,7 @@ class _NotifPrefsSheetState extends State<_NotifPrefsSheet> {
                                   ),
                                 ),
                                 value: _cats[cat] ?? true,
-                                activeThumbColor: palette.brand,
+                                activeColor: palette.brand,
                                 onChanged: (val) => _toggleCategory(cat, val),
                               ),
                               if (!isLast)
@@ -989,7 +989,7 @@ class _NotifPrefsSheetState extends State<_NotifPrefsSheet> {
                                 fontSize: 13, color: palette.textSecondary),
                           ),
                           value: _quietEnabled,
-                          activeThumbColor: palette.brand,
+                          activeColor: palette.brand,
                           onChanged: _toggleQuietHours,
                         ),
                         if (_quietEnabled) ...[
@@ -1180,7 +1180,7 @@ class _NotifPrefsSheetState extends State<_NotifPrefsSheet> {
                                   ),
                                   selected: _waterHH.contains(h),
                                   selectedColor:
-                                      palette.brand.withValues(alpha: 0.15),
+                                      palette.brand.withOpacity(0.15),
                                   checkmarkColor: palette.brand,
                                   side: BorderSide(
                                     color: _waterHH.contains(h)
@@ -1226,7 +1226,7 @@ class _NotifPrefsSheetState extends State<_NotifPrefsSheet> {
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.05),
+            color: Colors.black.withOpacity(0.05),
             blurRadius: 10,
             offset: const Offset(0, 3),
           ),
@@ -1244,9 +1244,9 @@ class _NotifPrefsSheetState extends State<_NotifPrefsSheet> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
       decoration: BoxDecoration(
-        color: palette.brand.withValues(alpha: 0.1),
+        color: palette.brand.withOpacity(0.1),
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: palette.brand.withValues(alpha: 0.3)),
+        border: Border.all(color: palette.brand.withOpacity(0.3)),
       ),
       child: Text(
         '$label $time',
@@ -1361,7 +1361,7 @@ class _DebugNotifSheetState extends State<_DebugNotifSheet> {
       Container(
         padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
         decoration: BoxDecoration(
-          color: palette.brand.withValues(alpha: 0.1),
+          color: palette.brand.withOpacity(0.1),
           borderRadius: BorderRadius.circular(6),
         ),
         child: Text(label,
@@ -1582,7 +1582,7 @@ class _DebugNotifSheetState extends State<_DebugNotifSheet> {
                                       height: 32,
                                       decoration: BoxDecoration(
                                         color: palette.brand
-                                            .withValues(alpha: 0.12),
+                                            .withOpacity(0.12),
                                         borderRadius: BorderRadius.circular(8),
                                       ),
                                       child: Center(

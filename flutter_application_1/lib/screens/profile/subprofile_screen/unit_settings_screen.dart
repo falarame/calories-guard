@@ -50,7 +50,7 @@ class _UnitSettingsScreenState extends ConsumerState<UnitSettingsScreen> {
               child: Container(
                 padding: const EdgeInsets.all(8),
                 decoration: BoxDecoration(
-                    color: Colors.white.withValues(alpha: 0.15),
+                    color: Colors.white.withOpacity(0.15),
                     shape: BoxShape.circle),
                 child: const Icon(Icons.arrow_back_ios_new_rounded,
                     color: Colors.white, size: 18),
@@ -158,7 +158,7 @@ class _UnitSettingsScreenState extends ConsumerState<UnitSettingsScreen> {
           borderRadius: BorderRadius.circular(16),
           boxShadow: [
             BoxShadow(
-                color: Colors.black.withValues(alpha: 0.04),
+                color: Colors.black.withOpacity(0.04),
                 blurRadius: 10,
                 offset: const Offset(0, 3))
           ],
@@ -189,7 +189,7 @@ class _UnitSettingsScreenState extends ConsumerState<UnitSettingsScreen> {
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
           decoration: BoxDecoration(
             color: isSelected
-                ? _green.withValues(alpha: 0.06)
+                ? _green.withOpacity(0.06)
                 : Colors.transparent,
             borderRadius: BorderRadius.vertical(
               top: const Radius.circular(16),
@@ -227,7 +227,7 @@ class _UnitSettingsScreenState extends ConsumerState<UnitSettingsScreen> {
                 padding:
                     const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
                 decoration: BoxDecoration(
-                    color: _green.withValues(alpha: 0.1),
+                    color: _green.withOpacity(0.1),
                     borderRadius: BorderRadius.circular(20)),
                 child: const Text('ใช้งานอยู่',
                     style: TextStyle(

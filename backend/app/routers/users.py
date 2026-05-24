@@ -798,6 +798,79 @@ def sync_tama_points(user_id: int, payload: dict):
             conn.close()
 
 
+@router.post("/users/{user_id}/weekly-reset-claim")
+def weekly_reset_claim(user_id: int, payload: dict, current_user: dict = Depends(get_current_user)):
+    """Idempotent: reset tama_points to 0 for new week and award tier gems for the finished week."""
+    check_ownership(current_user, user_id)
+    week    = payload.get("week", "")
+    week_xp = int(payload.get("weekly_xp", 0))
+
+    # Tier thresholds → weekly gem rewards (must mirror Flutter _tiers)
+    tier_rewards = [
+        (700, 200),  # ✨ ข้าวทอง
+        (500, 100),  # 🍚 ข้าวสุก
+        (300,  50),  # 🌾 ออกรวง
+        (100,  15),  # 🌿 ต้นกล้า
+        (0,     0),  # 🌱 เมล็ดพันธุ์
+    ]
+    gems_for_week = next(reward for (threshold, reward) in tier_rewards if week_xp >= threshold)
+
+    conn = None
+    try:
+        conn = get_db_connection()
+        with conn.cursor(cursor_factory=RealDictCursor) as cur:
+            # Idempotency check
+            cur.execute(
+                "SELECT last_weekly_reward_week, COALESCE(gems, 0) AS gems FROM cleangoal.user_gamification WHERE user_id = %s",
+                (user_id,),
+            )
+            row = cur.fetchone()
+            if row and row.get("last_weekly_reward_week") == week:
+                return {"ok": True, "gems_awarded": 0, "already_claimed": True}
+
+            current_gems = int(row["gems"]) if row else 0
+            new_gems = current_gems + gems_for_week
+
+            cur.execute(
+                """
+                INSERT INTO cleangoal.user_gamification
+                    (user_id, tama_points, gems, gems_updated_at, last_weekly_reward_week, updated_at)
+                VALUES (%s, 0, %s, NOW(), %s, NOW())
+                ON CONFLICT (user_id) DO UPDATE
+                  SET tama_points              = 0,
+                      gems                     = %s,
+                      gems_updated_at          = NOW(),
+                      last_weekly_reward_week  = %s,
+                      updated_at               = NOW()
+                """,
+                (user_id, new_gems, week, new_gems, week),
+            )
+
+            # Compute rank from leaderboard (best effort)
+            try:
+                cur.execute(
+                    """
+                    SELECT user_id,
+                           ROW_NUMBER() OVER (ORDER BY COALESCE(tama_points, 0) DESC) AS rank
+                    FROM cleangoal.user_gamification
+                    """,
+                )
+                rank_row = next((r for r in cur.fetchall() if r["user_id"] == user_id), None)
+                rank = int(rank_row["rank"]) if rank_row else None
+            except Exception:
+                rank = None
+
+        conn.commit()
+        return {"ok": True, "gems_awarded": gems_for_week, "new_gems": new_gems, "rank": rank}
+    except Exception as e:
+        if conn:
+            conn.rollback()
+        raise HTTPException(status_code=500, detail=str(e))
+    finally:
+        if conn:
+            conn.close()
+
+
 @router.get("/users/{user_id}/food-frequency")
 def get_food_frequency(user_id: int):
     """Return how many times the user has eaten each food_id, sorted descending."""

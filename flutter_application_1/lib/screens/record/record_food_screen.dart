@@ -598,7 +598,7 @@ class _FoodLogScreenState extends ConsumerState<FoodLogScreen>
         borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
-              color: _blue.withValues(alpha: 0.3),
+              color: _blue.withOpacity(0.3),
               blurRadius: 12,
               offset: const Offset(0, 4))
         ],
@@ -659,7 +659,7 @@ class _FoodLogScreenState extends ConsumerState<FoodLogScreen>
                           decoration: BoxDecoration(
                             color: i < _waterGlasses
                                 ? Colors.white
-                                : Colors.white.withValues(alpha: 0.2),
+                                : Colors.white.withOpacity(0.2),
                             borderRadius: BorderRadius.circular(6),
                           ),
                           child: Center(
@@ -682,7 +682,7 @@ class _FoodLogScreenState extends ConsumerState<FoodLogScreen>
         width: 30,
         height: 30,
         decoration: BoxDecoration(
-            color: Colors.white.withValues(alpha: 0.2),
+            color: Colors.white.withOpacity(0.2),
             borderRadius: BorderRadius.circular(8)),
         child: Icon(icon, color: Colors.white, size: 18),
       ),
@@ -697,7 +697,7 @@ class _FoodLogScreenState extends ConsumerState<FoodLogScreen>
         borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
-              color: Colors.black.withValues(alpha: 0.06),
+              color: Colors.black.withOpacity(0.06),
               blurRadius: 12,
               offset: const Offset(0, 3))
         ],
@@ -1059,7 +1059,7 @@ class _FoodLogScreenState extends ConsumerState<FoodLogScreen>
         borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
-              color: Colors.black.withValues(alpha: 0.06),
+              color: Colors.black.withOpacity(0.06),
               blurRadius: 12,
               offset: const Offset(0, 3))
         ],

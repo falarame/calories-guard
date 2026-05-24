@@ -12,6 +12,8 @@ class _LeaderboardEntry {
   final int weeklyXp;
   final int tierIdx;
   final int rank;
+  final int streak;
+  final int totalLoginDays;
   const _LeaderboardEntry({
     required this.userId,
     required this.username,
@@ -19,6 +21,8 @@ class _LeaderboardEntry {
     required this.weeklyXp,
     required this.tierIdx,
     required this.rank,
+    required this.streak,
+    required this.totalLoginDays,
   });
 
   static _LeaderboardEntry? tryParse(dynamic raw, int rank) {
@@ -35,11 +39,12 @@ class _LeaderboardEntry {
           0,
       tierIdx: (m['tier_level'] as num?)?.toInt() ?? 0,
       rank: (m['rank'] as num?)?.toInt() ?? rank,
+      streak: (m['current_streak'] as num?)?.toInt() ?? 0,
+      totalLoginDays: (m['total_login_days'] as num?)?.toInt() ?? 0,
     );
   }
 }
 
-// Tier emoji lookup — keep in sync with tamagotchi_screen.dart `_tiers`
 const _tierEmojis = ['🌱', '🌿', '🌾', '🍚', '✨'];
 
 class LeaderboardScreen extends ConsumerStatefulWidget {
@@ -53,8 +58,8 @@ class LeaderboardScreen extends ConsumerStatefulWidget {
 class _LeaderboardScreenState extends ConsumerState<LeaderboardScreen>
     with SingleTickerProviderStateMixin {
   late final TabController _tabCtrl;
-  List<_LeaderboardEntry> _global = [];
-  List<_LeaderboardEntry> _friends = [];
+  List<_LeaderboardEntry> _xpBoard = [];
+  List<_LeaderboardEntry> _streakBoard = [];
   bool _loading = true;
 
   @override
@@ -72,19 +77,13 @@ class _LeaderboardScreenState extends ConsumerState<LeaderboardScreen>
 
   Future<void> _load() async {
     setState(() => _loading = true);
-    final uid = ref.read(userDataProvider).userId;
     try {
       final results = await Future.wait([
-        ApiClient().get('/leaderboard/global?limit=100'),
-        if (uid > 0)
-          ApiClient().get('/leaderboard/friends/$uid')
-        else
-          Future.value(null),
+        ApiClient().get('/leaderboard/global', queryParams: {'limit': '100'}),
+        ApiClient().get('/leaderboard/streak', queryParams: {'limit': '100'}),
       ]);
-      final globalRes = results[0];
-      final friendsRes = results[1];
 
-      List<_LeaderboardEntry> parseList(dynamic body) {
+      List<_LeaderboardEntry> parseList(String body) {
         try {
           final data = jsonDecode(body);
           if (data is! List) return [];
@@ -101,12 +100,10 @@ class _LeaderboardScreenState extends ConsumerState<LeaderboardScreen>
 
       if (mounted) {
         setState(() {
-          _global = (globalRes != null && globalRes.statusCode == 200)
-              ? parseList(globalRes.body)
-              : [];
-          _friends = (friendsRes != null && friendsRes.statusCode == 200)
-              ? parseList(friendsRes.body)
-              : [];
+          _xpBoard =
+              results[0].statusCode == 200 ? parseList(results[0].body) : [];
+          _streakBoard =
+              results[1].statusCode == 200 ? parseList(results[1].body) : [];
           _loading = false;
         });
       }
@@ -124,9 +121,8 @@ class _LeaderboardScreenState extends ConsumerState<LeaderboardScreen>
         : TabBarView(
             controller: _tabCtrl,
             children: [
-              _buildList(_global, uid, 'ยังไม่มีข้อมูล leaderboard'),
-              _buildList(_friends, uid,
-                  'ยังไม่มีเพื่อนใน leaderboard — ชวนเพื่อนมาเล่นด้วยกัน!'),
+              _buildList(_xpBoard, uid, isStreak: false),
+              _buildList(_streakBoard, uid, isStreak: true),
             ],
           );
     final tabs = TabBar(
@@ -135,8 +131,8 @@ class _LeaderboardScreenState extends ConsumerState<LeaderboardScreen>
       unselectedLabelColor: Colors.grey,
       indicatorColor: const Color(0xFF1565C0),
       tabs: const [
-        Tab(icon: Text('🌏', style: TextStyle(fontSize: 18)), text: 'Global'),
-        Tab(icon: Text('👥', style: TextStyle(fontSize: 18)), text: 'Friends'),
+        Tab(icon: Text('⭐', style: TextStyle(fontSize: 18)), text: 'XP'),
+        Tab(icon: Text('�', style: TextStyle(fontSize: 18)), text: 'Streak'),
       ],
     );
 
@@ -196,12 +192,13 @@ class _LeaderboardScreenState extends ConsumerState<LeaderboardScreen>
     );
   }
 
-  Widget _buildList(List<_LeaderboardEntry> entries, int myUid, String empty) {
+  Widget _buildList(List<_LeaderboardEntry> entries, int myUid,
+      {required bool isStreak}) {
     if (entries.isEmpty) {
       return Center(
         child: Padding(
           padding: const EdgeInsets.all(40),
-          child: Text(empty,
+          child: Text('ยังไม่มีข้อมูล',
               textAlign: TextAlign.center,
               style: TextStyle(color: Colors.grey.shade600, fontSize: 14)),
         ),
@@ -213,12 +210,12 @@ class _LeaderboardScreenState extends ConsumerState<LeaderboardScreen>
         padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
         itemCount: entries.length,
         separatorBuilder: (_, __) => const SizedBox(height: 8),
-        itemBuilder: (_, i) => _buildRow(entries[i], myUid),
+        itemBuilder: (_, i) => _buildRow(entries[i], myUid, isStreak: isStreak),
       ),
     );
   }
 
-  Widget _buildRow(_LeaderboardEntry e, int myUid) {
+  Widget _buildRow(_LeaderboardEntry e, int myUid, {required bool isStreak}) {
     final isMe = e.userId == myUid;
     final tierEmoji = _tierEmojis[e.tierIdx.clamp(0, _tierEmojis.length - 1)];
     final rankBadge = e.rank == 1
@@ -228,16 +225,19 @@ class _LeaderboardScreenState extends ConsumerState<LeaderboardScreen>
             : e.rank == 3
                 ? '🥉'
                 : '#${e.rank}';
+
+    final subtitle = isStreak
+        ? '🔥 ${e.streak} วันติดต่อกัน  •  ${e.totalLoginDays} วันทั้งหมด'
+        : '$tierEmoji  ${e.weeklyXp} XP สัปดาห์นี้';
+
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
       decoration: BoxDecoration(
-        color: isMe
-            ? const Color(0xFF1565C0).withValues(alpha: 0.08)
-            : Colors.white,
+        color: isMe ? const Color(0xFF1565C0).withOpacity(0.08) : Colors.white,
         borderRadius: BorderRadius.circular(14),
         border: Border.all(
             color: isMe
-                ? const Color(0xFF1565C0).withValues(alpha: 0.5)
+                ? const Color(0xFF1565C0).withOpacity(0.5)
                 : Colors.grey.shade200),
       ),
       child: Row(children: [
@@ -272,7 +272,7 @@ class _LeaderboardScreenState extends ConsumerState<LeaderboardScreen>
                   fontFamily: 'Inter'),
               overflow: TextOverflow.ellipsis,
             ),
-            Text('$tierEmoji  ${e.weeklyXp} XP สัปดาห์นี้',
+            Text(subtitle,
                 style: TextStyle(
                     fontSize: 12,
                     color: Colors.grey.shade600,

@@ -49,10 +49,17 @@ class PedometerService {
   /// Starts the pedometer stream. Safe to call multiple times — only
   /// initialises once. Silently does nothing on unsupported platforms.
   Future<void> start() async {
-    if (!_supported || _started) return;
+    if (_started) return;
+    if (!_supported) {
+      _stepsController.add(0);
+      return;
+    }
 
     final granted = await requestPermission();
-    if (!granted) return;
+    if (!granted) {
+      _stepsController.add(0);
+      return;
+    }
 
     _prefs = await SharedPreferences.getInstance();
     _baseline = _prefs!.getInt(_keyBaseline) ?? 0;
@@ -60,7 +67,7 @@ class PedometerService {
 
     _stepSub = Pedometer.stepCountStream.listen(
       _onStep,
-      onError: (_) {},
+      onError: (_) => _stepsController.add(_dailySteps),
       cancelOnError: false,
     );
     _statusSub = Pedometer.pedestrianStatusStream.listen(
@@ -70,6 +77,7 @@ class PedometerService {
     );
 
     _started = true;
+    _stepsController.add(_dailySteps);
   }
 
   void _onStep(StepCount event) {

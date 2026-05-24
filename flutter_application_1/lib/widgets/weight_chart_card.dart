@@ -185,7 +185,7 @@ class WeightChartCard extends StatelessWidget {
                   ),
                   belowBarData: BarAreaData(
                     show: true,
-                    color: palette.brand.withValues(alpha: 0.08),
+                    color: palette.brand.withOpacity(0.08),
                   ),
                 ),
                 if (showTarget)
@@ -195,7 +195,7 @@ class WeightChartCard extends StatelessWidget {
                       FlSpot((spots.length - 1).toDouble(), targetWeight),
                     ],
                     isCurved: false,
-                    color: palette.danger.withValues(alpha: 0.55),
+                    color: palette.danger.withOpacity(0.55),
                     barWidth: 1.5,
                     dashArray: const [6, 4],
                     dotData: const FlDotData(show: false),
@@ -251,7 +251,7 @@ class WeightChartCard extends StatelessWidget {
         style: TextStyle(
           fontSize: 12,
           fontWeight: FontWeight.w600,
-          color: palette.textPrimary.withValues(alpha: 0.9),
+          color: palette.textPrimary.withOpacity(0.9),
         ),
       ),
     ]);
@@ -273,7 +273,7 @@ class _Card extends StatelessWidget {
         borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
-              color: Colors.black.withValues(alpha: 0.05),
+              color: Colors.black.withOpacity(0.05),
               blurRadius: 12,
               offset: const Offset(0, 3)),
         ],
@@ -405,7 +405,7 @@ class _GoalDetails extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
       decoration: BoxDecoration(
-          color: color.withValues(alpha: 0.07),
+          color: color.withOpacity(0.07),
           borderRadius: BorderRadius.circular(12)),
       child: Column(children: [
         Icon(icon, size: 18, color: color),
