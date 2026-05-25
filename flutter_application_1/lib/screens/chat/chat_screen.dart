@@ -297,8 +297,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
           child: Container(
             padding: const EdgeInsets.all(8),
             decoration: BoxDecoration(
-                color: Colors.white.withOpacity(0.2),
-                shape: BoxShape.circle),
+                color: Colors.white.withOpacity(0.2), shape: BoxShape.circle),
             child: const Icon(Icons.arrow_back_ios_new_rounded,
                 color: Colors.white, size: 18),
           ),
@@ -342,8 +341,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                 const SizedBox(width: 5),
                 Text('ผู้ช่วยดูแลสุขภาพ · พร้อมช่วยเหลือ',
                     style: TextStyle(
-                        fontSize: 12,
-                        color: Colors.white.withOpacity(0.8))),
+                        fontSize: 12, color: Colors.white.withOpacity(0.8))),
               ]),
             ],
           ),
@@ -630,9 +628,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
               height: 40,
               margin: const EdgeInsets.only(right: 8),
               decoration: BoxDecoration(
-                color: _pendingImage != null
-                    ? _green.withValues(alpha: 0.15)
-                    : _bg,
+                color: _pendingImage != null ? _green.withOpacity(0.15) : _bg,
                 shape: BoxShape.circle,
                 border: Border.all(color: _greenLight),
               ),
@@ -687,7 +683,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                     ? []
                     : [
                         BoxShadow(
-                            color: _green.withValues(alpha: 0.4),
+                            color: _green.withOpacity(0.4),
                             blurRadius: 10,
                             offset: const Offset(0, 4))
                       ],

@@ -316,9 +316,7 @@ class _AppHomeScreenState extends ConsumerState<AppHomeScreen> {
                 padding:
                     const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
                 decoration: BoxDecoration(
-                  color: isMe
-                      ? r.color.withOpacity(0.12)
-                      : Colors.grey.shade50,
+                  color: isMe ? r.color.withOpacity(0.12) : Colors.grey.shade50,
                   borderRadius: BorderRadius.circular(10),
                   border: isMe ? Border.all(color: r.color, width: 1.5) : null,
                 ),
@@ -464,7 +462,7 @@ class _AppHomeScreenState extends ConsumerState<AppHomeScreen> {
             margin: EdgeInsets.only(right: i < _levelColors.length - 1 ? 3 : 0),
             height: 10,
             decoration: BoxDecoration(
-              color: _levelColors[i].withValues(alpha: isActive ? 1.0 : 0.22),
+              color: _levelColors[i].withOpacity(isActive ? 1.0 : 0.22),
               borderRadius: BorderRadius.circular(4),
             ),
           ),
@@ -492,15 +490,14 @@ class _AppHomeScreenState extends ConsumerState<AppHomeScreen> {
           borderRadius: BorderRadius.circular(20),
           boxShadow: [
             BoxShadow(
-                color: Colors.black.withValues(alpha: 0.05),
+                color: Colors.black.withOpacity(0.05),
                 blurRadius: 10,
                 offset: const Offset(0, 3)),
           ],
         ),
         child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
           Row(children: [
-            const Text('📊',
-                style: TextStyle(fontSize: 18)),
+            const Text('📊', style: TextStyle(fontSize: 18)),
             const SizedBox(width: 8),
             const Expanded(
               child: Text('อัตราความสำเร็จ 30 วันย้อนหลัง',
@@ -528,8 +525,7 @@ class _AppHomeScreenState extends ConsumerState<AppHomeScreen> {
           const SizedBox(height: 6),
           Text(
             'ทานครบเป้า $hit/$total วัน',
-            style:
-                TextStyle(fontSize: 11, color: Colors.grey.shade600),
+            style: TextStyle(fontSize: 11, color: Colors.grey.shade600),
           ),
         ]),
       ),
@@ -575,9 +571,7 @@ class _AppHomeScreenState extends ConsumerState<AppHomeScreen> {
     }
 
     // Eat-now alert: net ≤ -300 และเวลา > 18:00 → กระตุ้นให้กิน (1 ครั้ง/วัน)
-    if (signedNet <= -300 &&
-        DateTime.now().hour >= 18 &&
-        !_hasAlertedEatNow) {
+    if (signedNet <= -300 && DateTime.now().hour >= 18 && !_hasAlertedEatNow) {
       WidgetsBinding.instance.addPostFrameCallback((_) async {
         if (!mounted) return;
         final deficit = -signedNet;
@@ -775,8 +769,8 @@ class _AppHomeScreenState extends ConsumerState<AppHomeScreen> {
             decoration: BoxDecoration(
               color: Colors.orange.withOpacity(0.25),
               borderRadius: BorderRadius.circular(50),
-              border: Border.all(
-                  color: Colors.orange.withOpacity(0.5), width: 1),
+              border:
+                  Border.all(color: Colors.orange.withOpacity(0.5), width: 1),
             ),
             child: Row(mainAxisSize: MainAxisSize.min, children: [
               const Text('🔥', style: TextStyle(fontSize: 14)),
@@ -821,8 +815,8 @@ class _AppHomeScreenState extends ConsumerState<AppHomeScreen> {
             decoration: BoxDecoration(
               color: Colors.white.withOpacity(0.2),
               borderRadius: BorderRadius.circular(50),
-              border: Border.all(
-                  color: Colors.white.withOpacity(0.4), width: 1),
+              border:
+                  Border.all(color: Colors.white.withOpacity(0.4), width: 1),
             ),
             child: Row(mainAxisSize: MainAxisSize.min, children: [
               const Icon(Icons.calendar_today_outlined,
@@ -844,8 +838,15 @@ class _AppHomeScreenState extends ConsumerState<AppHomeScreen> {
 
   // ─── Calorie Card ─────────────────────────────────────────────────────────
 
-  Widget _buildCalorieCard(int ringCal, int signedNet, int grossIntake,
-      int burned, int targetCal, double progress, bool isOver, dynamic userData) {
+  Widget _buildCalorieCard(
+      int ringCal,
+      int signedNet,
+      int grossIntake,
+      int burned,
+      int targetCal,
+      double progress,
+      bool isOver,
+      dynamic userData) {
     final ringColor = isOver ? Colors.red : _green;
     final advice = _getAdvice(ringCal, targetCal, isOver);
     final levelIdx = _calorieLevelIndex(signedNet, targetCal, grossIntake);
@@ -1133,8 +1134,7 @@ class _AppHomeScreenState extends ConsumerState<AppHomeScreen> {
           borderRadius: BorderRadius.circular(20),
           border: isOver
               ? Border.all(
-                  color: const Color(0xFFD32F2F).withOpacity(0.4),
-                  width: 1.5)
+                  color: const Color(0xFFD32F2F).withOpacity(0.4), width: 1.5)
               : null,
           boxShadow: [
             BoxShadow(
@@ -1251,9 +1251,7 @@ class _AppHomeScreenState extends ConsumerState<AppHomeScreen> {
         return Container(
           padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
           decoration: BoxDecoration(
-            color: isWalking
-                ? _green.withOpacity(0.1)
-                : Colors.grey.shade100,
+            color: isWalking ? _green.withOpacity(0.1) : Colors.grey.shade100,
             borderRadius: BorderRadius.circular(20),
           ),
           child: Row(mainAxisSize: MainAxisSize.min, children: [
@@ -1991,8 +1989,7 @@ class _AppHomeScreenState extends ConsumerState<AppHomeScreen> {
             end: Alignment.centerRight,
           ),
           borderRadius: BorderRadius.circular(20),
-          border:
-              Border.all(color: const Color(0xFF66BB6A).withOpacity(0.4)),
+          border: Border.all(color: const Color(0xFF66BB6A).withOpacity(0.4)),
           boxShadow: [
             BoxShadow(
                 color: const Color(0xFF2E7D32).withOpacity(0.35),
@@ -2021,8 +2018,8 @@ class _AppHomeScreenState extends ConsumerState<AppHomeScreen> {
             decoration: BoxDecoration(
               color: const Color(0xFF388E3C).withOpacity(0.3),
               borderRadius: BorderRadius.circular(12),
-              border: Border.all(
-                  color: const Color(0xFF66BB6A).withOpacity(0.5)),
+              border:
+                  Border.all(color: const Color(0xFF66BB6A).withOpacity(0.5)),
             ),
             child: const Text('เข้าร่วม →',
                 style: TextStyle(
