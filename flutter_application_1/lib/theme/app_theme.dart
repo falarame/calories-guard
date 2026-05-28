@@ -16,7 +16,7 @@ ThemeData buildLightTheme() {
     brightness: Brightness.light,
     colorScheme: scheme,
     scaffoldBackgroundColor: const Color(0xFFF5F7F0),
-    cardTheme: const CardThemeData(
+    cardTheme: const CardTheme(
       color: Colors.white,
       elevation: 0,
       shape: RoundedRectangleBorder(
@@ -57,7 +57,7 @@ ThemeData buildDarkTheme() {
     brightness: Brightness.dark,
     colorScheme: scheme,
     scaffoldBackgroundColor: const Color(0xFF0F1310),
-    cardTheme: const CardThemeData(
+    cardTheme: const CardTheme(
       color: Color(0xFF1B211C),
       elevation: 0,
       shape: RoundedRectangleBorder(

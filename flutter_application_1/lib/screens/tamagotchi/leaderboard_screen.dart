@@ -216,7 +216,8 @@ class _LeaderboardScreenState extends ConsumerState<LeaderboardScreen>
     }
 
     final top3 = entries.take(3).toList();
-    final rest = entries.length > 3 ? entries.sublist(3) : <_LeaderboardEntry>[];
+    final rest =
+        entries.length > 3 ? entries.sublist(3) : <_LeaderboardEntry>[];
 
     return RefreshIndicator(
       onRefresh: _load,
@@ -271,7 +272,7 @@ class _LeaderboardScreenState extends ConsumerState<LeaderboardScreen>
         borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
         boxShadow: [
           BoxShadow(
-              color: const Color(0xFF1A237E).withValues(alpha: 0.3),
+              color: const Color(0xFF1A237E).withOpacity(0.3),
               blurRadius: 16,
               offset: const Offset(0, 6)),
         ],
@@ -310,7 +311,7 @@ class _LeaderboardScreenState extends ConsumerState<LeaderboardScreen>
           height: platformH,
           margin: const EdgeInsets.symmetric(horizontal: 4),
           decoration: BoxDecoration(
-            color: _podiumColors[rank - 1].withValues(alpha: 0.3),
+            color: _podiumColors[rank - 1].withOpacity(0.3),
             borderRadius: const BorderRadius.vertical(top: Radius.circular(8)),
           ),
         ),
@@ -386,7 +387,7 @@ class _LeaderboardScreenState extends ConsumerState<LeaderboardScreen>
           isStreak ? '${e.totalLoginDays} วันทั้งหมด' : '${e.weeklyXp} XP',
           style: TextStyle(
               fontSize: 10,
-              color: Colors.white.withValues(alpha: 0.7),
+              color: Colors.white.withOpacity(0.7),
               fontFamily: 'Inter'),
         ),
         const SizedBox(height: 8),
@@ -394,7 +395,7 @@ class _LeaderboardScreenState extends ConsumerState<LeaderboardScreen>
           height: platformH,
           margin: const EdgeInsets.symmetric(horizontal: 4),
           decoration: BoxDecoration(
-            color: color.withValues(alpha: 0.85),
+            color: color.withOpacity(0.85),
             borderRadius: const BorderRadius.vertical(top: Radius.circular(8)),
           ),
           child: Center(
@@ -417,13 +418,11 @@ class _LeaderboardScreenState extends ConsumerState<LeaderboardScreen>
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 11),
       decoration: BoxDecoration(
-        color: isMe
-            ? const Color(0xFF1565C0).withValues(alpha: 0.07)
-            : Colors.white,
+        color: isMe ? const Color(0xFF1565C0).withOpacity(0.07) : Colors.white,
         borderRadius: BorderRadius.circular(14),
         border: Border.all(
             color: isMe
-                ? const Color(0xFF1565C0).withValues(alpha: 0.45)
+                ? const Color(0xFF1565C0).withOpacity(0.45)
                 : Colors.grey.shade200),
       ),
       child: Row(children: [
@@ -448,46 +447,44 @@ class _LeaderboardScreenState extends ConsumerState<LeaderboardScreen>
         ),
         const SizedBox(width: 12),
         Expanded(
-          child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  isMe ? '${e.username} (คุณ)' : e.username,
-                  style: TextStyle(
-                      fontWeight: FontWeight.w700,
-                      fontSize: 14,
-                      color:
-                          isMe ? const Color(0xFF1565C0) : Colors.black87,
-                      fontFamily: 'Inter'),
-                  overflow: TextOverflow.ellipsis,
-                ),
-                const SizedBox(height: 2),
-                Row(children: [
-                  if (!isStreak) ...[
-                    Text(tierEmoji, style: const TextStyle(fontSize: 13)),
-                    const SizedBox(width: 6),
-                  ],
-                  if (e.streak > 0) ...[
-                    const Text('🔥', style: TextStyle(fontSize: 12)),
-                    Text(' ${e.streak}',
-                        style: TextStyle(
-                            fontSize: 12,
-                            color: Colors.orange.shade700,
-                            fontFamily: 'Inter',
-                            fontWeight: FontWeight.w700)),
-                    const SizedBox(width: 6),
-                  ],
-                  Text(
-                    isStreak
-                        ? '${e.totalLoginDays} วันทั้งหมด'
-                        : '${e.weeklyXp} XP',
+          child:
+              Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Text(
+              isMe ? '${e.username} (คุณ)' : e.username,
+              style: TextStyle(
+                  fontWeight: FontWeight.w700,
+                  fontSize: 14,
+                  color: isMe ? const Color(0xFF1565C0) : Colors.black87,
+                  fontFamily: 'Inter'),
+              overflow: TextOverflow.ellipsis,
+            ),
+            const SizedBox(height: 2),
+            Row(children: [
+              if (!isStreak) ...[
+                Text(tierEmoji, style: const TextStyle(fontSize: 13)),
+                const SizedBox(width: 6),
+              ],
+              if (e.streak > 0) ...[
+                const Text('🔥', style: TextStyle(fontSize: 12)),
+                Text(' ${e.streak}',
                     style: TextStyle(
                         fontSize: 12,
-                        color: Colors.grey.shade600,
-                        fontFamily: 'Inter'),
-                  ),
-                ]),
-              ]),
+                        color: Colors.orange.shade700,
+                        fontFamily: 'Inter',
+                        fontWeight: FontWeight.w700)),
+                const SizedBox(width: 6),
+              ],
+              Text(
+                isStreak
+                    ? '${e.totalLoginDays} วันทั้งหมด'
+                    : '${e.weeklyXp} XP',
+                style: TextStyle(
+                    fontSize: 12,
+                    color: Colors.grey.shade600,
+                    fontFamily: 'Inter'),
+              ),
+            ]),
+          ]),
         ),
       ]),
     );
