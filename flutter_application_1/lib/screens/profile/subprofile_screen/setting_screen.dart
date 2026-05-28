@@ -7,6 +7,7 @@ import 'package:url_launcher/url_launcher.dart';
 import '../../../constants/constants.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../../providers/user_data_provider.dart';
+import '../../../services/auth_service.dart';
 import '../../../services/notification_helper.dart';
 import '../../../services/notification_prefs_service.dart';
 import '../../../theme/app_theme.dart';
@@ -206,7 +207,8 @@ class _SettingScreenState extends ConsumerState<SettingScreen> {
       final response = await ApiClient().delete('/users/$userId');
       if (response.statusCode == 200) {
         await NotificationHelper.signOutCleanup(userId);
-        ref.read(userDataProvider.notifier).resetDailyFood();
+        await AuthService().signOut();
+        ref.read(userDataProvider.notifier).reset();
         if (mounted) {
           Navigator.pushAndRemoveUntil(
             context,
@@ -437,6 +439,7 @@ class _SettingScreenState extends ConsumerState<SettingScreen> {
               onTap: () async {
                 final userId = ref.read(userDataProvider).userId;
                 await NotificationHelper.signOutCleanup(userId);
+                await AuthService().signOut();
                 ref.read(userDataProvider.notifier).reset();
                 if (!context.mounted) return;
                 Navigator.pushAndRemoveUntil(
@@ -463,6 +466,7 @@ class _SettingScreenState extends ConsumerState<SettingScreen> {
                 onPressed: () async {
                   final userId = ref.read(userDataProvider).userId;
                   await NotificationHelper.signOutCleanup(userId);
+                  await AuthService().signOut();
                   ref.read(userDataProvider.notifier).reset();
                   if (!context.mounted) return;
                   Navigator.pushAndRemoveUntil(

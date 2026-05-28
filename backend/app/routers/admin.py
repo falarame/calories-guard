@@ -5,6 +5,7 @@ from psycopg2.extras import RealDictCursor
 from database import get_db_connection
 from auth.dependencies import get_current_admin
 from app.models.schemas import RegionalNameApprove, TempFoodApprove
+from app.services.fcm_push import send_push_to_tokens
 
 router = APIRouter()
 
@@ -19,6 +20,23 @@ def _insert_temp_food_notification(cur, user_id: int | None, title: str, message
         """,
         (user_id, title, message),
     )
+
+
+def _push_to_user(cur, user_id: int | None, title: str, body: str, data: dict) -> None:
+    """Best-effort FCM push so the user gets a real-time alert.
+    Silent on any failure so it never breaks the admin action."""
+    if not user_id:
+        return
+    try:
+        cur.execute(
+            "SELECT fcm_token FROM cleangoal.users WHERE user_id = %s AND fcm_token IS NOT NULL",
+            (user_id,),
+        )
+        row = cur.fetchone()
+        if row and row.get("fcm_token"):
+            send_push_to_tokens([row["fcm_token"]], title, body, data)
+    except Exception:
+        pass
 
 
 @router.get("/admin/users")
@@ -440,11 +458,18 @@ def admin_approve_temp_food(tf_id: int, req: TempFoodApprove, current_user: dict
                 (submitter_uid, _FOOD_APPROVAL_GEMS),
             )
 
-        _insert_temp_food_notification(
+        _approval_title = "เมนูของคุณได้รับการอนุมัติแล้ว"
+        _approval_body = (
+            f"เมนู {tf['food_name']} ถูกเพิ่มเข้าสู่ฐานข้อมูลอาหารแล้ว "
+            f"และคุณได้รับ +{_FOOD_APPROVAL_GEMS} 🌾"
+        )
+        _insert_temp_food_notification(cur, submitter_uid, _approval_title, _approval_body)
+        _push_to_user(
             cur,
             submitter_uid,
-            "เมนูของคุณได้รับการอนุมัติแล้ว",
-            f"เมนู {tf['food_name']} ถูกเพิ่มเข้าสู่ฐานข้อมูลอาหารแล้ว และคุณได้รับ +{_FOOD_APPROVAL_GEMS} 🌾",
+            _approval_title,
+            _approval_body,
+            {"type": "food_approval", "food_id": str(new_food_id or "")},
         )
 
         conn.commit()

@@ -1,0 +1,2312 @@
+{
+  "recipe_relation_orphan_archive": [
+    {
+      "archive_id": 1,
+      "source_table": "recipe_ingredients",
+      "source_pk": 1,
+      "legacy_recipe_id": 1,
+      "legacy_user_id": null,
+      "row_data": {
+        "note": null,
+        "unit": "กรัม",
+        "ing_id": 1,
+        "quantity": 500.0,
+        "recipe_id": 1,
+        "created_at": "2026-03-29T11:34:26.006125+00:00",
+        "sort_order": 1,
+        "is_optional": false,
+        "ingredient_name": "เนื้อขาหมู"
+      },
+      "archive_reason": "No matching cleangoal.recipes row during v18_dishes_3nf_integrity",
+      "archived_at": "2026-04-24 13:59:54.365257+00:00"
+    },
+    {
+      "archive_id": 2,
+      "source_table": "recipe_ingredients",
+      "source_pk": 2,
+      "legacy_recipe_id": 2,
+      "legacy_user_id": null,
+      "row_data": {
+        "note": null,
+        "unit": "กรัม",
+        "ing_id": 2,
+        "quantity": 200.0,
+        "recipe_id": 2,
+        "created_at": "2026-03-29T11:34:26.006125+00:00",
+        "sort_order": 1,
+        "is_optional": false,
+        "ingredient_name": "หมูแดง"
+      },
+      "archive_reason": "No matching cleangoal.recipes row during v18_dishes_3nf_integrity",
+      "archived_at": "2026-04-24 13:59:54.365257+00:00"
+    },
+    {
+      "archive_id": 3,
+      "source_table": "recipe_ingredients",
+      "source_pk": 3,
+      "legacy_recipe_id": 3,
+      "legacy_user_id": null,
+      "row_data": {
+        "note": null,
+        "unit": "กรัม",
+        "ing_id": 3,
+        "quantity": 200.0,
+        "recipe_id": 3,
+        "created_at": "2026-03-29T11:34:26.006125+00:00",
+        "sort_order": 1,
+        "is_optional": false,
+        "ingredient_name": "หมูสามชั้น"
+      },
+      "archive_reason": "No matching cleangoal.recipes row during v18_dishes_3nf_integrity",
+      "archived_at": "2026-04-24 13:59:54.365257+00:00"
+    },
+    {
+      "archive_id": 4,
+      "source_table": "recipe_ingredients",
+      "source_pk": 4,
+      "legacy_recipe_id": 4,
+      "legacy_user_id": null,
+      "row_data": {
+        "note": null,
+        "unit": "กรัม",
+        "ing_id": 4,
+        "quantity": 150.0,
+        "recipe_id": 4,
+        "created_at": "2026-03-29T11:34:26.006125+00:00",
+        "sort_order": 1,
+        "is_optional": false,
+        "ingredient_name": "กุ้งสด"
+      },
+      "archive_reason": "No matching cleangoal.recipes row during v18_dishes_3nf_integrity",
+      "archived_at": "2026-04-24 13:59:54.365257+00:00"
+    },
+    {
+      "archive_id": 5,
+      "source_table": "recipe_ingredients",
+      "source_pk": 5,
+      "legacy_recipe_id": 5,
+      "legacy_user_id": null,
+      "row_data": {
+        "note": null,
+        "unit": "กรัม",
+        "ing_id": 5,
+        "quantity": 150.0,
+        "recipe_id": 5,
+        "created_at": "2026-03-29T11:34:26.006125+00:00",
+        "sort_order": 1,
+        "is_optional": false,
+        "ingredient_name": "เส้นใหญ่"
+      },
+      "archive_reason": "No matching cleangoal.recipes row during v18_dishes_3nf_integrity",
+      "archived_at": "2026-04-24 13:59:54.365257+00:00"
+    },
+    {
+      "archive_id": 6,
+      "source_table": "recipe_ingredients",
+      "source_pk": 6,
+      "legacy_recipe_id": 6,
+      "legacy_user_id": null,
+      "row_data": {
+        "note": null,
+        "unit": "กรัม",
+        "ing_id": 6,
+        "quantity": 150.0,
+        "recipe_id": 6,
+        "created_at": "2026-03-29T11:34:26.006125+00:00",
+        "sort_order": 1,
+        "is_optional": false,
+        "ingredient_name": "เส้นใหญ่"
+      },
+      "archive_reason": "No matching cleangoal.recipes row during v18_dishes_3nf_integrity",
+      "archived_at": "2026-04-24 13:59:54.365257+00:00"
+    },
+    {
+      "archive_id": 7,
+      "source_table": "recipe_ingredients",
+      "source_pk": 7,
+      "legacy_recipe_id": 7,
+      "legacy_user_id": null,
+      "row_data": {
+        "note": null,
+        "unit": "กรัม",
+        "ing_id": 7,
+        "quantity": 100.0,
+        "recipe_id": 7,
+        "created_at": "2026-03-29T11:34:26.006125+00:00",
+        "sort_order": 1,
+        "is_optional": false,
+        "ingredient_name": "กุ้ง"
+      },
+      "archive_reason": "No matching cleangoal.recipes row during v18_dishes_3nf_integrity",
+      "archived_at": "2026-04-24 13:59:54.365257+00:00"
+    },
+    {
+      "archive_id": 8,
+      "source_table": "recipe_ingredients",
+      "source_pk": 8,
+      "legacy_recipe_id": 8,
+      "legacy_user_id": null,
+      "row_data": {
+        "note": null,
+        "unit": "กรัม",
+        "ing_id": 8,
+        "quantity": 100.0,
+        "recipe_id": 8,
+        "created_at": "2026-03-29T11:34:26.006125+00:00",
+        "sort_order": 1,
+        "is_optional": false,
+        "ingredient_name": "กุ้ง"
+      },
+      "archive_reason": "No matching cleangoal.recipes row during v18_dishes_3nf_integrity",
+      "archived_at": "2026-04-24 13:59:54.365257+00:00"
+    },
+    {
+      "archive_id": 9,
+      "source_table": "recipe_ingredients",
+      "source_pk": 9,
+      "legacy_recipe_id": 9,
+      "legacy_user_id": null,
+      "row_data": {
+        "note": null,
+        "unit": "กรัม",
+        "ing_id": 9,
+        "quantity": 200.0,
+        "recipe_id": 9,
+        "created_at": "2026-03-29T11:34:26.006125+00:00",
+        "sort_order": 1,
+        "is_optional": false,
+        "ingredient_name": "ข้าวสวย"
+      },
+      "archive_reason": "No matching cleangoal.recipes row during v18_dishes_3nf_integrity",
+      "archived_at": "2026-04-24 13:59:54.365257+00:00"
+    },
+    {
+      "archive_id": 10,
+      "source_table": "recipe_ingredients",
+      "source_pk": 10,
+      "legacy_recipe_id": 10,
+      "legacy_user_id": null,
+      "row_data": {
+        "note": null,
+        "unit": "กรัม",
+        "ing_id": 10,
+        "quantity": 200.0,
+        "recipe_id": 10,
+        "created_at": "2026-03-29T11:34:26.006125+00:00",
+        "sort_order": 1,
+        "is_optional": false,
+        "ingredient_name": "เนื้อไก่"
+      },
+      "archive_reason": "No matching cleangoal.recipes row during v18_dishes_3nf_integrity",
+      "archived_at": "2026-04-24 13:59:54.365257+00:00"
+    },
+    {
+      "archive_id": 11,
+      "source_table": "recipe_ingredients",
+      "source_pk": 11,
+      "legacy_recipe_id": 11,
+      "legacy_user_id": null,
+      "row_data": {
+        "note": null,
+        "unit": "กรัม",
+        "ing_id": 11,
+        "quantity": 150.0,
+        "recipe_id": 11,
+        "created_at": "2026-03-29T11:34:26.006125+00:00",
+        "sort_order": 1,
+        "is_optional": false,
+        "ingredient_name": "กุ้งสด"
+      },
+      "archive_reason": "No matching cleangoal.recipes row during v18_dishes_3nf_integrity",
+      "archived_at": "2026-04-24 13:59:54.365257+00:00"
+    },
+    {
+      "archive_id": 12,
+      "source_table": "recipe_ingredients",
+      "source_pk": 12,
+      "legacy_recipe_id": 12,
+      "legacy_user_id": null,
+      "row_data": {
+        "note": null,
+        "unit": "กรัม",
+        "ing_id": 12,
+        "quantity": 150.0,
+        "recipe_id": 12,
+        "created_at": "2026-03-29T11:34:26.006125+00:00",
+        "sort_order": 1,
+        "is_optional": false,
+        "ingredient_name": "เนื้อไก่สับ"
+      },
+      "archive_reason": "No matching cleangoal.recipes row during v18_dishes_3nf_integrity",
+      "archived_at": "2026-04-24 13:59:54.365257+00:00"
+    },
+    {
+      "archive_id": 13,
+      "source_table": "recipe_ingredients",
+      "source_pk": 13,
+      "legacy_recipe_id": 13,
+      "legacy_user_id": null,
+      "row_data": {
+        "note": null,
+        "unit": "กรัม",
+        "ing_id": 13,
+        "quantity": 100.0,
+        "recipe_id": 13,
+        "created_at": "2026-03-29T11:34:26.006125+00:00",
+        "sort_order": 1,
+        "is_optional": false,
+        "ingredient_name": "เส้นจันทน์"
+      },
+      "archive_reason": "No matching cleangoal.recipes row during v18_dishes_3nf_integrity",
+      "archived_at": "2026-04-24 13:59:54.365257+00:00"
+    },
+    {
+      "archive_id": 14,
+      "source_table": "recipe_ingredients",
+      "source_pk": 14,
+      "legacy_recipe_id": 14,
+      "legacy_user_id": null,
+      "row_data": {
+        "note": null,
+        "unit": "กรัม",
+        "ing_id": 14,
+        "quantity": 200.0,
+        "recipe_id": 14,
+        "created_at": "2026-03-29T11:34:26.006125+00:00",
+        "sort_order": 1,
+        "is_optional": false,
+        "ingredient_name": "ข้าวสวย"
+      },
+      "archive_reason": "No matching cleangoal.recipes row during v18_dishes_3nf_integrity",
+      "archived_at": "2026-04-24 13:59:54.365257+00:00"
+    },
+    {
+      "archive_id": 15,
+      "source_table": "recipe_ingredients",
+      "source_pk": 15,
+      "legacy_recipe_id": 15,
+      "legacy_user_id": null,
+      "row_data": {
+        "note": null,
+        "unit": "กรัม",
+        "ing_id": 15,
+        "quantity": 200.0,
+        "recipe_id": 15,
+        "created_at": "2026-03-29T11:34:26.006125+00:00",
+        "sort_order": 1,
+        "is_optional": false,
+        "ingredient_name": "มะละกอดิบ"
+      },
+      "archive_reason": "No matching cleangoal.recipes row during v18_dishes_3nf_integrity",
+      "archived_at": "2026-04-24 13:59:54.365257+00:00"
+    },
+    {
+      "archive_id": 16,
+      "source_table": "recipe_ingredients",
+      "source_pk": 16,
+      "legacy_recipe_id": 16,
+      "legacy_user_id": null,
+      "row_data": {
+        "note": null,
+        "unit": "กรัม",
+        "ing_id": 16,
+        "quantity": 200.0,
+        "recipe_id": 16,
+        "created_at": "2026-03-29T11:34:26.006125+00:00",
+        "sort_order": 1,
+        "is_optional": false,
+        "ingredient_name": "หมูสับ"
+      },
+      "archive_reason": "No matching cleangoal.recipes row during v18_dishes_3nf_integrity",
+      "archived_at": "2026-04-24 13:59:54.365257+00:00"
+    },
+    {
+      "archive_id": 17,
+      "source_table": "recipe_ingredients",
+      "source_pk": 17,
+      "legacy_recipe_id": 17,
+      "legacy_user_id": null,
+      "row_data": {
+        "note": null,
+        "unit": "กรัม",
+        "ing_id": 17,
+        "quantity": 200.0,
+        "recipe_id": 17,
+        "created_at": "2026-03-29T11:34:26.006125+00:00",
+        "sort_order": 1,
+        "is_optional": false,
+        "ingredient_name": "เนื้อไก่"
+      },
+      "archive_reason": "No matching cleangoal.recipes row during v18_dishes_3nf_integrity",
+      "archived_at": "2026-04-24 13:59:54.365257+00:00"
+    },
+    {
+      "archive_id": 18,
+      "source_table": "recipe_ingredients",
+      "source_pk": 18,
+      "legacy_recipe_id": 18,
+      "legacy_user_id": null,
+      "row_data": {
+        "note": null,
+        "unit": "กรัม",
+        "ing_id": 18,
+        "quantity": 150.0,
+        "recipe_id": 18,
+        "created_at": "2026-03-29T11:34:26.006125+00:00",
+        "sort_order": 1,
+        "is_optional": false,
+        "ingredient_name": "เนื้อเป็ดย่าง"
+      },
+      "archive_reason": "No matching cleangoal.recipes row during v18_dishes_3nf_integrity",
+      "archived_at": "2026-04-24 13:59:54.365257+00:00"
+    },
+    {
+      "archive_id": 19,
+      "source_table": "recipe_ingredients",
+      "source_pk": 19,
+      "legacy_recipe_id": 19,
+      "legacy_user_id": null,
+      "row_data": {
+        "note": null,
+        "unit": "กรัม",
+        "ing_id": 19,
+        "quantity": 150.0,
+        "recipe_id": 19,
+        "created_at": "2026-03-29T11:34:26.006125+00:00",
+        "sort_order": 1,
+        "is_optional": false,
+        "ingredient_name": "มะระ"
+      },
+      "archive_reason": "No matching cleangoal.recipes row during v18_dishes_3nf_integrity",
+      "archived_at": "2026-04-24 13:59:54.365257+00:00"
+    },
+    {
+      "archive_id": 20,
+      "source_table": "recipe_ingredients",
+      "source_pk": 20,
+      "legacy_recipe_id": 20,
+      "legacy_user_id": null,
+      "row_data": {
+        "note": null,
+        "unit": "กรัม",
+        "ing_id": 20,
+        "quantity": 150.0,
+        "recipe_id": 20,
+        "created_at": "2026-03-29T11:34:26.006125+00:00",
+        "sort_order": 1,
+        "is_optional": false,
+        "ingredient_name": "เนื้อวัวสับ"
+      },
+      "archive_reason": "No matching cleangoal.recipes row during v18_dishes_3nf_integrity",
+      "archived_at": "2026-04-24 13:59:54.365257+00:00"
+    },
+    {
+      "archive_id": 21,
+      "source_table": "recipe_steps",
+      "source_pk": 1,
+      "legacy_recipe_id": 1,
+      "legacy_user_id": null,
+      "row_data": {
+        "tips": null,
+        "title": "ต้มขาหมู",
+        "step_id": 1,
+        "image_url": null,
+        "recipe_id": 1,
+        "created_at": "2026-03-29T11:34:26.006125+00:00",
+        "instruction": "ต้มขาหมูกับน้ำซีอิ๊วและพะโล้จนนุ่ม",
+        "step_number": 1,
+        "time_minutes": 90
+      },
+      "archive_reason": "No matching cleangoal.recipes row during v18_dishes_3nf_integrity",
+      "archived_at": "2026-04-24 13:59:54.365257+00:00"
+    },
+    {
+      "archive_id": 22,
+      "source_table": "recipe_steps",
+      "source_pk": 2,
+      "legacy_recipe_id": 2,
+      "legacy_user_id": null,
+      "row_data": {
+        "tips": null,
+        "title": "หั่นหมูแดง",
+        "step_id": 2,
+        "image_url": null,
+        "recipe_id": 2,
+        "created_at": "2026-03-29T11:34:26.006125+00:00",
+        "instruction": "หั่นหมูแดงเป็นชิ้นพอดีคำ",
+        "step_number": 1,
+        "time_minutes": 5
+      },
+      "archive_reason": "No matching cleangoal.recipes row during v18_dishes_3nf_integrity",
+      "archived_at": "2026-04-24 13:59:54.365257+00:00"
+    },
+    {
+      "archive_id": 23,
+      "source_table": "recipe_steps",
+      "source_pk": 3,
+      "legacy_recipe_id": 3,
+      "legacy_user_id": null,
+      "row_data": {
+        "tips": null,
+        "title": "ทอดหมู",
+        "step_id": 3,
+        "image_url": null,
+        "recipe_id": 3,
+        "created_at": "2026-03-29T11:34:26.006125+00:00",
+        "instruction": "ทอดหมูสามชั้นจนกรอบ",
+        "step_number": 1,
+        "time_minutes": 15
+      },
+      "archive_reason": "No matching cleangoal.recipes row during v18_dishes_3nf_integrity",
+      "archived_at": "2026-04-24 13:59:54.365257+00:00"
+    },
+    {
+      "archive_id": 24,
+      "source_table": "recipe_steps",
+      "source_pk": 4,
+      "legacy_recipe_id": 4,
+      "legacy_user_id": null,
+      "row_data": {
+        "tips": null,
+        "title": "แช่เส้น",
+        "step_id": 4,
+        "image_url": null,
+        "recipe_id": 4,
+        "created_at": "2026-03-29T11:34:26.006125+00:00",
+        "instruction": "แช่เส้นก๋วยเตี๋ยวในน้ำอุ่น 15 นาที",
+        "step_number": 1,
+        "time_minutes": 15
+      },
+      "archive_reason": "No matching cleangoal.recipes row during v18_dishes_3nf_integrity",
+      "archived_at": "2026-04-24 13:59:54.365257+00:00"
+    },
+    {
+      "archive_id": 25,
+      "source_table": "recipe_steps",
+      "source_pk": 5,
+      "legacy_recipe_id": 5,
+      "legacy_user_id": null,
+      "row_data": {
+        "tips": null,
+        "title": "หมักหมู",
+        "step_id": 5,
+        "image_url": null,
+        "recipe_id": 5,
+        "created_at": "2026-03-29T11:34:26.006125+00:00",
+        "instruction": "หมักหมูด้วยซีอิ๊วขาว น้ำตาล และกระเทียม",
+        "step_number": 1,
+        "time_minutes": 10
+      },
+      "archive_reason": "No matching cleangoal.recipes row during v18_dishes_3nf_integrity",
+      "archived_at": "2026-04-24 13:59:54.365257+00:00"
+    },
+    {
+      "archive_id": 26,
+      "source_table": "recipe_steps",
+      "source_pk": 6,
+      "legacy_recipe_id": 6,
+      "legacy_user_id": null,
+      "row_data": {
+        "tips": null,
+        "title": "ผัดซีอิ๊ว",
+        "step_id": 6,
+        "image_url": null,
+        "recipe_id": 6,
+        "created_at": "2026-03-29T11:34:26.006125+00:00",
+        "instruction": "ผัดเส้นใหญ่กับซีอิ๊วดำบนไฟแรง",
+        "step_number": 1,
+        "time_minutes": 10
+      },
+      "archive_reason": "No matching cleangoal.recipes row during v18_dishes_3nf_integrity",
+      "archived_at": "2026-04-24 13:59:54.365257+00:00"
+    },
+    {
+      "archive_id": 27,
+      "source_table": "recipe_steps",
+      "source_pk": 7,
+      "legacy_recipe_id": 7,
+      "legacy_user_id": null,
+      "row_data": {
+        "tips": null,
+        "title": "เตรียมน้ำซุป",
+        "step_id": 7,
+        "image_url": null,
+        "recipe_id": 7,
+        "created_at": "2026-03-29T11:34:26.006125+00:00",
+        "instruction": "ต้มน้ำซุปกระดูกหมู เพิ่มซอสสุกี้",
+        "step_number": 1,
+        "time_minutes": 15
+      },
+      "archive_reason": "No matching cleangoal.recipes row during v18_dishes_3nf_integrity",
+      "archived_at": "2026-04-24 13:59:54.365257+00:00"
+    },
+    {
+      "archive_id": 28,
+      "source_table": "recipe_steps",
+      "source_pk": 8,
+      "legacy_recipe_id": 8,
+      "legacy_user_id": null,
+      "row_data": {
+        "tips": null,
+        "title": "ผัดสุกี้",
+        "step_id": 8,
+        "image_url": null,
+        "recipe_id": 8,
+        "created_at": "2026-03-29T11:34:26.006125+00:00",
+        "instruction": "ผัดซีฟู้ดกับซอสสุกี้บนไฟแรง",
+        "step_number": 1,
+        "time_minutes": 10
+      },
+      "archive_reason": "No matching cleangoal.recipes row during v18_dishes_3nf_integrity",
+      "archived_at": "2026-04-24 13:59:54.365257+00:00"
+    },
+    {
+      "archive_id": 29,
+      "source_table": "recipe_steps",
+      "source_pk": 9,
+      "legacy_recipe_id": 9,
+      "legacy_user_id": null,
+      "row_data": {
+        "tips": null,
+        "title": "คลุกข้าว",
+        "step_id": 9,
+        "image_url": null,
+        "recipe_id": 9,
+        "created_at": "2026-03-29T11:34:26.006125+00:00",
+        "instruction": "คลุกข้าวสวยกับกะปิและน้ำมัน",
+        "step_number": 1,
+        "time_minutes": 5
+      },
+      "archive_reason": "No matching cleangoal.recipes row during v18_dishes_3nf_integrity",
+      "archived_at": "2026-04-24 13:59:54.365257+00:00"
+    },
+    {
+      "archive_id": 30,
+      "source_table": "recipe_steps",
+      "source_pk": 10,
+      "legacy_recipe_id": 10,
+      "legacy_user_id": null,
+      "row_data": {
+        "tips": null,
+        "title": "เตรียมแกง",
+        "step_id": 10,
+        "image_url": null,
+        "recipe_id": 10,
+        "created_at": "2026-03-29T11:34:26.006125+00:00",
+        "instruction": "ผัดพริกแกงกับกะทิจนหอม",
+        "step_number": 1,
+        "time_minutes": 10
+      },
+      "archive_reason": "No matching cleangoal.recipes row during v18_dishes_3nf_integrity",
+      "archived_at": "2026-04-24 13:59:54.365257+00:00"
+    },
+    {
+      "archive_id": 31,
+      "source_table": "recipe_steps",
+      "source_pk": 11,
+      "legacy_recipe_id": 11,
+      "legacy_user_id": null,
+      "row_data": {
+        "tips": null,
+        "title": "ต้มน้ำซุป",
+        "step_id": 11,
+        "image_url": null,
+        "recipe_id": 11,
+        "created_at": "2026-03-29T11:34:26.006125+00:00",
+        "instruction": "ต้มน้ำซุปด้วยตะไคร้ ใบมะกรูด ข่า",
+        "step_number": 1,
+        "time_minutes": 10
+      },
+      "archive_reason": "No matching cleangoal.recipes row during v18_dishes_3nf_integrity",
+      "archived_at": "2026-04-24 13:59:54.365257+00:00"
+    },
+    {
+      "archive_id": 32,
+      "source_table": "recipe_steps",
+      "source_pk": 12,
+      "legacy_recipe_id": 12,
+      "legacy_user_id": null,
+      "row_data": {
+        "tips": null,
+        "title": "ผัดกระเพรา",
+        "step_id": 12,
+        "image_url": null,
+        "recipe_id": 12,
+        "created_at": "2026-03-29T11:34:26.006125+00:00",
+        "instruction": "ผัดไก่สับกับพริกขี้หนูและใบกระเพรา",
+        "step_number": 1,
+        "time_minutes": 8
+      },
+      "archive_reason": "No matching cleangoal.recipes row during v18_dishes_3nf_integrity",
+      "archived_at": "2026-04-24 13:59:54.365257+00:00"
+    },
+    {
+      "archive_id": 33,
+      "source_table": "recipe_steps",
+      "source_pk": 13,
+      "legacy_recipe_id": 13,
+      "legacy_user_id": null,
+      "row_data": {
+        "tips": null,
+        "title": "แช่เส้นจันทน์",
+        "step_id": 13,
+        "image_url": null,
+        "recipe_id": 13,
+        "created_at": "2026-03-29T11:34:26.006125+00:00",
+        "instruction": "แช่เส้นจันทน์ในน้ำเย็น 20 นาที",
+        "step_number": 1,
+        "time_minutes": 20
+      },
+      "archive_reason": "No matching cleangoal.recipes row during v18_dishes_3nf_integrity",
+      "archived_at": "2026-04-24 13:59:54.365257+00:00"
+    },
+    {
+      "archive_id": 34,
+      "source_table": "recipe_steps",
+      "source_pk": 14,
+      "legacy_recipe_id": 14,
+      "legacy_user_id": null,
+      "row_data": {
+        "tips": null,
+        "title": "ผัดข้าว",
+        "step_id": 14,
+        "image_url": null,
+        "recipe_id": 14,
+        "created_at": "2026-03-29T11:34:26.006125+00:00",
+        "instruction": "ผัดข้าวสวยกับไข่และกุ้งบนไฟแรง",
+        "step_number": 1,
+        "time_minutes": 8
+      },
+      "archive_reason": "No matching cleangoal.recipes row during v18_dishes_3nf_integrity",
+      "archived_at": "2026-04-24 13:59:54.365257+00:00"
+    },
+    {
+      "archive_id": 35,
+      "source_table": "recipe_steps",
+      "source_pk": 15,
+      "legacy_recipe_id": 15,
+      "legacy_user_id": null,
+      "row_data": {
+        "tips": null,
+        "title": "ขูดมะละกอ",
+        "step_id": 15,
+        "image_url": null,
+        "recipe_id": 15,
+        "created_at": "2026-03-29T11:34:26.006125+00:00",
+        "instruction": "ขูดมะละกอดิบเป็นเส้น",
+        "step_number": 1,
+        "time_minutes": 5
+      },
+      "archive_reason": "No matching cleangoal.recipes row during v18_dishes_3nf_integrity",
+      "archived_at": "2026-04-24 13:59:54.365257+00:00"
+    },
+    {
+      "archive_id": 36,
+      "source_table": "recipe_steps",
+      "source_pk": 16,
+      "legacy_recipe_id": 16,
+      "legacy_user_id": null,
+      "row_data": {
+        "tips": null,
+        "title": "สับหมู",
+        "step_id": 16,
+        "image_url": null,
+        "recipe_id": 16,
+        "created_at": "2026-03-29T11:34:26.006125+00:00",
+        "instruction": "สับเนื้อหมูและคลุกกับเครื่องปรุง",
+        "step_number": 1,
+        "time_minutes": 10
+      },
+      "archive_reason": "No matching cleangoal.recipes row during v18_dishes_3nf_integrity",
+      "archived_at": "2026-04-24 13:59:54.365257+00:00"
+    },
+    {
+      "archive_id": 37,
+      "source_table": "recipe_steps",
+      "source_pk": 17,
+      "legacy_recipe_id": 17,
+      "legacy_user_id": null,
+      "row_data": {
+        "tips": null,
+        "title": "เตรียมซุป",
+        "step_id": 17,
+        "image_url": null,
+        "recipe_id": 17,
+        "created_at": "2026-03-29T11:34:26.006125+00:00",
+        "instruction": "ต้มกะทิกับข่าตะไคร้จนเดือด",
+        "step_number": 1,
+        "time_minutes": 10
+      },
+      "archive_reason": "No matching cleangoal.recipes row during v18_dishes_3nf_integrity",
+      "archived_at": "2026-04-24 13:59:54.365257+00:00"
+    },
+    {
+      "archive_id": 38,
+      "source_table": "recipe_steps",
+      "source_pk": 18,
+      "legacy_recipe_id": 18,
+      "legacy_user_id": null,
+      "row_data": {
+        "tips": null,
+        "title": "เตรียมแกง",
+        "step_id": 18,
+        "image_url": null,
+        "recipe_id": 18,
+        "created_at": "2026-03-29T11:34:26.006125+00:00",
+        "instruction": "ผัดพริกแกงเผ็ดกับกะทิจนหอม",
+        "step_number": 1,
+        "time_minutes": 10
+      },
+      "archive_reason": "No matching cleangoal.recipes row during v18_dishes_3nf_integrity",
+      "archived_at": "2026-04-24 13:59:54.365257+00:00"
+    },
+    {
+      "archive_id": 39,
+      "source_table": "recipe_steps",
+      "source_pk": 19,
+      "legacy_recipe_id": 19,
+      "legacy_user_id": null,
+      "row_data": {
+        "tips": null,
+        "title": "ผัดมะระ",
+        "step_id": 19,
+        "image_url": null,
+        "recipe_id": 19,
+        "created_at": "2026-03-29T11:34:26.006125+00:00",
+        "instruction": "ผัดมะระกับไข่และซีอิ๊วขาว",
+        "step_number": 1,
+        "time_minutes": 8
+      },
+      "archive_reason": "No matching cleangoal.recipes row during v18_dishes_3nf_integrity",
+      "archived_at": "2026-04-24 13:59:54.365257+00:00"
+    },
+    {
+      "archive_id": 40,
+      "source_table": "recipe_steps",
+      "source_pk": 20,
+      "legacy_recipe_id": 20,
+      "legacy_user_id": null,
+      "row_data": {
+        "tips": null,
+        "title": "ผัดกระเพรา",
+        "step_id": 20,
+        "image_url": null,
+        "recipe_id": 20,
+        "created_at": "2026-03-29T11:34:26.006125+00:00",
+        "instruction": "ผัดเนื้อวัวสับกับพริกและใบกระเพรา",
+        "step_number": 1,
+        "time_minutes": 8
+      },
+      "archive_reason": "No matching cleangoal.recipes row during v18_dishes_3nf_integrity",
+      "archived_at": "2026-04-24 13:59:54.365257+00:00"
+    },
+    {
+      "archive_id": 41,
+      "source_table": "recipe_tips",
+      "source_pk": 1,
+      "legacy_recipe_id": 1,
+      "legacy_user_id": null,
+      "row_data": {
+        "tip_id": 1,
+        "tip_text": "ต้มนานๆ ยิ่งนุ่ม เคล็ดลับคือใส่น้ำตาลกรวดเพื่อให้สีสวย",
+        "recipe_id": 1,
+        "created_at": "2026-03-29T11:34:26.006125+00:00",
+        "sort_order": 1
+      },
+      "archive_reason": "No matching cleangoal.recipes row during v18_dishes_3nf_integrity",
+      "archived_at": "2026-04-24 13:59:54.365257+00:00"
+    },
+    {
+      "archive_id": 42,
+      "source_table": "recipe_tips",
+      "source_pk": 2,
+      "legacy_recipe_id": 2,
+      "legacy_user_id": null,
+      "row_data": {
+        "tip_id": 2,
+        "tip_text": "น้ำซอสอุ่นก่อนราดจะทำให้ข้าวหอมกว่า",
+        "recipe_id": 2,
+        "created_at": "2026-03-29T11:34:26.006125+00:00",
+        "sort_order": 1
+      },
+      "archive_reason": "No matching cleangoal.recipes row during v18_dishes_3nf_integrity",
+      "archived_at": "2026-04-24 13:59:54.365257+00:00"
+    },
+    {
+      "archive_id": 43,
+      "source_table": "recipe_tips",
+      "source_pk": 3,
+      "legacy_recipe_id": 3,
+      "legacy_user_id": null,
+      "row_data": {
+        "tip_id": 3,
+        "tip_text": "ทอดหมูในน้ำมันร้อนจัดจะกรอบกว่า",
+        "recipe_id": 3,
+        "created_at": "2026-03-29T11:34:26.006125+00:00",
+        "sort_order": 1
+      },
+      "archive_reason": "No matching cleangoal.recipes row during v18_dishes_3nf_integrity",
+      "archived_at": "2026-04-24 13:59:54.365257+00:00"
+    },
+    {
+      "archive_id": 44,
+      "source_table": "recipe_tips",
+      "source_pk": 4,
+      "legacy_recipe_id": 4,
+      "legacy_user_id": null,
+      "row_data": {
+        "tip_id": 4,
+        "tip_text": "ผัดไทยต้องใช้ไฟแรงและกระทะเหล็ก",
+        "recipe_id": 4,
+        "created_at": "2026-03-29T11:34:26.006125+00:00",
+        "sort_order": 1
+      },
+      "archive_reason": "No matching cleangoal.recipes row during v18_dishes_3nf_integrity",
+      "archived_at": "2026-04-24 13:59:54.365257+00:00"
+    },
+    {
+      "archive_id": 45,
+      "source_table": "recipe_tips",
+      "source_pk": 5,
+      "legacy_recipe_id": 5,
+      "legacy_user_id": null,
+      "row_data": {
+        "tip_id": 5,
+        "tip_text": "หมักหมูทิ้งไว้ 30 นาทีก่อนทำ",
+        "recipe_id": 5,
+        "created_at": "2026-03-29T11:34:26.006125+00:00",
+        "sort_order": 1
+      },
+      "archive_reason": "No matching cleangoal.recipes row during v18_dishes_3nf_integrity",
+      "archived_at": "2026-04-24 13:59:54.365257+00:00"
+    },
+    {
+      "archive_id": 46,
+      "source_table": "recipe_tips",
+      "source_pk": 6,
+      "legacy_recipe_id": 6,
+      "legacy_user_id": null,
+      "row_data": {
+        "tip_id": 6,
+        "tip_text": "ซีอิ๊วดำทำให้สีสวย ใส่ไม่มากเกินไป",
+        "recipe_id": 6,
+        "created_at": "2026-03-29T11:34:26.006125+00:00",
+        "sort_order": 1
+      },
+      "archive_reason": "No matching cleangoal.recipes row during v18_dishes_3nf_integrity",
+      "archived_at": "2026-04-24 13:59:54.365257+00:00"
+    },
+    {
+      "archive_id": 47,
+      "source_table": "recipe_tips",
+      "source_pk": 7,
+      "legacy_recipe_id": 7,
+      "legacy_user_id": null,
+      "row_data": {
+        "tip_id": 7,
+        "tip_text": "น้ำซุปสุกี้ต้องเดือดก่อนใส่วัตถุดิบ",
+        "recipe_id": 7,
+        "created_at": "2026-03-29T11:34:26.006125+00:00",
+        "sort_order": 1
+      },
+      "archive_reason": "No matching cleangoal.recipes row during v18_dishes_3nf_integrity",
+      "archived_at": "2026-04-24 13:59:54.365257+00:00"
+    },
+    {
+      "archive_id": 48,
+      "source_table": "recipe_tips",
+      "source_pk": 8,
+      "legacy_recipe_id": 8,
+      "legacy_user_id": null,
+      "row_data": {
+        "tip_id": 8,
+        "tip_text": "ผัดบนไฟแรงจะทำให้ไม่อมน้ำมัน",
+        "recipe_id": 8,
+        "created_at": "2026-03-29T11:34:26.006125+00:00",
+        "sort_order": 1
+      },
+      "archive_reason": "No matching cleangoal.recipes row during v18_dishes_3nf_integrity",
+      "archived_at": "2026-04-24 13:59:54.365257+00:00"
+    },
+    {
+      "archive_id": 49,
+      "source_table": "recipe_tips",
+      "source_pk": 9,
+      "legacy_recipe_id": 9,
+      "legacy_user_id": null,
+      "row_data": {
+        "tip_id": 9,
+        "tip_text": "ข้าวอุ่นๆ จะคลุกกะปิได้ง่ายกว่า",
+        "recipe_id": 9,
+        "created_at": "2026-03-29T11:34:26.006125+00:00",
+        "sort_order": 1
+      },
+      "archive_reason": "No matching cleangoal.recipes row during v18_dishes_3nf_integrity",
+      "archived_at": "2026-04-24 13:59:54.365257+00:00"
+    },
+    {
+      "archive_id": 50,
+      "source_table": "recipe_tips",
+      "source_pk": 10,
+      "legacy_recipe_id": 10,
+      "legacy_user_id": null,
+      "row_data": {
+        "tip_id": 10,
+        "tip_text": "กะทิสดทำให้รสชาติดีกว่ากะทิกล่อง",
+        "recipe_id": 10,
+        "created_at": "2026-03-29T11:34:26.006125+00:00",
+        "sort_order": 1
+      },
+      "archive_reason": "No matching cleangoal.recipes row during v18_dishes_3nf_integrity",
+      "archived_at": "2026-04-24 13:59:54.365257+00:00"
+    },
+    {
+      "archive_id": 51,
+      "source_table": "recipe_tips",
+      "source_pk": 11,
+      "legacy_recipe_id": 11,
+      "legacy_user_id": null,
+      "row_data": {
+        "tip_id": 11,
+        "tip_text": "ใส่น้ำพริกเผาเพิ่มเพื่อรสเข้มข้น",
+        "recipe_id": 11,
+        "created_at": "2026-03-29T11:34:26.006125+00:00",
+        "sort_order": 1
+      },
+      "archive_reason": "No matching cleangoal.recipes row during v18_dishes_3nf_integrity",
+      "archived_at": "2026-04-24 13:59:54.365257+00:00"
+    },
+    {
+      "archive_id": 52,
+      "source_table": "recipe_tips",
+      "source_pk": 12,
+      "legacy_recipe_id": 12,
+      "legacy_user_id": null,
+      "row_data": {
+        "tip_id": 12,
+        "tip_text": "ใบกระเพราใส่ตอนสุดท้ายจะหอมกว่า",
+        "recipe_id": 12,
+        "created_at": "2026-03-29T11:34:26.006125+00:00",
+        "sort_order": 1
+      },
+      "archive_reason": "No matching cleangoal.recipes row during v18_dishes_3nf_integrity",
+      "archived_at": "2026-04-24 13:59:54.365257+00:00"
+    },
+    {
+      "archive_id": 53,
+      "source_table": "recipe_tips",
+      "source_pk": 13,
+      "legacy_recipe_id": 13,
+      "legacy_user_id": null,
+      "row_data": {
+        "tip_id": 13,
+        "tip_text": "เส้นจันทน์ไม่ต้องต้ม แค่แช่น้ำเย็น",
+        "recipe_id": 13,
+        "created_at": "2026-03-29T11:34:26.006125+00:00",
+        "sort_order": 1
+      },
+      "archive_reason": "No matching cleangoal.recipes row during v18_dishes_3nf_integrity",
+      "archived_at": "2026-04-24 13:59:54.365257+00:00"
+    },
+    {
+      "archive_id": 54,
+      "source_table": "recipe_tips",
+      "source_pk": 14,
+      "legacy_recipe_id": 14,
+      "legacy_user_id": null,
+      "row_data": {
+        "tip_id": 14,
+        "tip_text": "ข้าวเย็นผัดได้เม็ดสวยกว่าข้าวสุกใหม่",
+        "recipe_id": 14,
+        "created_at": "2026-03-29T11:34:26.006125+00:00",
+        "sort_order": 1
+      },
+      "archive_reason": "No matching cleangoal.recipes row during v18_dishes_3nf_integrity",
+      "archived_at": "2026-04-24 13:59:54.365257+00:00"
+    },
+    {
+      "archive_id": 55,
+      "source_table": "recipe_tips",
+      "source_pk": 15,
+      "legacy_recipe_id": 15,
+      "legacy_user_id": null,
+      "row_data": {
+        "tip_id": 15,
+        "tip_text": "ส้มตำยิ่งตำนานยิ่งหอม",
+        "recipe_id": 15,
+        "created_at": "2026-03-29T11:34:26.006125+00:00",
+        "sort_order": 1
+      },
+      "archive_reason": "No matching cleangoal.recipes row during v18_dishes_3nf_integrity",
+      "archived_at": "2026-04-24 13:59:54.365257+00:00"
+    },
+    {
+      "archive_id": 79,
+      "source_table": "recipe_tools",
+      "source_pk": 19,
+      "legacy_recipe_id": 19,
+      "legacy_user_id": null,
+      "row_data": {
+        "tool_id": 19,
+        "recipe_id": 19,
+        "tool_name": "กระทะ",
+        "created_at": "2026-03-29T11:34:26.006125+00:00",
+        "sort_order": 1,
+        "tool_emoji": null
+      },
+      "archive_reason": "No matching cleangoal.recipes row during v18_dishes_3nf_integrity",
+      "archived_at": "2026-04-24 13:59:54.365257+00:00"
+    },
+    {
+      "archive_id": 56,
+      "source_table": "recipe_tips",
+      "source_pk": 16,
+      "legacy_recipe_id": 16,
+      "legacy_user_id": null,
+      "row_data": {
+        "tip_id": 16,
+        "tip_text": "ข้าวคั่วทำเองสดจะหอมกว่าซื้อ",
+        "recipe_id": 16,
+        "created_at": "2026-03-29T11:34:26.006125+00:00",
+        "sort_order": 1
+      },
+      "archive_reason": "No matching cleangoal.recipes row during v18_dishes_3nf_integrity",
+      "archived_at": "2026-04-24 13:59:54.365257+00:00"
+    },
+    {
+      "archive_id": 57,
+      "source_table": "recipe_tips",
+      "source_pk": 17,
+      "legacy_recipe_id": 17,
+      "legacy_user_id": null,
+      "row_data": {
+        "tip_id": 17,
+        "tip_text": "ใส่น้ำมะนาวหลังยกลงจากเตาจะหอมกว่า",
+        "recipe_id": 17,
+        "created_at": "2026-03-29T11:34:26.006125+00:00",
+        "sort_order": 1
+      },
+      "archive_reason": "No matching cleangoal.recipes row during v18_dishes_3nf_integrity",
+      "archived_at": "2026-04-24 13:59:54.365257+00:00"
+    },
+    {
+      "archive_id": 58,
+      "source_table": "recipe_tips",
+      "source_pk": 18,
+      "legacy_recipe_id": 18,
+      "legacy_user_id": null,
+      "row_data": {
+        "tip_id": 18,
+        "tip_text": "เป็ดย่างสุกดีก่อนจะทำให้แกงอร่อยกว่า",
+        "recipe_id": 18,
+        "created_at": "2026-03-29T11:34:26.006125+00:00",
+        "sort_order": 1
+      },
+      "archive_reason": "No matching cleangoal.recipes row during v18_dishes_3nf_integrity",
+      "archived_at": "2026-04-24 13:59:54.365257+00:00"
+    },
+    {
+      "archive_id": 59,
+      "source_table": "recipe_tips",
+      "source_pk": 19,
+      "legacy_recipe_id": 19,
+      "legacy_user_id": null,
+      "row_data": {
+        "tip_id": 19,
+        "tip_text": "มะระขมขาดก่อนผัดจะลดความขม",
+        "recipe_id": 19,
+        "created_at": "2026-03-29T11:34:26.006125+00:00",
+        "sort_order": 1
+      },
+      "archive_reason": "No matching cleangoal.recipes row during v18_dishes_3nf_integrity",
+      "archived_at": "2026-04-24 13:59:54.365257+00:00"
+    },
+    {
+      "archive_id": 60,
+      "source_table": "recipe_tips",
+      "source_pk": 20,
+      "legacy_recipe_id": 20,
+      "legacy_user_id": null,
+      "row_data": {
+        "tip_id": 20,
+        "tip_text": "พริกขี้หนูสดทำให้รสจัดกว่าพริกชี้ฟ้า",
+        "recipe_id": 20,
+        "created_at": "2026-03-29T11:34:26.006125+00:00",
+        "sort_order": 1
+      },
+      "archive_reason": "No matching cleangoal.recipes row during v18_dishes_3nf_integrity",
+      "archived_at": "2026-04-24 13:59:54.365257+00:00"
+    },
+    {
+      "archive_id": 61,
+      "source_table": "recipe_tools",
+      "source_pk": 1,
+      "legacy_recipe_id": 1,
+      "legacy_user_id": null,
+      "row_data": {
+        "tool_id": 1,
+        "recipe_id": 1,
+        "tool_name": "หม้อใบใหญ่",
+        "created_at": "2026-03-29T11:34:26.006125+00:00",
+        "sort_order": 1,
+        "tool_emoji": null
+      },
+      "archive_reason": "No matching cleangoal.recipes row during v18_dishes_3nf_integrity",
+      "archived_at": "2026-04-24 13:59:54.365257+00:00"
+    },
+    {
+      "archive_id": 62,
+      "source_table": "recipe_tools",
+      "source_pk": 2,
+      "legacy_recipe_id": 2,
+      "legacy_user_id": null,
+      "row_data": {
+        "tool_id": 2,
+        "recipe_id": 2,
+        "tool_name": "กระทะ",
+        "created_at": "2026-03-29T11:34:26.006125+00:00",
+        "sort_order": 1,
+        "tool_emoji": null
+      },
+      "archive_reason": "No matching cleangoal.recipes row during v18_dishes_3nf_integrity",
+      "archived_at": "2026-04-24 13:59:54.365257+00:00"
+    },
+    {
+      "archive_id": 63,
+      "source_table": "recipe_tools",
+      "source_pk": 3,
+      "legacy_recipe_id": 3,
+      "legacy_user_id": null,
+      "row_data": {
+        "tool_id": 3,
+        "recipe_id": 3,
+        "tool_name": "กระทะทอด",
+        "created_at": "2026-03-29T11:34:26.006125+00:00",
+        "sort_order": 1,
+        "tool_emoji": null
+      },
+      "archive_reason": "No matching cleangoal.recipes row during v18_dishes_3nf_integrity",
+      "archived_at": "2026-04-24 13:59:54.365257+00:00"
+    },
+    {
+      "archive_id": 64,
+      "source_table": "recipe_tools",
+      "source_pk": 4,
+      "legacy_recipe_id": 4,
+      "legacy_user_id": null,
+      "row_data": {
+        "tool_id": 4,
+        "recipe_id": 4,
+        "tool_name": "กระทะเหล็ก",
+        "created_at": "2026-03-29T11:34:26.006125+00:00",
+        "sort_order": 1,
+        "tool_emoji": null
+      },
+      "archive_reason": "No matching cleangoal.recipes row during v18_dishes_3nf_integrity",
+      "archived_at": "2026-04-24 13:59:54.365257+00:00"
+    },
+    {
+      "archive_id": 65,
+      "source_table": "recipe_tools",
+      "source_pk": 5,
+      "legacy_recipe_id": 5,
+      "legacy_user_id": null,
+      "row_data": {
+        "tool_id": 5,
+        "recipe_id": 5,
+        "tool_name": "กระทะเหล็ก",
+        "created_at": "2026-03-29T11:34:26.006125+00:00",
+        "sort_order": 1,
+        "tool_emoji": null
+      },
+      "archive_reason": "No matching cleangoal.recipes row during v18_dishes_3nf_integrity",
+      "archived_at": "2026-04-24 13:59:54.365257+00:00"
+    },
+    {
+      "archive_id": 66,
+      "source_table": "recipe_tools",
+      "source_pk": 6,
+      "legacy_recipe_id": 6,
+      "legacy_user_id": null,
+      "row_data": {
+        "tool_id": 6,
+        "recipe_id": 6,
+        "tool_name": "กระทะเหล็ก",
+        "created_at": "2026-03-29T11:34:26.006125+00:00",
+        "sort_order": 1,
+        "tool_emoji": null
+      },
+      "archive_reason": "No matching cleangoal.recipes row during v18_dishes_3nf_integrity",
+      "archived_at": "2026-04-24 13:59:54.365257+00:00"
+    },
+    {
+      "archive_id": 67,
+      "source_table": "recipe_tools",
+      "source_pk": 7,
+      "legacy_recipe_id": 7,
+      "legacy_user_id": null,
+      "row_data": {
+        "tool_id": 7,
+        "recipe_id": 7,
+        "tool_name": "หม้อสุกี้",
+        "created_at": "2026-03-29T11:34:26.006125+00:00",
+        "sort_order": 1,
+        "tool_emoji": null
+      },
+      "archive_reason": "No matching cleangoal.recipes row during v18_dishes_3nf_integrity",
+      "archived_at": "2026-04-24 13:59:54.365257+00:00"
+    },
+    {
+      "archive_id": 68,
+      "source_table": "recipe_tools",
+      "source_pk": 8,
+      "legacy_recipe_id": 8,
+      "legacy_user_id": null,
+      "row_data": {
+        "tool_id": 8,
+        "recipe_id": 8,
+        "tool_name": "กระทะเหล็ก",
+        "created_at": "2026-03-29T11:34:26.006125+00:00",
+        "sort_order": 1,
+        "tool_emoji": null
+      },
+      "archive_reason": "No matching cleangoal.recipes row during v18_dishes_3nf_integrity",
+      "archived_at": "2026-04-24 13:59:54.365257+00:00"
+    },
+    {
+      "archive_id": 69,
+      "source_table": "recipe_tools",
+      "source_pk": 9,
+      "legacy_recipe_id": 9,
+      "legacy_user_id": null,
+      "row_data": {
+        "tool_id": 9,
+        "recipe_id": 9,
+        "tool_name": "ชาม",
+        "created_at": "2026-03-29T11:34:26.006125+00:00",
+        "sort_order": 1,
+        "tool_emoji": null
+      },
+      "archive_reason": "No matching cleangoal.recipes row during v18_dishes_3nf_integrity",
+      "archived_at": "2026-04-24 13:59:54.365257+00:00"
+    },
+    {
+      "archive_id": 70,
+      "source_table": "recipe_tools",
+      "source_pk": 10,
+      "legacy_recipe_id": 10,
+      "legacy_user_id": null,
+      "row_data": {
+        "tool_id": 10,
+        "recipe_id": 10,
+        "tool_name": "หม้อแกง",
+        "created_at": "2026-03-29T11:34:26.006125+00:00",
+        "sort_order": 1,
+        "tool_emoji": null
+      },
+      "archive_reason": "No matching cleangoal.recipes row during v18_dishes_3nf_integrity",
+      "archived_at": "2026-04-24 13:59:54.365257+00:00"
+    },
+    {
+      "archive_id": 71,
+      "source_table": "recipe_tools",
+      "source_pk": 11,
+      "legacy_recipe_id": 11,
+      "legacy_user_id": null,
+      "row_data": {
+        "tool_id": 11,
+        "recipe_id": 11,
+        "tool_name": "หม้อ",
+        "created_at": "2026-03-29T11:34:26.006125+00:00",
+        "sort_order": 1,
+        "tool_emoji": null
+      },
+      "archive_reason": "No matching cleangoal.recipes row during v18_dishes_3nf_integrity",
+      "archived_at": "2026-04-24 13:59:54.365257+00:00"
+    },
+    {
+      "archive_id": 72,
+      "source_table": "recipe_tools",
+      "source_pk": 12,
+      "legacy_recipe_id": 12,
+      "legacy_user_id": null,
+      "row_data": {
+        "tool_id": 12,
+        "recipe_id": 12,
+        "tool_name": "กระทะเหล็ก",
+        "created_at": "2026-03-29T11:34:26.006125+00:00",
+        "sort_order": 1,
+        "tool_emoji": null
+      },
+      "archive_reason": "No matching cleangoal.recipes row during v18_dishes_3nf_integrity",
+      "archived_at": "2026-04-24 13:59:54.365257+00:00"
+    },
+    {
+      "archive_id": 73,
+      "source_table": "recipe_tools",
+      "source_pk": 13,
+      "legacy_recipe_id": 13,
+      "legacy_user_id": null,
+      "row_data": {
+        "tool_id": 13,
+        "recipe_id": 13,
+        "tool_name": "กระทะเหล็ก",
+        "created_at": "2026-03-29T11:34:26.006125+00:00",
+        "sort_order": 1,
+        "tool_emoji": null
+      },
+      "archive_reason": "No matching cleangoal.recipes row during v18_dishes_3nf_integrity",
+      "archived_at": "2026-04-24 13:59:54.365257+00:00"
+    },
+    {
+      "archive_id": 74,
+      "source_table": "recipe_tools",
+      "source_pk": 14,
+      "legacy_recipe_id": 14,
+      "legacy_user_id": null,
+      "row_data": {
+        "tool_id": 14,
+        "recipe_id": 14,
+        "tool_name": "กระทะเหล็ก",
+        "created_at": "2026-03-29T11:34:26.006125+00:00",
+        "sort_order": 1,
+        "tool_emoji": null
+      },
+      "archive_reason": "No matching cleangoal.recipes row during v18_dishes_3nf_integrity",
+      "archived_at": "2026-04-24 13:59:54.365257+00:00"
+    },
+    {
+      "archive_id": 75,
+      "source_table": "recipe_tools",
+      "source_pk": 15,
+      "legacy_recipe_id": 15,
+      "legacy_user_id": null,
+      "row_data": {
+        "tool_id": 15,
+        "recipe_id": 15,
+        "tool_name": "ครกและสาก",
+        "created_at": "2026-03-29T11:34:26.006125+00:00",
+        "sort_order": 1,
+        "tool_emoji": null
+      },
+      "archive_reason": "No matching cleangoal.recipes row during v18_dishes_3nf_integrity",
+      "archived_at": "2026-04-24 13:59:54.365257+00:00"
+    },
+    {
+      "archive_id": 76,
+      "source_table": "recipe_tools",
+      "source_pk": 16,
+      "legacy_recipe_id": 16,
+      "legacy_user_id": null,
+      "row_data": {
+        "tool_id": 16,
+        "recipe_id": 16,
+        "tool_name": "ครกและสาก",
+        "created_at": "2026-03-29T11:34:26.006125+00:00",
+        "sort_order": 1,
+        "tool_emoji": null
+      },
+      "archive_reason": "No matching cleangoal.recipes row during v18_dishes_3nf_integrity",
+      "archived_at": "2026-04-24 13:59:54.365257+00:00"
+    },
+    {
+      "archive_id": 77,
+      "source_table": "recipe_tools",
+      "source_pk": 17,
+      "legacy_recipe_id": 17,
+      "legacy_user_id": null,
+      "row_data": {
+        "tool_id": 17,
+        "recipe_id": 17,
+        "tool_name": "หม้อแกง",
+        "created_at": "2026-03-29T11:34:26.006125+00:00",
+        "sort_order": 1,
+        "tool_emoji": null
+      },
+      "archive_reason": "No matching cleangoal.recipes row during v18_dishes_3nf_integrity",
+      "archived_at": "2026-04-24 13:59:54.365257+00:00"
+    },
+    {
+      "archive_id": 78,
+      "source_table": "recipe_tools",
+      "source_pk": 18,
+      "legacy_recipe_id": 18,
+      "legacy_user_id": null,
+      "row_data": {
+        "tool_id": 18,
+        "recipe_id": 18,
+        "tool_name": "หม้อแกง",
+        "created_at": "2026-03-29T11:34:26.006125+00:00",
+        "sort_order": 1,
+        "tool_emoji": null
+      },
+      "archive_reason": "No matching cleangoal.recipes row during v18_dishes_3nf_integrity",
+      "archived_at": "2026-04-24 13:59:54.365257+00:00"
+    },
+    {
+      "archive_id": 80,
+      "source_table": "recipe_tools",
+      "source_pk": 20,
+      "legacy_recipe_id": 20,
+      "legacy_user_id": null,
+      "row_data": {
+        "tool_id": 20,
+        "recipe_id": 20,
+        "tool_name": "กระทะเหล็ก",
+        "created_at": "2026-03-29T11:34:26.006125+00:00",
+        "sort_order": 1,
+        "tool_emoji": null
+      },
+      "archive_reason": "No matching cleangoal.recipes row during v18_dishes_3nf_integrity",
+      "archived_at": "2026-04-24 13:59:54.365257+00:00"
+    },
+    {
+      "archive_id": 81,
+      "source_table": "recipe_favorites",
+      "source_pk": 1,
+      "legacy_recipe_id": 1,
+      "legacy_user_id": 2,
+      "row_data": {
+        "fav_id": 1,
+        "user_id": 2,
+        "recipe_id": 1,
+        "created_at": "2026-03-29T11:34:26.006125+00:00"
+      },
+      "archive_reason": "No matching cleangoal.recipes row during v18_dishes_3nf_integrity",
+      "archived_at": "2026-04-24 13:59:54.365257+00:00"
+    },
+    {
+      "archive_id": 82,
+      "source_table": "recipe_favorites",
+      "source_pk": 2,
+      "legacy_recipe_id": 2,
+      "legacy_user_id": 3,
+      "row_data": {
+        "fav_id": 2,
+        "user_id": 3,
+        "recipe_id": 2,
+        "created_at": "2026-03-29T11:34:26.006125+00:00"
+      },
+      "archive_reason": "No matching cleangoal.recipes row during v18_dishes_3nf_integrity",
+      "archived_at": "2026-04-24 13:59:54.365257+00:00"
+    },
+    {
+      "archive_id": 83,
+      "source_table": "recipe_favorites",
+      "source_pk": 3,
+      "legacy_recipe_id": 3,
+      "legacy_user_id": 4,
+      "row_data": {
+        "fav_id": 3,
+        "user_id": 4,
+        "recipe_id": 3,
+        "created_at": "2026-03-29T11:34:26.006125+00:00"
+      },
+      "archive_reason": "No matching cleangoal.recipes row during v18_dishes_3nf_integrity",
+      "archived_at": "2026-04-24 13:59:54.365257+00:00"
+    },
+    {
+      "archive_id": 84,
+      "source_table": "recipe_favorites",
+      "source_pk": 4,
+      "legacy_recipe_id": 4,
+      "legacy_user_id": 1,
+      "row_data": {
+        "fav_id": 4,
+        "user_id": 1,
+        "recipe_id": 4,
+        "created_at": "2026-03-29T11:34:26.006125+00:00"
+      },
+      "archive_reason": "No matching cleangoal.recipes row during v18_dishes_3nf_integrity",
+      "archived_at": "2026-04-24 13:59:54.365257+00:00"
+    },
+    {
+      "archive_id": 85,
+      "source_table": "recipe_favorites",
+      "source_pk": 5,
+      "legacy_recipe_id": 5,
+      "legacy_user_id": 8,
+      "row_data": {
+        "fav_id": 5,
+        "user_id": 8,
+        "recipe_id": 5,
+        "created_at": "2026-03-29T11:34:26.006125+00:00"
+      },
+      "archive_reason": "No matching cleangoal.recipes row during v18_dishes_3nf_integrity",
+      "archived_at": "2026-04-24 13:59:54.365257+00:00"
+    },
+    {
+      "archive_id": 86,
+      "source_table": "recipe_favorites",
+      "source_pk": 6,
+      "legacy_recipe_id": 6,
+      "legacy_user_id": 9,
+      "row_data": {
+        "fav_id": 6,
+        "user_id": 9,
+        "recipe_id": 6,
+        "created_at": "2026-03-29T11:34:26.006125+00:00"
+      },
+      "archive_reason": "No matching cleangoal.recipes row during v18_dishes_3nf_integrity",
+      "archived_at": "2026-04-24 13:59:54.365257+00:00"
+    },
+    {
+      "archive_id": 87,
+      "source_table": "recipe_favorites",
+      "source_pk": 7,
+      "legacy_recipe_id": 16,
+      "legacy_user_id": 20,
+      "row_data": {
+        "fav_id": 7,
+        "user_id": 20,
+        "recipe_id": 16,
+        "created_at": "2026-03-29T11:34:26.006125+00:00"
+      },
+      "archive_reason": "No matching cleangoal.recipes row during v18_dishes_3nf_integrity",
+      "archived_at": "2026-04-24 13:59:54.365257+00:00"
+    },
+    {
+      "archive_id": 88,
+      "source_table": "recipe_favorites",
+      "source_pk": 8,
+      "legacy_recipe_id": 7,
+      "legacy_user_id": 10,
+      "row_data": {
+        "fav_id": 8,
+        "user_id": 10,
+        "recipe_id": 7,
+        "created_at": "2026-03-29T11:34:26.006125+00:00"
+      },
+      "archive_reason": "No matching cleangoal.recipes row during v18_dishes_3nf_integrity",
+      "archived_at": "2026-04-24 13:59:54.365257+00:00"
+    },
+    {
+      "archive_id": 89,
+      "source_table": "recipe_favorites",
+      "source_pk": 9,
+      "legacy_recipe_id": 8,
+      "legacy_user_id": 11,
+      "row_data": {
+        "fav_id": 9,
+        "user_id": 11,
+        "recipe_id": 8,
+        "created_at": "2026-03-29T11:34:26.006125+00:00"
+      },
+      "archive_reason": "No matching cleangoal.recipes row during v18_dishes_3nf_integrity",
+      "archived_at": "2026-04-24 13:59:54.365257+00:00"
+    },
+    {
+      "archive_id": 90,
+      "source_table": "recipe_favorites",
+      "source_pk": 10,
+      "legacy_recipe_id": 9,
+      "legacy_user_id": 12,
+      "row_data": {
+        "fav_id": 10,
+        "user_id": 12,
+        "recipe_id": 9,
+        "created_at": "2026-03-29T11:34:26.006125+00:00"
+      },
+      "archive_reason": "No matching cleangoal.recipes row during v18_dishes_3nf_integrity",
+      "archived_at": "2026-04-24 13:59:54.365257+00:00"
+    },
+    {
+      "archive_id": 91,
+      "source_table": "recipe_favorites",
+      "source_pk": 11,
+      "legacy_recipe_id": 10,
+      "legacy_user_id": 13,
+      "row_data": {
+        "fav_id": 11,
+        "user_id": 13,
+        "recipe_id": 10,
+        "created_at": "2026-03-29T11:34:26.006125+00:00"
+      },
+      "archive_reason": "No matching cleangoal.recipes row during v18_dishes_3nf_integrity",
+      "archived_at": "2026-04-24 13:59:54.365257+00:00"
+    },
+    {
+      "archive_id": 92,
+      "source_table": "recipe_favorites",
+      "source_pk": 12,
+      "legacy_recipe_id": 11,
+      "legacy_user_id": 14,
+      "row_data": {
+        "fav_id": 12,
+        "user_id": 14,
+        "recipe_id": 11,
+        "created_at": "2026-03-29T11:34:26.006125+00:00"
+      },
+      "archive_reason": "No matching cleangoal.recipes row during v18_dishes_3nf_integrity",
+      "archived_at": "2026-04-24 13:59:54.365257+00:00"
+    },
+    {
+      "archive_id": 93,
+      "source_table": "recipe_favorites",
+      "source_pk": 13,
+      "legacy_recipe_id": 12,
+      "legacy_user_id": 15,
+      "row_data": {
+        "fav_id": 13,
+        "user_id": 15,
+        "recipe_id": 12,
+        "created_at": "2026-03-29T11:34:26.006125+00:00"
+      },
+      "archive_reason": "No matching cleangoal.recipes row during v18_dishes_3nf_integrity",
+      "archived_at": "2026-04-24 13:59:54.365257+00:00"
+    },
+    {
+      "archive_id": 94,
+      "source_table": "recipe_favorites",
+      "source_pk": 14,
+      "legacy_recipe_id": 13,
+      "legacy_user_id": 16,
+      "row_data": {
+        "fav_id": 14,
+        "user_id": 16,
+        "recipe_id": 13,
+        "created_at": "2026-03-29T11:34:26.006125+00:00"
+      },
+      "archive_reason": "No matching cleangoal.recipes row during v18_dishes_3nf_integrity",
+      "archived_at": "2026-04-24 13:59:54.365257+00:00"
+    },
+    {
+      "archive_id": 95,
+      "source_table": "recipe_favorites",
+      "source_pk": 15,
+      "legacy_recipe_id": 14,
+      "legacy_user_id": 18,
+      "row_data": {
+        "fav_id": 15,
+        "user_id": 18,
+        "recipe_id": 14,
+        "created_at": "2026-03-29T11:34:26.006125+00:00"
+      },
+      "archive_reason": "No matching cleangoal.recipes row during v18_dishes_3nf_integrity",
+      "archived_at": "2026-04-24 13:59:54.365257+00:00"
+    },
+    {
+      "archive_id": 96,
+      "source_table": "recipe_favorites",
+      "source_pk": 16,
+      "legacy_recipe_id": 15,
+      "legacy_user_id": 19,
+      "row_data": {
+        "fav_id": 16,
+        "user_id": 19,
+        "recipe_id": 15,
+        "created_at": "2026-03-29T11:34:26.006125+00:00"
+      },
+      "archive_reason": "No matching cleangoal.recipes row during v18_dishes_3nf_integrity",
+      "archived_at": "2026-04-24 13:59:54.365257+00:00"
+    },
+    {
+      "archive_id": 97,
+      "source_table": "recipe_favorites",
+      "source_pk": 17,
+      "legacy_recipe_id": 17,
+      "legacy_user_id": 23,
+      "row_data": {
+        "fav_id": 17,
+        "user_id": 23,
+        "recipe_id": 17,
+        "created_at": "2026-03-29T11:34:26.006125+00:00"
+      },
+      "archive_reason": "No matching cleangoal.recipes row during v18_dishes_3nf_integrity",
+      "archived_at": "2026-04-24 13:59:54.365257+00:00"
+    },
+    {
+      "archive_id": 98,
+      "source_table": "recipe_favorites",
+      "source_pk": 18,
+      "legacy_recipe_id": 18,
+      "legacy_user_id": 24,
+      "row_data": {
+        "fav_id": 18,
+        "user_id": 24,
+        "recipe_id": 18,
+        "created_at": "2026-03-29T11:34:26.006125+00:00"
+      },
+      "archive_reason": "No matching cleangoal.recipes row during v18_dishes_3nf_integrity",
+      "archived_at": "2026-04-24 13:59:54.365257+00:00"
+    },
+    {
+      "archive_id": 99,
+      "source_table": "recipe_favorites",
+      "source_pk": 19,
+      "legacy_recipe_id": 19,
+      "legacy_user_id": 1,
+      "row_data": {
+        "fav_id": 19,
+        "user_id": 1,
+        "recipe_id": 19,
+        "created_at": "2026-03-29T11:34:26.006125+00:00"
+      },
+      "archive_reason": "No matching cleangoal.recipes row during v18_dishes_3nf_integrity",
+      "archived_at": "2026-04-24 13:59:54.365257+00:00"
+    },
+    {
+      "archive_id": 100,
+      "source_table": "recipe_favorites",
+      "source_pk": 20,
+      "legacy_recipe_id": 20,
+      "legacy_user_id": 2,
+      "row_data": {
+        "fav_id": 20,
+        "user_id": 2,
+        "recipe_id": 20,
+        "created_at": "2026-03-29T11:34:26.006125+00:00"
+      },
+      "archive_reason": "No matching cleangoal.recipes row during v18_dishes_3nf_integrity",
+      "archived_at": "2026-04-24 13:59:54.365257+00:00"
+    }
+  ],
+  "recipe_reviews_orphan_archive": [
+    {
+      "archive_id": 1,
+      "review_id": 7,
+      "legacy_recipe_id": 7,
+      "legacy_food_id": null,
+      "user_id": 8,
+      "rating": 4,
+      "comment": "น้ำซุปหวานอร่อย",
+      "created_at": "2026-03-29 11:34:26.006125+00:00",
+      "archived_at": "2026-04-24 13:39:26.837293+00:00",
+      "archive_reason": "No matching cleangoal.recipes row during v17_recipe_consistency"
+    },
+    {
+      "archive_id": 2,
+      "review_id": 20,
+      "legacy_recipe_id": 20,
+      "legacy_food_id": null,
+      "user_id": 24,
+      "rating": 5,
+      "comment": "กระเพราเนื้อสุดยอด",
+      "created_at": "2026-03-29 11:34:26.006125+00:00",
+      "archived_at": "2026-04-24 13:39:26.837293+00:00",
+      "archive_reason": "No matching cleangoal.recipes row during v17_recipe_consistency"
+    },
+    {
+      "archive_id": 3,
+      "review_id": 9,
+      "legacy_recipe_id": 9,
+      "legacy_food_id": null,
+      "user_id": 10,
+      "rating": 3,
+      "comment": "กะปิหอมดี แต่เค็มนิดหน่อย",
+      "created_at": "2026-03-29 11:34:26.006125+00:00",
+      "archived_at": "2026-04-24 13:39:26.837293+00:00",
+      "archive_reason": "No matching cleangoal.recipes row during v17_recipe_consistency"
+    },
+    {
+      "archive_id": 4,
+      "review_id": 14,
+      "legacy_recipe_id": 14,
+      "legacy_food_id": null,
+      "user_id": 15,
+      "rating": 5,
+      "comment": "ข้าวผัดกุ้งอร่อยมาก",
+      "created_at": "2026-03-29 11:34:26.006125+00:00",
+      "archived_at": "2026-04-24 13:39:26.837293+00:00",
+      "archive_reason": "No matching cleangoal.recipes row during v17_recipe_consistency"
+    },
+    {
+      "archive_id": 5,
+      "review_id": 16,
+      "legacy_recipe_id": 16,
+      "legacy_food_id": null,
+      "user_id": 18,
+      "rating": 5,
+      "comment": "ลาบหมูอีสานแท้ๆ เด็ดมาก",
+      "created_at": "2026-03-29 11:34:26.006125+00:00",
+      "archived_at": "2026-04-24 13:39:26.837293+00:00",
+      "archive_reason": "No matching cleangoal.recipes row during v17_recipe_consistency"
+    },
+    {
+      "archive_id": 6,
+      "review_id": 2,
+      "legacy_recipe_id": 2,
+      "legacy_food_id": null,
+      "user_id": 2,
+      "rating": 4,
+      "comment": "รสชาติดี หมูแดงสวย",
+      "created_at": "2026-03-29 11:34:26.006125+00:00",
+      "archived_at": "2026-04-24 13:39:26.837293+00:00",
+      "archive_reason": "No matching cleangoal.recipes row during v17_recipe_consistency"
+    },
+    {
+      "archive_id": 7,
+      "review_id": 10,
+      "legacy_recipe_id": 10,
+      "legacy_food_id": null,
+      "user_id": 11,
+      "rating": 5,
+      "comment": "แกงเขียวหวานอร่อยมากเลย",
+      "created_at": "2026-03-29 11:34:26.006125+00:00",
+      "archived_at": "2026-04-24 13:39:26.837293+00:00",
+      "archive_reason": "No matching cleangoal.recipes row during v17_recipe_consistency"
+    },
+    {
+      "archive_id": 8,
+      "review_id": 12,
+      "legacy_recipe_id": 12,
+      "legacy_food_id": null,
+      "user_id": 13,
+      "rating": 5,
+      "comment": "กะเพราอร่อยสุดๆ",
+      "created_at": "2026-03-29 11:34:26.006125+00:00",
+      "archived_at": "2026-04-24 13:39:26.837293+00:00",
+      "archive_reason": "No matching cleangoal.recipes row during v17_recipe_consistency"
+    },
+    {
+      "archive_id": 9,
+      "review_id": 18,
+      "legacy_recipe_id": 18,
+      "legacy_food_id": null,
+      "user_id": 20,
+      "rating": 3,
+      "comment": "แกงเผ็ดจัดไปหน่อย",
+      "created_at": "2026-03-29 11:34:26.006125+00:00",
+      "archived_at": "2026-04-24 13:39:26.837293+00:00",
+      "archive_reason": "No matching cleangoal.recipes row during v17_recipe_consistency"
+    },
+    {
+      "archive_id": 10,
+      "review_id": 11,
+      "legacy_recipe_id": 11,
+      "legacy_food_id": null,
+      "user_id": 12,
+      "rating": 4,
+      "comment": "ต้มยำรสจัด ชอบ",
+      "created_at": "2026-03-29 11:34:26.006125+00:00",
+      "archived_at": "2026-04-24 13:39:26.837293+00:00",
+      "archive_reason": "No matching cleangoal.recipes row during v17_recipe_consistency"
+    },
+    {
+      "archive_id": 11,
+      "review_id": 1,
+      "legacy_recipe_id": 1,
+      "legacy_food_id": null,
+      "user_id": 1,
+      "rating": 5,
+      "comment": "อร่อยมาก ขาหมูนุ่มมาก!",
+      "created_at": "2026-03-29 11:34:26.006125+00:00",
+      "archived_at": "2026-04-24 13:39:26.837293+00:00",
+      "archive_reason": "No matching cleangoal.recipes row during v17_recipe_consistency"
+    },
+    {
+      "archive_id": 12,
+      "review_id": 17,
+      "legacy_recipe_id": 17,
+      "legacy_food_id": null,
+      "user_id": 19,
+      "rating": 4,
+      "comment": "ต้มข่าหวานมันอร่อย",
+      "created_at": "2026-03-29 11:34:26.006125+00:00",
+      "archived_at": "2026-04-24 13:39:26.837293+00:00",
+      "archive_reason": "No matching cleangoal.recipes row during v17_recipe_consistency"
+    },
+    {
+      "archive_id": 13,
+      "review_id": 8,
+      "legacy_recipe_id": 8,
+      "legacy_food_id": null,
+      "user_id": 9,
+      "rating": 5,
+      "comment": "สุกี้แห้งสุดยอด",
+      "created_at": "2026-03-29 11:34:26.006125+00:00",
+      "archived_at": "2026-04-24 13:39:26.837293+00:00",
+      "archive_reason": "No matching cleangoal.recipes row during v17_recipe_consistency"
+    },
+    {
+      "archive_id": 14,
+      "review_id": 19,
+      "legacy_recipe_id": 19,
+      "legacy_food_id": null,
+      "user_id": 23,
+      "rating": 4,
+      "comment": "มะระผัดไข่ทานง่าย",
+      "created_at": "2026-03-29 11:34:26.006125+00:00",
+      "archived_at": "2026-04-24 13:39:26.837293+00:00",
+      "archive_reason": "No matching cleangoal.recipes row during v17_recipe_consistency"
+    },
+    {
+      "archive_id": 15,
+      "review_id": 6,
+      "legacy_recipe_id": 6,
+      "legacy_food_id": null,
+      "user_id": 7,
+      "rating": 5,
+      "comment": "ผัดซีอิ๊วอร่อยมาก",
+      "created_at": "2026-03-29 11:34:26.006125+00:00",
+      "archived_at": "2026-04-24 13:39:26.837293+00:00",
+      "archive_reason": "No matching cleangoal.recipes row during v17_recipe_consistency"
+    },
+    {
+      "archive_id": 16,
+      "review_id": 15,
+      "legacy_recipe_id": 15,
+      "legacy_food_id": null,
+      "user_id": 16,
+      "rating": 4,
+      "comment": "ส้มตำรสจัดถูกใจ",
+      "created_at": "2026-03-29 11:34:26.006125+00:00",
+      "archived_at": "2026-04-24 13:39:26.837293+00:00",
+      "archive_reason": "No matching cleangoal.recipes row during v17_recipe_consistency"
+    },
+    {
+      "archive_id": 17,
+      "review_id": 13,
+      "legacy_recipe_id": 13,
+      "legacy_food_id": null,
+      "user_id": 14,
+      "rating": 4,
+      "comment": "ผัดไทยเส้นจันท์น่าลอง",
+      "created_at": "2026-03-29 11:34:26.006125+00:00",
+      "archived_at": "2026-04-24 13:39:26.837293+00:00",
+      "archive_reason": "No matching cleangoal.recipes row during v17_recipe_consistency"
+    },
+    {
+      "archive_id": 18,
+      "review_id": 3,
+      "legacy_recipe_id": 102,
+      "legacy_food_id": null,
+      "user_id": 3,
+      "rating": 5,
+      "comment": "หมูกรอบมากเลย ชอบ",
+      "created_at": "2026-03-29 11:34:26.006125+00:00",
+      "archived_at": "2026-04-24 13:39:26.837293+00:00",
+      "archive_reason": "No matching cleangoal.users row during v17_recipe_consistency"
+    },
+    {
+      "archive_id": 19,
+      "review_id": 4,
+      "legacy_recipe_id": 103,
+      "legacy_food_id": null,
+      "user_id": 4,
+      "rating": 4,
+      "comment": "ผัดไทยรสจัด ชอบมาก",
+      "created_at": "2026-03-29 11:34:26.006125+00:00",
+      "archived_at": "2026-04-24 13:39:26.837293+00:00",
+      "archive_reason": "No matching cleangoal.users row during v17_recipe_consistency"
+    },
+    {
+      "archive_id": 20,
+      "review_id": 5,
+      "legacy_recipe_id": 104,
+      "legacy_food_id": null,
+      "user_id": 6,
+      "rating": 3,
+      "comment": "ใช้ได้ครับ ไม่เลวเลย",
+      "created_at": "2026-03-29 11:34:26.006125+00:00",
+      "archived_at": "2026-04-24 13:39:26.837293+00:00",
+      "archive_reason": "No matching cleangoal.users row during v17_recipe_consistency"
+    }
+  ],
+  "unit_conversion_orphan_archive": [
+    {
+      "archive_id": 1,
+      "conversion_id": 1,
+      "from_unit_id": 1,
+      "to_unit_id": 1,
+      "row_data": {
+        "note": "กรัม → กรัม",
+        "factor": 1.0,
+        "created_at": "2026-03-30T08:00:46.374685+00:00",
+        "to_unit_id": 1,
+        "from_unit_id": 1,
+        "conversion_id": 1
+      },
+      "archive_reason": "Missing from_unit_id or to_unit_id in cleangoal.units during v18_dishes_3nf_integrity",
+      "archived_at": "2026-04-24 13:59:54.365257+00:00"
+    },
+    {
+      "archive_id": 2,
+      "conversion_id": 2,
+      "from_unit_id": 2,
+      "to_unit_id": 1,
+      "row_data": {
+        "note": "ฟอง → กรัม (ไข่เบอร์กลาง)",
+        "factor": 50.0,
+        "created_at": "2026-03-30T08:00:46.374685+00:00",
+        "to_unit_id": 1,
+        "from_unit_id": 2,
+        "conversion_id": 2
+      },
+      "archive_reason": "Missing from_unit_id or to_unit_id in cleangoal.units during v18_dishes_3nf_integrity",
+      "archived_at": "2026-04-24 13:59:54.365257+00:00"
+    },
+    {
+      "archive_id": 3,
+      "conversion_id": 3,
+      "from_unit_id": 3,
+      "to_unit_id": 1,
+      "row_data": {
+        "note": "ช้อนโต๊ะ → กรัม",
+        "factor": 15.0,
+        "created_at": "2026-03-30T08:00:46.374685+00:00",
+        "to_unit_id": 1,
+        "from_unit_id": 3,
+        "conversion_id": 3
+      },
+      "archive_reason": "Missing from_unit_id or to_unit_id in cleangoal.units during v18_dishes_3nf_integrity",
+      "archived_at": "2026-04-24 13:59:54.365257+00:00"
+    },
+    {
+      "archive_id": 4,
+      "conversion_id": 4,
+      "from_unit_id": 4,
+      "to_unit_id": 1,
+      "row_data": {
+        "note": "ทัพพี → กรัม",
+        "factor": 100.0,
+        "created_at": "2026-03-30T08:00:46.374685+00:00",
+        "to_unit_id": 1,
+        "from_unit_id": 4,
+        "conversion_id": 4
+      },
+      "archive_reason": "Missing from_unit_id or to_unit_id in cleangoal.units during v18_dishes_3nf_integrity",
+      "archived_at": "2026-04-24 13:59:54.365257+00:00"
+    },
+    {
+      "archive_id": 5,
+      "conversion_id": 5,
+      "from_unit_id": 5,
+      "to_unit_id": 1,
+      "row_data": {
+        "note": "จาน → กรัม",
+        "factor": 300.0,
+        "created_at": "2026-03-30T08:00:46.374685+00:00",
+        "to_unit_id": 1,
+        "from_unit_id": 5,
+        "conversion_id": 5
+      },
+      "archive_reason": "Missing from_unit_id or to_unit_id in cleangoal.units during v18_dishes_3nf_integrity",
+      "archived_at": "2026-04-24 13:59:54.365257+00:00"
+    },
+    {
+      "archive_id": 6,
+      "conversion_id": 7,
+      "from_unit_id": 7,
+      "to_unit_id": 1,
+      "row_data": {
+        "note": "ลิตร → กรัม (น้ำ 1 L ≈ 1000 g)",
+        "factor": 1000.0,
+        "created_at": "2026-03-30T08:00:46.374685+00:00",
+        "to_unit_id": 1,
+        "from_unit_id": 7,
+        "conversion_id": 7
+      },
+      "archive_reason": "Missing from_unit_id or to_unit_id in cleangoal.units during v18_dishes_3nf_integrity",
+      "archived_at": "2026-04-24 13:59:54.365257+00:00"
+    },
+    {
+      "archive_id": 7,
+      "conversion_id": 8,
+      "from_unit_id": 8,
+      "to_unit_id": 1,
+      "row_data": {
+        "note": "ช้อนชา → กรัม",
+        "factor": 5.0,
+        "created_at": "2026-03-30T08:00:46.374685+00:00",
+        "to_unit_id": 1,
+        "from_unit_id": 8,
+        "conversion_id": 8
+      },
+      "archive_reason": "Missing from_unit_id or to_unit_id in cleangoal.units during v18_dishes_3nf_integrity",
+      "archived_at": "2026-04-24 13:59:54.365257+00:00"
+    },
+    {
+      "archive_id": 8,
+      "conversion_id": 9,
+      "from_unit_id": 9,
+      "to_unit_id": 1,
+      "row_data": {
+        "note": "มิลลิลิตร → กรัม (น้ำ 1 ml ≈ 1 g)",
+        "factor": 1.0,
+        "created_at": "2026-03-30T08:00:46.374685+00:00",
+        "to_unit_id": 1,
+        "from_unit_id": 9,
+        "conversion_id": 9
+      },
+      "archive_reason": "Missing from_unit_id or to_unit_id in cleangoal.units during v18_dishes_3nf_integrity",
+      "archived_at": "2026-04-24 13:59:54.365257+00:00"
+    },
+    {
+      "archive_id": 9,
+      "conversion_id": 10,
+      "from_unit_id": 10,
+      "to_unit_id": 1,
+      "row_data": {
+        "note": "แก้ว → กรัม",
+        "factor": 240.0,
+        "created_at": "2026-03-30T08:00:46.374685+00:00",
+        "to_unit_id": 1,
+        "from_unit_id": 10,
+        "conversion_id": 10
+      },
+      "archive_reason": "Missing from_unit_id or to_unit_id in cleangoal.units during v18_dishes_3nf_integrity",
+      "archived_at": "2026-04-24 13:59:54.365257+00:00"
+    },
+    {
+      "archive_id": 10,
+      "conversion_id": 11,
+      "from_unit_id": 11,
+      "to_unit_id": 1,
+      "row_data": {
+        "note": "ถ้วย → กรัม",
+        "factor": 240.0,
+        "created_at": "2026-03-30T08:00:46.374685+00:00",
+        "to_unit_id": 1,
+        "from_unit_id": 11,
+        "conversion_id": 11
+      },
+      "archive_reason": "Missing from_unit_id or to_unit_id in cleangoal.units during v18_dishes_3nf_integrity",
+      "archived_at": "2026-04-24 13:59:54.365257+00:00"
+    },
+    {
+      "archive_id": 11,
+      "conversion_id": 12,
+      "from_unit_id": 12,
+      "to_unit_id": 1,
+      "row_data": {
+        "note": "ชิ้น → กรัม (ค่าเฉลี่ย)",
+        "factor": 30.0,
+        "created_at": "2026-03-30T08:00:46.374685+00:00",
+        "to_unit_id": 1,
+        "from_unit_id": 12,
+        "conversion_id": 12
+      },
+      "archive_reason": "Missing from_unit_id or to_unit_id in cleangoal.units during v18_dishes_3nf_integrity",
+      "archived_at": "2026-04-24 13:59:54.365257+00:00"
+    },
+    {
+      "archive_id": 12,
+      "conversion_id": 13,
+      "from_unit_id": 13,
+      "to_unit_id": 1,
+      "row_data": {
+        "note": "ลูก/หัว → กรัม (ค่าเฉลี่ย)",
+        "factor": 100.0,
+        "created_at": "2026-03-30T08:00:46.374685+00:00",
+        "to_unit_id": 1,
+        "from_unit_id": 13,
+        "conversion_id": 13
+      },
+      "archive_reason": "Missing from_unit_id or to_unit_id in cleangoal.units during v18_dishes_3nf_integrity",
+      "archived_at": "2026-04-24 13:59:54.365257+00:00"
+    },
+    {
+      "archive_id": 13,
+      "conversion_id": 15,
+      "from_unit_id": 15,
+      "to_unit_id": 1,
+      "row_data": {
+        "note": "ห่อ → กรัม (ค่าเฉลี่ย)",
+        "factor": 150.0,
+        "created_at": "2026-03-30T08:00:46.374685+00:00",
+        "to_unit_id": 1,
+        "from_unit_id": 15,
+        "conversion_id": 15
+      },
+      "archive_reason": "Missing from_unit_id or to_unit_id in cleangoal.units during v18_dishes_3nf_integrity",
+      "archived_at": "2026-04-24 13:59:54.365257+00:00"
+    },
+    {
+      "archive_id": 14,
+      "conversion_id": 14,
+      "from_unit_id": 14,
+      "to_unit_id": 1,
+      "row_data": {
+        "note": "kg → g",
+        "factor": 1000.0,
+        "created_at": "2026-03-30T08:00:46.374685+00:00",
+        "to_unit_id": 1,
+        "from_unit_id": 14,
+        "conversion_id": 14
+      },
+      "archive_reason": "Missing from_unit_id or to_unit_id in cleangoal.units during v18_dishes_3nf_integrity",
+      "archived_at": "2026-04-24 13:59:54.365257+00:00"
+    },
+    {
+      "archive_id": 15,
+      "conversion_id": 17,
+      "from_unit_id": 1,
+      "to_unit_id": 14,
+      "row_data": {
+        "note": "g → kg",
+        "factor": 0.001,
+        "created_at": "2026-03-30T08:00:46.374685+00:00",
+        "to_unit_id": 14,
+        "from_unit_id": 1,
+        "conversion_id": 17
+      },
+      "archive_reason": "Missing from_unit_id or to_unit_id in cleangoal.units during v18_dishes_3nf_integrity",
+      "archived_at": "2026-04-24 13:59:54.365257+00:00"
+    },
+    {
+      "archive_id": 16,
+      "conversion_id": 6,
+      "from_unit_id": 6,
+      "to_unit_id": 1,
+      "row_data": {
+        "note": "oz → g",
+        "factor": 28.3495,
+        "created_at": "2026-03-30T08:00:46.374685+00:00",
+        "to_unit_id": 1,
+        "from_unit_id": 6,
+        "conversion_id": 6
+      },
+      "archive_reason": "Missing from_unit_id or to_unit_id in cleangoal.units during v18_dishes_3nf_integrity",
+      "archived_at": "2026-04-24 13:59:54.365257+00:00"
+    },
+    {
+      "archive_id": 17,
+      "conversion_id": 19,
+      "from_unit_id": 1,
+      "to_unit_id": 6,
+      "row_data": {
+        "note": "g → oz",
+        "factor": 0.035274,
+        "created_at": "2026-03-30T08:00:46.374685+00:00",
+        "to_unit_id": 6,
+        "from_unit_id": 1,
+        "conversion_id": 19
+      },
+      "archive_reason": "Missing from_unit_id or to_unit_id in cleangoal.units during v18_dishes_3nf_integrity",
+      "archived_at": "2026-04-24 13:59:54.365257+00:00"
+    },
+    {
+      "archive_id": 18,
+      "conversion_id": 20,
+      "from_unit_id": 7,
+      "to_unit_id": 9,
+      "row_data": {
+        "note": "L → ml",
+        "factor": 1000.0,
+        "created_at": "2026-03-30T08:00:46.374685+00:00",
+        "to_unit_id": 9,
+        "from_unit_id": 7,
+        "conversion_id": 20
+      },
+      "archive_reason": "Missing from_unit_id or to_unit_id in cleangoal.units during v18_dishes_3nf_integrity",
+      "archived_at": "2026-04-24 13:59:54.365257+00:00"
+    },
+    {
+      "archive_id": 19,
+      "conversion_id": 21,
+      "from_unit_id": 9,
+      "to_unit_id": 7,
+      "row_data": {
+        "note": "ml → L",
+        "factor": 0.001,
+        "created_at": "2026-03-30T08:00:46.374685+00:00",
+        "to_unit_id": 7,
+        "from_unit_id": 9,
+        "conversion_id": 21
+      },
+      "archive_reason": "Missing from_unit_id or to_unit_id in cleangoal.units during v18_dishes_3nf_integrity",
+      "archived_at": "2026-04-24 13:59:54.365257+00:00"
+    }
+  ]
+}

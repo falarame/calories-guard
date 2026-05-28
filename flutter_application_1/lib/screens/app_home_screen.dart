@@ -45,8 +45,6 @@ class _AppHomeScreenState extends ConsumerState<AppHomeScreen> {
   bool _permissionDenied = false;
   late DateTime _viewDate;
   int _streak = 0;
-  ({int hit, int total, double percent}) _successRate =
-      (hit: 0, total: 0, percent: 0.0);
 
   // Feature 2: copy-yesterday notification action listener
   VoidCallback? _payloadListener;
@@ -178,12 +176,10 @@ class _AppHomeScreenState extends ConsumerState<AppHomeScreen> {
       unawaited(NotificationHelper.showStreakCelebration(streak));
       // Tier 2.5: check permission denied flag
       final permDenied = await NotificationHelper.isPermissionDenied();
-      final successRate = await StreakService.getSuccessRate();
       if (mounted) {
         setState(() {
           _streak = streak;
           _permissionDenied = permDenied;
-          _successRate = successRate;
         });
       }
     } catch (_) {
@@ -437,8 +433,8 @@ class _AppHomeScreenState extends ConsumerState<AppHomeScreen> {
   static const _levelColors = [
     Color(0xFFD32F2F), // 🟥 danger low
     Color(0xFFF57C00), // 🟧 caution low
-    Color(0xFF43A047), // 🟩 on track
-    Color(0xFFFBC02D), // 🟨 near target
+    Color(0xFF4FC3F7), // 🟦 on the way to target (light blue)
+    Color(0xFF43A047), // 🟩 near/at target
     Color(0xFFE53935), // 🟥 over target
   ];
 
@@ -470,69 +466,6 @@ class _AppHomeScreenState extends ConsumerState<AppHomeScreen> {
           ),
         );
       }),
-    );
-  }
-
-  // ── Success rate card (30-day rolling) ────────────────────
-  Widget _buildSuccessRateCard() {
-    final hit = _successRate.hit;
-    final total = _successRate.total;
-    final percent = _successRate.percent;
-    final barColor = percent >= 70
-        ? const Color(0xFF43A047)
-        : percent >= 40
-            ? const Color(0xFFFBC02D)
-            : const Color(0xFFEF5350);
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16),
-      child: Container(
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(20),
-          boxShadow: [
-            BoxShadow(
-                color: Colors.black.withValues(alpha: 0.05),
-                blurRadius: 10,
-                offset: const Offset(0, 3)),
-          ],
-        ),
-        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          Row(children: [
-            const Text('📊',
-                style: TextStyle(fontSize: 18)),
-            const SizedBox(width: 8),
-            const Expanded(
-              child: Text('อัตราความสำเร็จ 30 วันย้อนหลัง',
-                  style: TextStyle(
-                      fontSize: 14,
-                      fontWeight: FontWeight.w700,
-                      color: Colors.black87)),
-            ),
-            Text('${percent.toStringAsFixed(1)}%',
-                style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w800,
-                    color: barColor)),
-          ]),
-          const SizedBox(height: 10),
-          ClipRRect(
-            borderRadius: BorderRadius.circular(6),
-            child: LinearProgressIndicator(
-              value: percent / 100,
-              minHeight: 10,
-              backgroundColor: const Color(0xFFEEEEEE),
-              valueColor: AlwaysStoppedAnimation(barColor),
-            ),
-          ),
-          const SizedBox(height: 6),
-          Text(
-            'ทานครบเป้า $hit/$total วัน',
-            style:
-                TextStyle(fontSize: 11, color: Colors.grey.shade600),
-          ),
-        ]),
-      ),
     );
   }
 
@@ -642,10 +575,6 @@ class _AppHomeScreenState extends ConsumerState<AppHomeScreen> {
                         const SizedBox(height: 16),
                         _buildCalorieCard(ringCal, signedNet, grossIntake,
                             burned, targetCal, progress, isOver, userData),
-                        if (_successRate.total > 0) ...[
-                          const SizedBox(height: 12),
-                          _buildSuccessRateCard(),
-                        ],
                         const SizedBox(height: 12),
                         _buildMacroRow(userData),
                         const SizedBox(height: 12),
