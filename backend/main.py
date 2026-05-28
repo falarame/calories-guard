@@ -339,7 +339,7 @@ _init_missing_tables()
 from app.routers import (
     health, auth, users, foods, admin,
     meals, weight, water, exercise,
-    insights, social, chat, notifications, places,
+    insights, social, notifications, places,
     community, referral,
 )
 
@@ -354,7 +354,6 @@ app.include_router(water.router)
 app.include_router(exercise.router)
 app.include_router(insights.router)
 app.include_router(social.router)
-app.include_router(chat.router)
 app.include_router(notifications.router)
 app.include_router(places.router)
 app.include_router(referral.router)

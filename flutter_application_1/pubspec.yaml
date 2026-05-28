@@ -42,7 +42,7 @@ dependencies:
   sentry_flutter: ^9.20.0
   font_awesome_flutter: ^10.7.0
   fl_chart: ^0.68.0
-  intl: ^0.19.0
+  intl: ^0.20.2
   flutter_local_notifications: ^17.0.0
   timezone: ^0.9.2
   http: ^1.1.0
@@ -104,7 +104,6 @@ flutter:
    - assets/images/icon/rice.png
    - assets/images/icon/saveweight.png
    - assets/images/icon/target.png
-   - assets/images/icon/chatbot_icon.png
    # picture
    - assets/images/picture/welcome.png
    - assets/images/picture/girl.png

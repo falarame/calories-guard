@@ -15,7 +15,6 @@ import 'subprofile_screen/setting_screen.dart';
 import '/login_register/screens/goal_selection_screen.dart';
 import '/login_register/screens/activity_level_screen.dart';
 import '/login_register/screens/food_allergy_screen.dart';
-import '/screens/chat/chat_screen.dart';
 
 class ProfileScreen extends ConsumerStatefulWidget {
   const ProfileScreen({super.key});
@@ -170,24 +169,6 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                   Navigator.push(context,
                       MaterialPageRoute(builder: (_) => const SettingScreen()));
                 }, isLast: true),
-              ]),
-            ),
-
-            const SizedBox(height: 20),
-
-            // ─── Section: AI Coach ────────────────────────────
-            _buildSectionLabel('AI Coach'),
-            const SizedBox(height: 10),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20),
-              child: _buildMenuCard([
-                _MenuEntry(Icons.smart_toy_rounded, 'น้องซีการ์ด',
-                    const Color(0xFF628141), () {
-                  Navigator.push(context,
-                      MaterialPageRoute(builder: (_) => const ChatScreen()));
-                },
-                    isLast: true,
-                    assetIcon: 'assets/images/icon/chatbot_icon.png'),
               ]),
             ),
 
@@ -457,19 +438,10 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
             width: 38,
             height: 38,
             decoration: BoxDecoration(
-              color: e.assetIcon != null ? Colors.white : Colors.grey.shade100,
-              shape: e.assetIcon != null ? BoxShape.circle : BoxShape.rectangle,
-              borderRadius:
-                  e.assetIcon != null ? null : BorderRadius.circular(10),
+              color: Colors.grey.shade100,
+              borderRadius: BorderRadius.circular(10),
             ),
-            child: e.assetIcon != null
-                ? ClipOval(
-                    child: Transform.scale(
-                      scale: 1.12,
-                      child: Image.asset(e.assetIcon!, fit: BoxFit.cover),
-                    ),
-                  )
-                : Icon(e.icon, color: Colors.grey.shade500, size: 20),
+            child: Icon(e.icon, color: Colors.grey.shade500, size: 20),
           ),
           title: Text(e.label,
               style: const TextStyle(
@@ -497,9 +469,8 @@ class _MenuEntry {
   final Color iconBg;
   final VoidCallback? onTap;
   final bool isLast;
-  final String? assetIcon;
   const _MenuEntry(this.icon, this.label, this.iconBg, this.onTap,
-      {this.isLast = false, this.assetIcon});
+      {this.isLast = false});
 }
 
 // ─── Badge showcase (reads from local SharedPrefs) ────────────

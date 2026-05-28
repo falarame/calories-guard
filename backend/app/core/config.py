@@ -65,25 +65,6 @@ if _HAS_PSETTINGS:
         supabase_jwt_secret: str = ""
         supabase_project_url: str = ""  # legacy alias used by supabase_storage.py
 
-        # AI — Ollama is the only supported backend. The daemon may run on
-        # localhost (dev) or behind a Cloudflare Tunnel (prod). See
-        # ollama/README.md for the Docker stack.
-        ollama_base_url: str = "http://127.0.0.1:11434"
-        ollama_model: str = "deepseek-r1:1.5b"
-        ollama_timeout: int = 60
-        ollama_num_predict: int = 320
-        ollama_api_key: str = Field(
-            default="",
-            validation_alias=AliasChoices("OLLAMA_SECRET_API_KEY", "OLLAMA_API_KEY"),
-        )  # bearer when behind a protected Ollama tunnel/proxy
-        cf_access_client_id: str = ""        # alt Cloudflare Access auth
-        cf_access_client_secret: str = ""
-        # Kill-switch: set AI_ENABLED=false in Railway to disable AI
-        # endpoints (chat + food auto-add) without a redeploy. Used when
-        # the provider is rate-limiting, when we're over budget, or during
-        # incidents.
-        ai_enabled: bool = True
-
         # SMTP (optional — password-reset/verify email uses this)
         smtp_server: str = "smtp.gmail.com"
         smtp_port: int = 587
@@ -118,7 +99,6 @@ if _HAS_PSETTINGS:
     ADMIN_URL = settings.admin_url
     SENTRY_DSN = settings.sentry_dsn
     APP_ENV = settings.app_env
-    AI_ENABLED = settings.ai_enabled
 
 else:
     # ── Fallback path: plain os.getenv, matches prior behavior ──────────────
@@ -134,7 +114,6 @@ else:
     ADMIN_URL = os.getenv("ADMIN_URL", "")
     SENTRY_DSN = os.getenv("SENTRY_DSN", "")
     APP_ENV = os.getenv("APP_ENV", "development")
-    AI_ENABLED = os.getenv("AI_ENABLED", "true").strip().lower() not in {"0", "false", "no", "off"}
     settings = None  # sentinel; callers should use the legacy constants
 
 # --- Image upload (constants — not env-driven) ----------------------------

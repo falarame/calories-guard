@@ -1,8 +1,5 @@
-import 'dart:async';
-
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 
 // --- Import Provider ---
 import '../providers/user_data_provider.dart';
@@ -15,7 +12,6 @@ import '../screens/profile/profile_screen.dart';
 import '../screens/profile/subprofile_screen/progress_screen.dart';
 import '../screens/tamagotchi/leaderboard_screen.dart';
 import '../screens/weight/weight_chart_screen.dart';
-import '../screens/chat/chat_screen.dart';
 import '../services/notification_helper.dart';
 import 'notification_sheet.dart';
 
@@ -27,8 +23,6 @@ class MainScreen extends ConsumerStatefulWidget {
 }
 
 class _MainScreenState extends ConsumerState<MainScreen> {
-  static const _welcomePrefKey = 'chat_fab_welcome_seen';
-
   // รายชื่อหน้า (เรียงตามลำดับ 0, 1, 2, 3)
   final List<Widget> _pages = [
     const AppHomeScreen(), // Index 0: หน้าหลัก
@@ -37,13 +31,9 @@ class _MainScreenState extends ConsumerState<MainScreen> {
     const LeaderboardScreen(embedded: true), // Index 3: ลีดเดอร์บอร์ด
   ];
 
-  bool _showWelcome = false;
-  Timer? _welcomeTimer;
-
   @override
   void initState() {
     super.initState();
-    _maybeShowWelcome();
     // P2: listen for notification deep-link payloads
     NotificationHelper.pendingPayload.addListener(_handleNotificationPayload);
     // Handle payload that may have been set before this widget was mounted
@@ -55,7 +45,6 @@ class _MainScreenState extends ConsumerState<MainScreen> {
   void dispose() {
     NotificationHelper.pendingPayload
         .removeListener(_handleNotificationPayload);
-    _welcomeTimer?.cancel();
     super.dispose();
   }
 
@@ -84,68 +73,14 @@ class _MainScreenState extends ConsumerState<MainScreen> {
     }
   }
 
-  Future<void> _maybeShowWelcome() async {
-    final prefs = await SharedPreferences.getInstance();
-    if (prefs.getBool(_welcomePrefKey) == true) return;
-    if (!mounted) return;
-    setState(() => _showWelcome = true);
-    _welcomeTimer = Timer(const Duration(seconds: 6), _dismissWelcome);
-  }
-
-  Future<void> _dismissWelcome() async {
-    if (!_showWelcome) return;
-    _welcomeTimer?.cancel();
-    if (mounted) setState(() => _showWelcome = false);
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setBool(_welcomePrefKey, true);
-  }
-
   @override
   Widget build(BuildContext context) {
     // ✅ หัวใจสำคัญ: ดึงค่า Index จาก Provider มาใช้
     // เมื่อค่านี้เปลี่ยน หน้าจอจะเปลี่ยนตามทันที
     final selectedIndex = ref.watch(navIndexProvider);
 
-    final showWelcomeBubble = _showWelcome && selectedIndex == 0;
-
     return Scaffold(
       backgroundColor: const Color(0xFFE8EFCF),
-      floatingActionButton: Padding(
-        padding: const EdgeInsets.only(bottom: 60),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.end,
-          children: [
-            if (showWelcomeBubble) ...[
-              _WelcomeSpeechBubble(onTap: _dismissWelcome),
-              const SizedBox(height: 8),
-            ],
-            FloatingActionButton(
-              heroTag: 'chatFab',
-              onPressed: () {
-                _dismissWelcome();
-                Navigator.push(context,
-                    MaterialPageRoute(builder: (_) => const ChatScreen()));
-              },
-              backgroundColor: Colors.white,
-              shape: const CircleBorder(),
-              tooltip: 'AI Coach',
-              child: ClipOval(
-                child: Transform.scale(
-                  scale: 1.12,
-                  child: Image.asset(
-                    'assets/images/icon/chatbot_icon.png',
-                    width: 56,
-                    height: 56,
-                    fit: BoxFit.cover,
-                  ),
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
-      floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
       body: Column(
         children: [
           _buildTopBar(), // ส่วนหัว (Logo + Profile)
@@ -293,78 +228,3 @@ class _MainScreenState extends ConsumerState<MainScreen> {
   }
 }
 
-class _WelcomeSpeechBubble extends StatelessWidget {
-  final VoidCallback onTap;
-  const _WelcomeSpeechBubble({required this.onTap});
-
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      child: ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: 220),
-        child: Stack(
-          clipBehavior: Clip.none,
-          children: [
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(14),
-                border: Border.all(
-                    color: const Color(0xFF628141).withOpacity(0.3),
-                    width: 1.2),
-                boxShadow: [
-                  BoxShadow(
-                      color: Colors.black.withOpacity(0.12),
-                      blurRadius: 10,
-                      offset: const Offset(0, 4)),
-                ],
-              ),
-              child: const Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'สวัสดี! ฉันคือน้องซีการ์ด',
-                    style: TextStyle(
-                        fontSize: 13,
-                        fontWeight: FontWeight.bold,
-                        color: Color(0xFF4C6414)),
-                  ),
-                  SizedBox(height: 2),
-                  Text(
-                    'แตะที่นี่เพื่อพูดคุยกับโค้ช AI',
-                    style: TextStyle(fontSize: 12, color: Colors.black87),
-                  ),
-                ],
-              ),
-            ),
-            Positioned(
-              right: 18,
-              bottom: -7,
-              child: Transform.rotate(
-                angle: 0.785398,
-                child: Container(
-                  width: 14,
-                  height: 14,
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    border: Border(
-                      right: BorderSide(
-                          color: const Color(0xFF628141).withOpacity(0.3),
-                          width: 1.2),
-                      bottom: BorderSide(
-                          color: const Color(0xFF628141).withOpacity(0.3),
-                          width: 1.2),
-                    ),
-                  ),
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}

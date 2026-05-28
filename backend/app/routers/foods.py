@@ -1,32 +1,15 @@
-import json
 import logging
 import threading
 
 from fastapi import APIRouter, HTTPException, Depends
-from psycopg2.extras import RealDictCursor, Json
+from psycopg2.extras import RealDictCursor
 
 from database import get_db_connection
 from auth.dependencies import get_current_admin
 from app.models.schemas import FoodCreate, FoodAutoAdd, RegionalNameSubmission
-from ai_models import llm_provider
-from ai_models.prompts import RECIPE_SYSTEM_PROMPT as _RECIPE_SYSTEM_PROMPT
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
-
-
-def _parse_ai_recipe(raw: str) -> dict:
-    """Best-effort JSON extraction — some LLMs wrap output in ```json fences."""
-    text = raw.strip()
-    if text.startswith("```"):
-        text = text.strip("`")
-        if text.lower().startswith("json"):
-            text = text[4:]
-    start = text.find("{")
-    end = text.rfind("}")
-    if start == -1 or end == -1:
-        raise ValueError("LLM did not return JSON")
-    return json.loads(text[start : end + 1])
 
 
 @router.get("/foods")
@@ -467,81 +450,15 @@ def get_recipe(food_id: int, user_id: int | None = None):
                 rel_reviews=rel_reviews,
             )
 
-        # No recipe yet — fetch food metadata and ask the LLM.
+        # No recipe yet — AI generation has been retired. Return 404 so the
+        # client can show a "no recipe available" state instead.
         cur.execute(
-            "SELECT food_id, food_name, calories, protein, carbs, fat, image_url "
-            "FROM foods WHERE food_id = %s AND deleted_at IS NULL",
+            "SELECT 1 FROM foods WHERE food_id = %s AND deleted_at IS NULL",
             (food_id,),
         )
-        food = cur.fetchone()
-        if not food:
+        if not cur.fetchone():
             raise HTTPException(status_code=404, detail="Food not found")
-
-        if not llm_provider.is_configured():
-            raise HTTPException(
-                status_code=503,
-                detail="LLM is not configured — recipe cannot be generated",
-            )
-
-        try:
-            raw = llm_provider.generate(
-                _RECIPE_SYSTEM_PROMPT,
-                f"ชื่อเมนู: {food['food_name']}",
-            )
-            ai = _parse_ai_recipe(raw)
-        except Exception as e:
-            logger.warning("recipe LLM generation failed for food_id=%s: %s", food_id, e)
-            raise HTTPException(
-                status_code=502,
-                detail="ไม่สามารถสร้างสูตรอาหารได้ในตอนนี้ กรุณาลองใหม่",
-            )
-
-        cur.execute(
-            """
-            INSERT INTO recipes (
-                food_id, description, instructions,
-                prep_time_minutes, cooking_time_minutes, serving_people,
-                ingredients_json, tools_json, tips_json, generated_by
-            ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, 'ai')
-            ON CONFLICT (food_id) DO UPDATE SET
-                description = EXCLUDED.description,
-                instructions = EXCLUDED.instructions,
-                prep_time_minutes = EXCLUDED.prep_time_minutes,
-                cooking_time_minutes = EXCLUDED.cooking_time_minutes,
-                serving_people = EXCLUDED.serving_people,
-                ingredients_json = EXCLUDED.ingredients_json,
-                tools_json = EXCLUDED.tools_json,
-                tips_json = EXCLUDED.tips_json,
-                generated_by = 'ai'
-            RETURNING *
-            """,
-            (
-                food_id,
-                ai.get("description") or "",
-                ai.get("instructions") or "",
-                int(ai.get("prep_time_minutes") or 0),
-                int(ai.get("cooking_time_minutes") or 0),
-                float(ai.get("serving_people") or 1),
-                Json(ai.get("ingredients") or []),
-                Json(ai.get("tools") or []),
-                Json(ai.get("tips") or []),
-            ),
-        )
-        new_row = cur.fetchone()
-        conn.commit()
-
-        merged = {
-            **dict(new_row),
-            "food_name": food["food_name"],
-            "display_name": food["food_name"],
-            "regional_name": None,
-            "calories": food["calories"],
-            "protein": food["protein"],
-            "carbs": food["carbs"],
-            "fat": food["fat"],
-            "food_image_url": food["image_url"],
-        }
-        return _shape_recipe_response(merged)
+        raise HTTPException(status_code=404, detail="No recipe available for this food")
     except HTTPException:
         raise
     except Exception as e:
